@@ -1,6 +1,7 @@
 {
-    "name": "mentalize-training",
+    "name": "mentalize-system",
     "version": "1.0.0",
+    "type": "module",
     "description": "メンタライズ訓練システム",
     "main": "index.html",
     "scripts": {
