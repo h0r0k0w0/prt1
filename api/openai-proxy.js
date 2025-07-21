@@ -1,26 +1,38 @@
 export default async function handler(req, res) {
-    // CORSヘッダーを設定
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // CORS設定
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
-    }
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-    const { message, scenario, apiKey } = req.body;
-    
-    const prompt = `
-あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。
+  const { 
+    message, 
+    scenario, 
+    apiKey, 
+    model = 'gpt-3.5-turbo',
+    maxTokens = 300,
+    temperature = 0.7,
+    systemPrompt
+  } = req.body;
+
+  // 入力検証
+  if (!message || !scenario || !apiKey) {
+    return res.status(400).json({ 
+      error: 'メッセージ、シナリオ、APIキーは必須です' 
+    });
+  }
+
+  // システムプロンプトの構築
+  const finalSystemPrompt = systemPrompt || `あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。
 
 シナリオ: ${scenario}
-
-学生の発言: ${message}
 
 以下のガイドラインに従って応答してください：
 1. 学生の考えを肯定的に受け止める
@@ -29,36 +41,98 @@ export default async function handler(req, res) {
 4. 具体的な観察ポイントを示す
 5. 温かく支援的な口調で話す
 
-応答は200文字以内で、次の質問や気づきを促すようにしてください。
-    `;
+応答は200文字以内で、次の質問や気づきを促すようにしてください。`;
 
-    try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: prompt },
-                    { role: 'user', content: message }
-                ],
-                max_tokens: 300,
-                temperature: 0.7
-            })
-        });
+  try {
+    console.log(`Using model: ${model}, max_tokens: ${maxTokens}, temperature: ${temperature}`);
 
-        const data = await response.json();
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: finalSystemPrompt },
+          { role: 'user', content: message }
+        ],
+        max_tokens: parseInt(maxTokens),
+        temperature: parseFloat(temperature),
+        presence_penalty: 0.1,  // 繰り返しを避ける
+        frequency_penalty: 0.1  // 多様性を促進
+      })
+    });
+
+    const data = await response.json();
+    
+    // OpenAI APIからのエラー処理
+    if (!response.ok) {
+      console.error('OpenAI API Error:', data);
+      
+      if (data.error) {
+        const errorMessage = data.error.message || 'OpenAI APIエラー';
+        const errorCode = data.error.code || 'unknown';
         
-        if (data.choices && data.choices[0]) {
-            res.json({ response: data.choices[0].message.content });
+        // 具体的なエラーメッセージを返す
+        if (errorCode === 'insufficient_quota') {
+          return res.status(400).json({ 
+            error: 'APIの使用量上限に達しました。管理者に連絡してください。' 
+          });
+        } else if (errorCode === 'invalid_api_key') {
+          return res.status(401).json({ 
+            error: 'APIキーが無効です。管理者に確認してください。' 
+          });
+        } else if (errorCode === 'model_not_found') {
+          return res.status(400).json({ 
+            error: `指定されたモデル（${model}）が見つかりません。` 
+          });
         } else {
-            res.status(500).json({ error: 'AI応答の生成に失敗しました' });
+          return res.status(500).json({ 
+            error: `APIエラー: ${errorMessage}` 
+          });
         }
-    } catch (error) {
-        console.error('API Error:', error);
-        res.status(500).json({ error: 'サーバーエラーが発生しました' });
+      }
+      
+      return res.status(500).json({ error: 'OpenAI APIから予期しないエラーが返されました' });
     }
+    
+    // 正常なレスポンス処理
+    if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+      const aiResponse = data.choices[0].message.content;
+      
+      // 使用量情報をログに出力（デバッグ用）
+      if (data.usage) {
+        console.log('Token usage:', data.usage);
+      }
+      
+      return res.json({ 
+        response: aiResponse,
+        model: model,
+        usage: data.usage,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.error('Unexpected response structure:', data);
+      return res.status(500).json({ 
+        error: 'AIからの応答が空または不正な形式です' 
+      });
+    }
+    
+  } catch (error) {
+    console.error('API Handler Error:', error);
+    
+    // ネットワークエラーや予期しないエラー
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      return res.status(503).json({ 
+        error: 'OpenAI APIへの接続に失敗しました。しばらく待ってから再試行してください。' 
+      });
+    }
+    
+    return res.status(500).json({ 
+      error: 'サーバー内部エラーが発生しました。管理者に連絡してください。',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 }
