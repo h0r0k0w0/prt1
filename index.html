@@ -431,6 +431,192 @@
             font-weight: 600;
         }
 
+        .survey-question {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .survey-question:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .survey-question h4 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .survey-options {
+            margin-top: 10px;
+        }
+
+        .survey-options label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .survey-options label:hover {
+            background: #f8f9fa;
+        }
+
+        .survey-options input {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .scale-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .scale-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-align: center;
+            flex: 1;
+        }
+
+        .scale-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .scale-option input[type="radio"] {
+            transform: scale(1.5);
+            margin-bottom: 5px;
+        }
+
+        .log-entry {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .log-entry:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .log-participant {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .log-date {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .log-content {
+            line-height: 1.6;
+            color: #495057;
+        }
+
+        .log-chat {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-chat-message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .log-chat-message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .log-chat-message.ai {
+            background: #e9ecef;
+            color: #495057;
+            margin-right: auto;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge.self-analysis {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge.agent-assisted {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.survey {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .data-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             .content {
                 padding: 20px;
@@ -495,6 +681,8 @@
                 <button class="nav-btn active" onclick="showAdminScreen('adminConfig')">🔧 システム設定</button>
                 <button class="nav-btn" onclick="showAdminScreen('adminScenarios')">📝 シナリオ管理</button>
                 <button class="nav-btn" onclick="showAdminScreen('adminPrompts')">💬 プロンプト設定</button>
+                <button class="nav-btn" onclick="showAdminScreen('adminSurvey')">📊 アンケート設定</button>
+                <button class="nav-btn" onclick="showAdminScreen('adminLogs')">📋 データ閲覧</button>
                 <button class="nav-btn" onclick="showAdminScreen('adminPreview')">👁️ プレビュー</button>
             </div>
         </div>
@@ -532,7 +720,7 @@
                     </div>
                     <button class="btn" onclick="changeAdminPassword()" style="background: #dc3545;">パスワードを変更</button>
                     <div style="margin-top: 10px; font-size: 14px; color: #6c757d;">
-                        ⚠️ パスワードを変更すると、次回から新しいパスワードが必要になります
+                        ⚠️ パスワードを変更すると、次回から新しいパスワードが必要になります（6文字以上）
                     </div>
                 </div>
                 
@@ -593,7 +781,7 @@
                 </div>
                 <h2>📝 シナリオ管理</h2>
                 
-                <div class="form-group">
+                <div class="admin-config">
                     <h3>新しいシナリオを追加</h3>
                     <div class="form-group">
                         <label for="scenarioTitle">シナリオタイトル</label>
@@ -667,6 +855,113 @@
                 </div>
             </div>
 
+            <div id="adminSurvey" class="screen">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
+                <h2>📊 アンケート設定</h2>
+                
+                <div class="admin-config">
+                    <h3>📝 新しいアンケート質問を追加</h3>
+                    <div class="config-grid">
+                        <div class="form-group">
+                            <label for="questionText">質問内容</label>
+                            <textarea id="questionText" placeholder="例: メンタライズについてどの程度理解していますか？"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="questionType">回答形式</label>
+                            <select id="questionType" onchange="toggleAnswerOptions()">
+                                <option value="text">自由記述</option>
+                                <option value="radio">単一選択</option>
+                                <option value="checkbox">複数選択</option>
+                                <option value="scale">5段階評価</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="answerOptionsDiv" style="display: none;">
+                        <div class="form-group">
+                            <label for="answerOptions">選択肢（改行区切り）</label>
+                            <textarea id="answerOptions" placeholder="例:&#10;全く理解していない&#10;あまり理解していない&#10;普通&#10;よく理解している&#10;非常によく理解している"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="questionTiming">表示タイミング</label>
+                        <select id="questionTiming">
+                            <option value="pre_first">実験開始前（1日目）</option>
+                            <option value="post_first">1日目終了後</option>
+                            <option value="post_last">最終日終了後（7日目）</option>
+                            <option value="all_days">毎日終了後</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn" onclick="addSurveyQuestion()">質問を追加</button>
+                </div>
+
+                <div class="admin-config">
+                    <h3>📋 現在のアンケート質問</h3>
+                    <div id="surveyQuestionsList"></div>
+                </div>
+            </div>
+
+            <div id="adminLogs" class="screen">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
+                <h2>📋 実験データ閲覧</h2>
+                
+                <div class="admin-config">
+                    <h3>🔍 データフィルター</h3>
+                    <div class="config-grid">
+                        <div class="form-group">
+                            <label for="filterParticipant">参加者ID</label>
+                            <select id="filterParticipant" onchange="filterLogs()">
+                                <option value="">全ての参加者</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filterDay">実験日</label>
+                            <select id="filterDay" onchange="filterLogs()">
+                                <option value="">全ての日</option>
+                                <option value="1">1日目</option>
+                                <option value="2">2日目</option>
+                                <option value="3">3日目</option>
+                                <option value="4">4日目</option>
+                                <option value="5">5日目</option>
+                                <option value="6">6日目</option>
+                                <option value="7">7日目</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filterType">データタイプ</label>
+                            <select id="filterType" onchange="filterLogs()">
+                                <option value="">全てのタイプ</option>
+                                <option value="self_analysis">自力分析</option>
+                                <option value="agent_assisted">エージェント支援</option>
+                                <option value="survey">アンケート回答</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="exportData()">📁 データをCSV出力</button>
+                        <button class="btn" onclick="clearAllData()" style="background: #dc3545; margin-left: 10px;">🗑️ 全データ削除</button>
+                    </div>
+                </div>
+
+                <div class="admin-config">
+                    <h3>📊 実験ログ一覧</h3>
+                    <div id="experimentLogsList"></div>
+                </div>
+            </div>
+
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
                 <button class="back-btn" onclick="selectMode('none')">← モード選択に戻る</button>
@@ -703,7 +998,14 @@
                                 <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                             </div>
                             
-                            <div id="scenarioDisplay" class="scenario-card">
+                            <div id="preSurvey" style="display: none;">
+                                <h3>📊 事前アンケート</h3>
+                                <p>実験を開始する前に、いくつかの質問にお答えください。</p>
+                                <div id="preSurveyQuestions"></div>
+                                <button class="btn" onclick="submitPreSurvey()">アンケートを提出して実験開始</button>
+                            </div>
+                            
+                            <div id="scenarioDisplay" class="scenario-card" style="display: none;">
                                 <h3 id="currentScenarioTitle"></h3>
                                 <p id="currentScenarioContent"></p>
                             </div>
@@ -726,6 +1028,20 @@
                                         <button onclick="sendMessage()">送信</button>
                                     </div>
                                 </div>
+                                <button class="btn" onclick="finishChat()" style="margin-top: 15px; background: #28a745;">対話を終了する</button>
+                            </div>
+                            
+                            <div id="postSurvey" style="display: none;">
+                                <h3>📊 事後アンケート</h3>
+                                <p>実験お疲れさまでした。最後にいくつかの質問にお答えください。</p>
+                                <div id="postSurveyQuestions"></div>
+                                <button class="btn" onclick="submitPostSurvey()">アンケートを提出</button>
+                            </div>
+                            
+                            <div id="experimentComplete" style="display: none; text-align: center;">
+                                <h3>🎉 実験完了</h3>
+                                <p>本日の実験が完了しました。ご参加いただき、ありがとうございました。</p>
+                                <button class="btn" onclick="resetExperiment()">新しい実験を開始</button>
                             </div>
                         </div>
                     </div>
@@ -739,8 +1055,10 @@
         let currentMode = 'none';
         let isAdminAuthenticated = false;
         let scenarios = [];
+        let surveyQuestions = [];
+        let experimentLogs = [];
         let adminConfig = {
-            adminPassword: 'MentalizeAdmin2024!', // デフォルトパスワード
+            adminPassword: 'MentalizeAdmin2024!',
             apiKey: '',
             model: 'gpt-3.5-turbo',
             maxTokens: 300,
@@ -799,10 +1117,20 @@
         function init() {
             loadScenarios();
             loadAdminConfig();
+            loadSurveyQuestions();
+            loadExperimentLogs();
             updateModelDisplay();
             updateScenarioList();
             updatePromptPreview();
             updateConfigSummary();
+            
+            // 条件付きで更新（要素が存在する場合のみ）
+            if (document.getElementById('surveyQuestionsList')) {
+                updateSurveyQuestionsList();
+            }
+            if (document.getElementById('experimentLogsList')) {
+                updateLogsList();
+            }
         }
 
         // 管理者アクセス試行
@@ -819,7 +1147,6 @@
                 isAdminAuthenticated = true;
                 errorDiv.innerHTML = '<div class="status success">認証成功！管理者モードにアクセスしています...</div>';
                 
-                // パスワード入力欄をクリア
                 document.getElementById('adminPassword').value = '';
                 
                 setTimeout(() => {
@@ -828,7 +1155,6 @@
             } else {
                 errorDiv.innerHTML = '<div class="status error">パスワードが間違っています</div>';
                 
-                // 一定時間後にエラーメッセージを消去
                 setTimeout(() => {
                     errorDiv.innerHTML = '';
                 }, 3000);
@@ -837,7 +1163,6 @@
 
         // モード選択
         function selectMode(mode) {
-            // 管理者モードには認証が必要
             if (mode === 'admin' && !isAdminAuthenticated) {
                 alert('管理者認証が必要です');
                 return;
@@ -848,7 +1173,6 @@
             document.getElementById('adminNav').classList.toggle('active', mode === 'admin');
             document.getElementById('participantNav').classList.toggle('active', mode === 'participant');
 
-            // 全画面を非表示
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
             });
@@ -909,15 +1233,13 @@
                 return;
             }
             
-            if (newPassword.length < 8) {
-                alert('パスワードは8文字以上で設定してください');
+            if (newPassword.length < 6) {
+                alert('パスワードは6文字以上で設定してください');
                 return;
             }
             
             adminConfig.adminPassword = newPassword;
-            localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
             
-            // 入力欄をクリア
             document.getElementById('newAdminPassword').value = '';
             document.getElementById('confirmAdminPassword').value = '';
             
@@ -933,13 +1255,11 @@
             adminConfig.responseLength = parseInt(document.getElementById('responseLength').value);
             adminConfig.sessionTimeout = parseInt(document.getElementById('sessionTimeout').value);
 
-            localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
             updateModelDisplay();
             updateConfigSummary();
             
             document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
             
-            // 3秒後にメッセージを消去
             setTimeout(() => {
                 document.getElementById('configStatus').innerHTML = '';
             }, 3000);
@@ -950,7 +1270,6 @@
             adminConfig.systemPrompt = document.getElementById('systemPrompt').value;
             adminConfig.responseInstructions = document.getElementById('responseInstructions').value;
 
-            localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
             updatePromptPreview();
             updateConfigSummary();
             
@@ -959,12 +1278,6 @@
 
         // 管理者設定読み込み
         function loadAdminConfig() {
-            const saved = localStorage.getItem('adminConfig');
-            if (saved) {
-                const savedConfig = JSON.parse(saved);
-                adminConfig = { ...adminConfig, ...savedConfig };
-            }
-            
             document.getElementById('adminApiKey').value = adminConfig.apiKey || '';
             document.getElementById('modelSelect').value = adminConfig.model || 'gpt-3.5-turbo';
             document.getElementById('maxTokens').value = adminConfig.maxTokens || 300;
@@ -1041,7 +1354,6 @@
                 updateScenarioList();
                 updateConfigSummary();
                 
-                // フォームをクリア
                 document.getElementById('scenarioTitle').value = '';
                 document.getElementById('scenarioContent').value = '';
                 document.getElementById('scenarioQuestions').value = '';
@@ -1052,25 +1364,21 @@
             }
         }
 
-        // シナリオ保存
+        // シナリオ保存（メモリ上のみ）
         function saveScenarios() {
-            localStorage.setItem('scenarios', JSON.stringify(scenarios));
+            // localStorageの代わりにメモリ上で管理
         }
 
         // シナリオ読み込み
         function loadScenarios() {
-            const saved = localStorage.getItem('scenarios');
-            if (saved) {
-                scenarios = JSON.parse(saved);
-            } else {
-                scenarios = [...defaultScenarios];
-                saveScenarios();
-            }
+            scenarios = [...defaultScenarios];
         }
 
         // シナリオリスト更新
         function updateScenarioList() {
             const list = document.getElementById('scenarioList');
+            if (!list) return;
+            
             list.innerHTML = '';
             
             scenarios.forEach((scenario, index) => {
@@ -1089,9 +1397,336 @@
         function deleteScenario(index) {
             if (confirm('このシナリオを削除しますか？')) {
                 scenarios.splice(index, 1);
-                saveScenarios();
                 updateScenarioList();
                 updateConfigSummary();
+            }
+        }
+
+        // アンケート質問の選択肢表示切り替え
+        function toggleAnswerOptions() {
+            const questionType = document.getElementById('questionType')?.value;
+            const optionsDiv = document.getElementById('answerOptionsDiv');
+            
+            if (!optionsDiv) return;
+            
+            if (questionType === 'radio' || questionType === 'checkbox') {
+                optionsDiv.style.display = 'block';
+            } else {
+                optionsDiv.style.display = 'none';
+            }
+        }
+
+        // アンケート質問追加
+        function addSurveyQuestion() {
+            const questionText = document.getElementById('questionText')?.value;
+            const questionType = document.getElementById('questionType')?.value;
+            const answerOptions = document.getElementById('answerOptions')?.value.split('\n').filter(opt => opt.trim());
+            const timing = document.getElementById('questionTiming')?.value;
+            
+            if (!questionText || !questionText.trim()) {
+                alert('質問内容を入力してください');
+                return;
+            }
+            
+            if ((questionType === 'radio' || questionType === 'checkbox') && answerOptions.length === 0) {
+                alert('選択肢を入力してください');
+                return;
+            }
+            
+            const question = {
+                id: Date.now().toString(),
+                text: questionText,
+                type: questionType,
+                options: answerOptions,
+                timing: timing
+            };
+            
+            surveyQuestions.push(question);
+            saveSurveyQuestions();
+            updateSurveyQuestionsList();
+            
+            // フォームをクリア
+            if (document.getElementById('questionText')) document.getElementById('questionText').value = '';
+            if (document.getElementById('answerOptions')) document.getElementById('answerOptions').value = '';
+            toggleAnswerOptions();
+            
+            alert('アンケート質問が追加されました！');
+        }
+
+        // アンケート質問保存（メモリ上のみ）
+        function saveSurveyQuestions() {
+            // localStorageの代わりにメモリ上で管理
+        }
+
+        // アンケート質問読み込み
+        function loadSurveyQuestions() {
+            surveyQuestions = [];
+        }
+
+        // アンケート質問リスト更新
+        function updateSurveyQuestionsList() {
+            const list = document.getElementById('surveyQuestionsList');
+            if (!list) return;
+            
+            list.innerHTML = '';
+            
+            if (surveyQuestions.length === 0) {
+                list.innerHTML = '<p style="color: #6c757d; text-align: center;">まだアンケート質問が設定されていません</p>';
+                return;
+            }
+            
+            surveyQuestions.forEach((question, index) => {
+                const item = document.createElement('div');
+                item.className = 'survey-question';
+                
+                const timingLabels = {
+                    'pre_first': '実験開始前（1日目）',
+                    'post_first': '1日目終了後',
+                    'post_last': '最終日終了後（7日目）',
+                    'all_days': '毎日終了後'
+                };
+                
+                const typeLabels = {
+                    'text': '自由記述',
+                    'radio': '単一選択',
+                    'checkbox': '複数選択',
+                    'scale': '5段階評価'
+                };
+                
+                item.innerHTML = `
+                    <h4>${question.text}</h4>
+                    <div style="margin-bottom: 10px;">
+                        <span class="badge survey">タイミング: ${timingLabels[question.timing]}</span>
+                        <span class="badge survey" style="margin-left: 10px;">形式: ${typeLabels[question.type]}</span>
+                    </div>
+                    ${question.options && question.options.length > 0 ? 
+                        `<div style="margin-bottom: 15px;"><strong>選択肢:</strong><br>${question.options.map(opt => `• ${opt}`).join('<br>')}</div>` : 
+                        ''}
+                    <button class="btn" onclick="deleteSurveyQuestion(${index})" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // アンケート質問削除
+        function deleteSurveyQuestion(index) {
+            if (confirm('この質問を削除しますか？')) {
+                surveyQuestions.splice(index, 1);
+                saveSurveyQuestions();
+                updateSurveyQuestionsList();
+            }
+        }
+
+        // 実験ログ保存
+        function saveExperimentLog(logData) {
+            experimentLogs.push({
+                ...logData,
+                id: Date.now().toString(),
+                timestamp: new Date().toISOString()
+            });
+            if (document.getElementById('experimentLogsList')) {
+                updateLogsList();
+            }
+        }
+
+        // 実験ログ読み込み
+        function loadExperimentLogs() {
+            experimentLogs = [];
+        }
+
+        // ログリスト更新
+        function updateLogsList() {
+            updateParticipantFilter();
+            displayFilteredLogs();
+        }
+
+        // 参加者フィルター更新
+        function updateParticipantFilter() {
+            const filterSelect = document.getElementById('filterParticipant');
+            if (!filterSelect) return;
+            
+            const participants = [...new Set(experimentLogs.map(log => log.participantId))];
+            filterSelect.innerHTML = '<option value="">全ての参加者</option>';
+            
+            participants.forEach(participant => {
+                const option = document.createElement('option');
+                option.value = participant;
+                option.textContent = participant;
+                filterSelect.appendChild(option);
+            });
+        }
+
+        // ログフィルタリング
+        function filterLogs() {
+            displayFilteredLogs();
+        }
+
+        // フィルタリングされたログを表示
+        function displayFilteredLogs() {
+            const list = document.getElementById('experimentLogsList');
+            if (!list) return;
+            
+            const participantFilter = document.getElementById('filterParticipant')?.value || '';
+            const dayFilter = document.getElementById('filterDay')?.value || '';
+            const typeFilter = document.getElementById('filterType')?.value || '';
+            
+            let filteredLogs = experimentLogs.filter(log => {
+                return (!participantFilter || log.participantId === participantFilter) &&
+                       (!dayFilter || log.day?.toString() === dayFilter) &&
+                       (!typeFilter || log.experimentType === typeFilter);
+            });
+            
+            // データサマリー表示
+            displayDataSummary(filteredLogs);
+            
+            list.innerHTML = '';
+            
+            if (filteredLogs.length === 0) {
+                list.innerHTML = '<p style="color: #6c757d; text-align: center;">条件に合致するデータがありません</p>';
+                return;
+            }
+            
+            // 日付順（新しい順）でソート
+            filteredLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            filteredLogs.forEach(log => {
+                const item = document.createElement('div');
+                item.className = 'log-entry';
+                
+                const date = new Date(log.timestamp).toLocaleString('ja-JP');
+                const typeLabels = {
+                    'self_analysis': '自力分析',
+                    'agent_assisted': 'エージェント支援',
+                    'survey': 'アンケート回答'
+                };
+                
+                let content = '';
+                if (log.experimentType === 'self_analysis') {
+                    content = `<div class="log-content"><strong>分析内容:</strong><br>${log.analysis}</div>`;
+                } else if (log.experimentType === 'agent_assisted') {
+                    content = `<div class="log-content"><strong>会話履歴:</strong></div>
+                               <div class="log-chat">${formatChatHistory(log.chatHistory)}</div>`;
+                } else if (log.experimentType === 'survey') {
+                    content = `<div class="log-content"><strong>アンケート回答:</strong><br>${formatSurveyAnswers(log.surveyAnswers)}</div>`;
+                }
+                
+                item.innerHTML = `
+                    <div class="log-header">
+                        <div>
+                            <span class="log-participant">参加者: ${log.participantId}</span>
+                            <span class="badge ${log.experimentType}" style="margin-left: 10px;">${typeLabels[log.experimentType]}</span>
+                            ${log.day ? `<span style="margin-left: 10px; color: #6c757d;">Day ${log.day}</span>` : ''}
+                        </div>
+                        <div class="log-date">${date}</div>
+                    </div>
+                    ${log.scenarioTitle ? `<div style="margin-bottom: 10px;"><strong>シナリオ:</strong> ${log.scenarioTitle}</div>` : ''}
+                    ${content}
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // データサマリー表示
+        function displayDataSummary(logs) {
+            const summaryContainer = document.querySelector('#adminLogs .data-summary');
+            if (summaryContainer) {
+                summaryContainer.remove();
+            }
+            
+            const summary = document.createElement('div');
+            summary.className = 'data-summary';
+            
+            const participants = new Set(logs.map(log => log.participantId)).size;
+            const selfAnalysis = logs.filter(log => log.experimentType === 'self_analysis').length;
+            const agentAssisted = logs.filter(log => log.experimentType === 'agent_assisted').length;
+            const surveys = logs.filter(log => log.experimentType === 'survey').length;
+            
+            summary.innerHTML = `
+                <div class="summary-card">
+                    <div class="summary-number">${participants}</div>
+                    <div class="summary-label">参加者数</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">${selfAnalysis}</div>
+                    <div class="summary-label">自力分析</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">${agentAssisted}</div>
+                    <div class="summary-label">エージェント支援</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">${surveys}</div>
+                    <div class="summary-label">アンケート回答</div>
+                </div>
+            `;
+            
+            const configDiv = document.querySelector('#adminLogs .admin-config');
+            if (configDiv) {
+                configDiv.parentNode.insertBefore(summary, configDiv.nextSibling);
+            }
+        }
+
+        // チャット履歴フォーマット
+        function formatChatHistory(chatHistory) {
+            if (!chatHistory || chatHistory.length === 0) {
+                return '<p style="color: #6c757d;">チャット履歴がありません</p>';
+            }
+            
+            return chatHistory.map(msg => 
+                `<div class="log-chat-message ${msg.sender}">${msg.content}</div>`
+            ).join('');
+        }
+
+        // アンケート回答フォーマット
+        function formatSurveyAnswers(answers) {
+            if (!answers || Object.keys(answers).length === 0) {
+                return '<p style="color: #6c757d;">アンケート回答がありません</p>';
+            }
+            
+            return Object.entries(answers).map(([questionId, answer]) => {
+                const question = surveyQuestions.find(q => q.id === questionId);
+                const questionText = question ? question.text : `質問ID: ${questionId}`;
+                return `<div style="margin-bottom: 10px;"><strong>Q:</strong> ${questionText}<br><strong>A:</strong> ${Array.isArray(answer) ? answer.join(', ') : answer}</div>`;
+            }).join('');
+        }
+
+        // データCSV出力
+        function exportData() {
+            if (experimentLogs.length === 0) {
+                alert('出力するデータがありません');
+                return;
+            }
+            
+            let csv = 'ID,参加者ID,実験日,実験タイプ,シナリオ,データ,タイムスタンプ\n';
+            
+            experimentLogs.forEach(log => {
+                let data = '';
+                if (log.experimentType === 'self_analysis') {
+                    data = log.analysis?.replace(/"/g, '""') || '';
+                } else if (log.experimentType === 'agent_assisted') {
+                    data = log.chatHistory?.map(msg => `${msg.sender}: ${msg.content}`).join(' | ') || '';
+                } else if (log.experimentType === 'survey') {
+                    data = Object.entries(log.surveyAnswers || {}).map(([q, a]) => `${q}: ${a}`).join(' | ');
+                }
+                
+                csv += `"${log.id}","${log.participantId}","${log.day || ''}","${log.experimentType}","${log.scenarioTitle || ''}","${data}","${log.timestamp}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `mentalize_experiment_data_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // 全データ削除
+        function clearAllData() {
+            if (confirm('本当に全ての実験データを削除しますか？この操作は取り消せません。')) {
+                if (confirm('再確認: 全てのデータが完全に削除されます。よろしいですか？')) {
+                    experimentLogs = [];
+                    updateLogsList();
+                    alert('全ての実験データを削除しました');
+                }
             }
         }
 
@@ -1115,12 +1750,57 @@
                 return;
             }
 
-            // シナリオをランダムに選択
-            currentScenarioIndex = Math.floor(Math.random() * scenarios.length);
-            
             document.getElementById('participantSetup').style.display = 'none';
             document.getElementById('experimentContent').style.display = 'block';
             
+            // 事前アンケートがあるかチェック
+            const preSurveyQuestions = surveyQuestions.filter(q => q.timing === 'pre_first');
+            if (currentDay === 1 && preSurveyQuestions.length > 0) {
+                showPreSurvey();
+            } else {
+                startMainExperiment();
+            }
+        }
+
+        // 事前アンケート表示
+        function showPreSurvey() {
+            const preSurveyQuestions = surveyQuestions.filter(q => q.timing === 'pre_first');
+            const container = document.getElementById('preSurveyQuestions');
+            
+            container.innerHTML = '';
+            preSurveyQuestions.forEach(question => {
+                container.appendChild(createSurveyQuestion(question));
+            });
+            
+            document.getElementById('preSurvey').style.display = 'block';
+            document.getElementById('progressFill').style.width = '15%';
+        }
+
+        // 事前アンケート提出
+        function submitPreSurvey() {
+            const answers = collectSurveyAnswers('preSurveyQuestions');
+            
+            if (!validateSurveyAnswers(answers, surveyQuestions.filter(q => q.timing === 'pre_first'))) {
+                return;
+            }
+            
+            // アンケート結果保存
+            saveExperimentLog({
+                participantId,
+                day: currentDay,
+                experimentType: 'survey',
+                surveyTiming: 'pre_first',
+                surveyAnswers: answers
+            });
+            
+            document.getElementById('preSurvey').style.display = 'none';
+            startMainExperiment();
+        }
+
+        // メイン実験開始
+        function startMainExperiment() {
+            // シナリオをランダムに選択
+            currentScenarioIndex = Math.floor(Math.random() * scenarios.length);
             displayScenario();
         }
 
@@ -1129,9 +1809,10 @@
             const scenario = scenarios[currentScenarioIndex];
             document.getElementById('currentScenarioTitle').textContent = scenario.title;
             document.getElementById('currentScenarioContent').textContent = scenario.content;
+            document.getElementById('scenarioDisplay').style.display = 'block';
             
             // 進捗バー更新
-            document.getElementById('progressFill').style.width = '25%';
+            document.getElementById('progressFill').style.width = '40%';
             
             if (currentDay === 1 || currentDay === 7) {
                 // 自力メンタライズ
@@ -1154,22 +1835,21 @@
             }
 
             // 実験データ保存
-            experimentData = {
+            saveExperimentLog({
                 participantId,
                 day: currentDay,
                 scenarioIndex: currentScenarioIndex,
                 scenarioTitle: scenarios[currentScenarioIndex].title,
                 analysis,
-                timestamp: new Date().toISOString(),
                 model: adminConfig.model,
                 experimentType: 'self_analysis'
-            };
+            });
 
             // 進捗バー更新
-            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressFill').style.width = '80%';
             
-            console.log('実験データ:', experimentData);
-            alert('分析が提出されました！データはコンソールに出力されています。');
+            // 事後アンケートチェック
+            checkPostSurvey();
         }
 
         // チャット初期化
@@ -1182,6 +1862,192 @@
             
             // 進捗バー更新
             document.getElementById('progressFill').style.width = '50%';
+        }
+
+        // チャット終了
+        function finishChat() {
+            // チャット履歴保存
+            saveExperimentLog({
+                participantId,
+                day: currentDay,
+                scenarioIndex: currentScenarioIndex,
+                scenarioTitle: scenarios[currentScenarioIndex].title,
+                chatHistory: getChatHistory(),
+                model: adminConfig.model,
+                experimentType: 'agent_assisted'
+            });
+
+            // 進捗バー更新
+            document.getElementById('progressFill').style.width = '80%';
+            
+            // 事後アンケートチェック
+            checkPostSurvey();
+        }
+
+        // 事後アンケートチェック
+        function checkPostSurvey() {
+            let postSurveyQuestions = [];
+            
+            if (currentDay === 1) {
+                postSurveyQuestions = surveyQuestions.filter(q => q.timing === 'post_first' || q.timing === 'all_days');
+            } else if (currentDay === 7) {
+                postSurveyQuestions = surveyQuestions.filter(q => q.timing === 'post_last' || q.timing === 'all_days');
+            } else {
+                postSurveyQuestions = surveyQuestions.filter(q => q.timing === 'all_days');
+            }
+            
+            if (postSurveyQuestions.length > 0) {
+                showPostSurvey(postSurveyQuestions);
+            } else {
+                finishExperiment();
+            }
+        }
+
+        // 事後アンケート表示
+        function showPostSurvey(questions) {
+            const container = document.getElementById('postSurveyQuestions');
+            
+            container.innerHTML = '';
+            questions.forEach(question => {
+                container.appendChild(createSurveyQuestion(question));
+            });
+            
+            document.getElementById('selfMentalize').style.display = 'none';
+            document.getElementById('agentChat').style.display = 'none';
+            document.getElementById('postSurvey').style.display = 'block';
+            document.getElementById('progressFill').style.width = '90%';
+        }
+
+        // 事後アンケート提出
+        function submitPostSurvey() {
+            let postSurveyQuestions = [];
+            
+            if (currentDay === 1) {
+                postSurveyQuestions = surveyQuestions.filter(q => q.timing === 'post_first' || q.timing === 'all_days');
+            } else if (currentDay === 7) {
+                postSurveyQuestions = surveyQuestions.filter(q => q.timing === 'post_last' || q.timing === 'all_days');
+            } else {
+                postSurveyQuestions = surveyQuestions.filter(q => q.timing === 'all_days');
+            }
+            
+            const answers = collectSurveyAnswers('postSurveyQuestions');
+            
+            if (!validateSurveyAnswers(answers, postSurveyQuestions)) {
+                return;
+            }
+            
+            // アンケート結果保存
+            let surveyTiming = 'all_days';
+            if (currentDay === 1) surveyTiming = 'post_first';
+            if (currentDay === 7) surveyTiming = 'post_last';
+            
+            saveExperimentLog({
+                participantId,
+                day: currentDay,
+                experimentType: 'survey',
+                surveyTiming: surveyTiming,
+                surveyAnswers: answers
+            });
+            
+            document.getElementById('postSurvey').style.display = 'none';
+            finishExperiment();
+        }
+
+        // アンケート質問要素作成
+        function createSurveyQuestion(question) {
+            const div = document.createElement('div');
+            div.className = 'survey-question';
+            
+            let inputHTML = '';
+            
+            if (question.type === 'text') {
+                inputHTML = `<textarea name="q_${question.id}" placeholder="ご回答をご記入ください"></textarea>`;
+            } else if (question.type === 'radio') {
+                inputHTML = '<div class="survey-options">' +
+                    question.options.map((option, index) => 
+                        `<label><input type="radio" name="q_${question.id}" value="${option}"> ${option}</label>`
+                    ).join('') + '</div>';
+            } else if (question.type === 'checkbox') {
+                inputHTML = '<div class="survey-options">' +
+                    question.options.map((option, index) => 
+                        `<label><input type="checkbox" name="q_${question.id}" value="${option}"> ${option}</label>`
+                    ).join('') + '</div>';
+            } else if (question.type === 'scale') {
+                inputHTML = `<div class="scale-container">
+                    <div class="scale-label">全くそう思わない</div>
+                    ${[1, 2, 3, 4, 5].map(num => 
+                        `<div class="scale-option">
+                            <input type="radio" name="q_${question.id}" value="${num}">
+                            <div class="scale-label">${num}</div>
+                        </div>`
+                    ).join('')}
+                    <div class="scale-label">非常にそう思う</div>
+                </div>`;
+            }
+            
+            div.innerHTML = `
+                <h4>${question.text}</h4>
+                ${inputHTML}
+            `;
+            
+            return div;
+        }
+
+        // アンケート回答収集
+        function collectSurveyAnswers(containerId) {
+            const container = document.getElementById(containerId);
+            const answers = {};
+            
+            container.querySelectorAll('[name^="q_"]').forEach(input => {
+                const questionId = input.name.replace('q_', '');
+                
+                if (input.type === 'textarea' || input.type === 'text') {
+                    answers[questionId] = input.value;
+                } else if (input.type === 'radio' && input.checked) {
+                    answers[questionId] = input.value;
+                } else if (input.type === 'checkbox') {
+                    if (!answers[questionId]) answers[questionId] = [];
+                    if (input.checked) {
+                        answers[questionId].push(input.value);
+                    }
+                }
+            });
+            
+            return answers;
+        }
+
+        // アンケート回答検証
+        function validateSurveyAnswers(answers, questions) {
+            for (let question of questions) {
+                if (!answers[question.id] || 
+                    (Array.isArray(answers[question.id]) && answers[question.id].length === 0) ||
+                    (typeof answers[question.id] === 'string' && !answers[question.id].trim())) {
+                    alert(`質問「${question.text}」にお答えください`);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // 実験終了
+        function finishExperiment() {
+            document.getElementById('postSurvey').style.display = 'none';
+            document.getElementById('experimentComplete').style.display = 'block';
+            document.getElementById('progressFill').style.width = '100%';
+        }
+
+        // 実験リセット
+        function resetExperiment() {
+            document.getElementById('experimentContent').style.display = 'none';
+            document.getElementById('participantSetup').style.display = 'block';
+            document.getElementById('userAnalysis').value = '';
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('progressFill').style.width = '0%';
+            
+            // 全ての実験画面を非表示
+            ['preSurvey', 'scenarioDisplay', 'selfMentalize', 'agentChat', 'postSurvey', 'experimentComplete'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
         }
 
         // メッセージ送信
@@ -1197,21 +2063,6 @@
             // AI応答を生成
             const response = await generateAIResponse(message);
             addMessage('ai', response);
-            
-            // 実験データ保存（会話履歴）
-            experimentData = {
-                participantId,
-                day: currentDay,
-                scenarioIndex: currentScenarioIndex,
-                scenarioTitle: scenarios[currentScenarioIndex].title,
-                chatHistory: getChatHistory(),
-                timestamp: new Date().toISOString(),
-                model: adminConfig.model,
-                experimentType: 'agent_assisted'
-            };
-            
-            // 進捗バー更新
-            document.getElementById('progressFill').style.width = '75%';
         }
 
         // チャット履歴取得
@@ -1234,47 +2085,22 @@
             messages.scrollTop = messages.scrollHeight;
         }
 
-        // AI応答生成
+        // AI応答生成（デモ用）
         async function generateAIResponse(userMessage) {
-            const scenario = scenarios[currentScenarioIndex];
+            // デモ用の簡単な応答
+            const responses = [
+                "なるほど、その観点は興味深いですね。登場人物の表情や行動からも何か読み取れることはありますか？",
+                "とても良い分析ですね。他の登場人物はどのような気持ちでいると思いますか？",
+                "その通りですね。さらに深く考えてみると、なぜそのような感情を抱いているのでしょうか？",
+                "素晴らしい気づきです。そこから読み取れる人間関係はどのようなものでしょうか？"
+            ];
             
-            // 管理者設定からプロンプトを構築
-            const fullPrompt = `${adminConfig.systemPrompt}
-
-シナリオ: ${scenario.content}
-
-${adminConfig.responseInstructions.replace('{responseLength}', adminConfig.responseLength)}`;
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: userMessage,
-                        scenario: scenario.content,
-                        apiKey: adminConfig.apiKey,
-                        model: adminConfig.model,
-                        maxTokens: adminConfig.maxTokens,
-                        temperature: adminConfig.temperature,
-                        systemPrompt: fullPrompt
-                    })
-                });
-
-                const data = await response.json();
-                if (data.response) {
-                    return data.response;
-                } else {
-                    return 'エラーが発生しました。管理者に連絡してください。';
-                }
-            } catch (error) {
-                console.error('AI応答エラー:', error);
-                return 'サーバーエラーが発生しました。管理者に連絡してください。';
-            }
+            // ランダムに応答を選択
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
+            return responses[Math.floor(Math.random() * responses.length)];
         }
 
-        // Enterキーでメッセージ送信
+        // イベントリスナー設定
         document.addEventListener('DOMContentLoaded', function() {
             const chatInput = document.getElementById('chatInput');
             if (chatInput) {
@@ -1285,7 +2111,6 @@ ${adminConfig.responseInstructions.replace('{responseLength}', adminConfig.respo
                 });
             }
 
-            // 管理者パスワード入力でEnterキー対応
             const adminPasswordInput = document.getElementById('adminPassword');
             if (adminPasswordInput) {
                 adminPasswordInput.addEventListener('keypress', function(e) {
