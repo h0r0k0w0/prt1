@@ -1,0 +1,10 @@
+{
+    "name": "mentalize-training",
+    "version": "1.0.0",
+    "description": "メンタライズ訓練システム",
+    "main": "index.html",
+    "scripts": {
+        "dev": "vercel dev",
+        "build": "echo 'Build complete'"
+    }
+}
