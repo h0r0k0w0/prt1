@@ -457,16 +457,35 @@
 
         <!-- モード選択画面 -->
         <div id="modeSelector" class="mode-selector">
-            <h2 style="margin-bottom: 30px; color: #495057;">利用モードを選択してください</h2>
+            <h2 style="margin-bottom: 20px; color: #495057;">実験参加者の方へ</h2>
+            <p style="margin-bottom: 30px; color: #6c757d; font-size: 18px;">
+                メンタライズ訓練実験にご参加いただき、ありがとうございます。<br>
+                下のボタンから実験を開始してください。
+            </p>
             <div class="mode-buttons">
-                <button class="mode-btn admin" onclick="selectMode('admin')">
-                    🔧 管理者モード<br>
-                    <small>設定・シナリオ管理・実験設計</small>
-                </button>
-                <button class="mode-btn participant" onclick="selectMode('participant')">
-                    🎯 被験者モード<br>
+                <button class="mode-btn participant" onclick="selectMode('participant')" style="transform: scale(1.1); margin-bottom: 30px;">
+                    🎯 実験を開始する<br>
                     <small>メンタライズ訓練実施</small>
                 </button>
+            </div>
+            
+            <!-- 管理者アクセス -->
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #e9ecef;">
+                <details style="text-align: left; max-width: 400px; margin: 0 auto;">
+                    <summary style="cursor: pointer; color: #6c757d; font-size: 14px; text-align: center;">
+                        研究者・管理者の方はこちら
+                    </summary>
+                    <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                        <div class="form-group">
+                            <label for="adminPassword" style="font-size: 14px;">管理者パスワード</label>
+                            <input type="password" id="adminPassword" placeholder="パスワードを入力" style="margin-bottom: 15px;">
+                        </div>
+                        <button class="btn" onclick="attemptAdminAccess()" style="width: 100%; font-size: 14px; padding: 10px;">
+                            🔧 管理者モードにアクセス
+                        </button>
+                        <div id="adminAccessError" style="margin-top: 10px;"></div>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -490,8 +509,32 @@
         <div class="content">
             <!-- 管理者画面 -->
             <div id="adminConfig" class="screen">
-                <button class="back-btn" onclick="selectMode('none')">← モード選択に戻る</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
                 <h2>🔧 システム設定</h2>
+                
+                <!-- パスワード変更セクション -->
+                <div class="admin-config">
+                    <h3>🔒 セキュリティ設定</h3>
+                    <div class="config-grid">
+                        <div class="form-group">
+                            <label for="newAdminPassword">管理者パスワードを変更</label>
+                            <input type="password" id="newAdminPassword" placeholder="新しいパスワード">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmAdminPassword">パスワード確認</label>
+                            <input type="password" id="confirmAdminPassword" placeholder="パスワードを再入力">
+                        </div>
+                    </div>
+                    <button class="btn" onclick="changeAdminPassword()" style="background: #dc3545;">パスワードを変更</button>
+                    <div style="margin-top: 10px; font-size: 14px; color: #6c757d;">
+                        ⚠️ パスワードを変更すると、次回から新しいパスワードが必要になります
+                    </div>
+                </div>
                 
                 <div class="admin-config">
                     <h3>🔑 OpenAI API 設定</h3>
@@ -542,7 +585,12 @@
             </div>
 
             <div id="adminScenarios" class="screen">
-                <button class="back-btn" onclick="selectMode('none')">← モード選択に戻る</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
                 <h2>📝 シナリオ管理</h2>
                 
                 <div class="form-group">
@@ -566,7 +614,12 @@
             </div>
 
             <div id="adminPrompts" class="screen">
-                <button class="back-btn" onclick="selectMode('none')">← モード選択に戻る</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
                 <h2>💬 プロンプト設定</h2>
                 
                 <div class="admin-config">
@@ -597,7 +650,12 @@
             </div>
 
             <div id="adminPreview" class="screen">
-                <button class="back-btn" onclick="selectMode('none')">← モード選択に戻る</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
                 <h2>👁️ プレビュー</h2>
                 
                 <p>被験者が実際に見る画面をプレビューできます。</p>
@@ -679,8 +737,10 @@
     <script>
         // グローバル変数
         let currentMode = 'none';
+        let isAdminAuthenticated = false;
         let scenarios = [];
         let adminConfig = {
+            adminPassword: 'MentalizeAdmin2024!', // デフォルトパスワード
             apiKey: '',
             model: 'gpt-3.5-turbo',
             maxTokens: 300,
@@ -745,8 +805,44 @@
             updateConfigSummary();
         }
 
+        // 管理者アクセス試行
+        function attemptAdminAccess() {
+            const inputPassword = document.getElementById('adminPassword').value;
+            const errorDiv = document.getElementById('adminAccessError');
+            
+            if (!inputPassword) {
+                errorDiv.innerHTML = '<div class="status error">パスワードを入力してください</div>';
+                return;
+            }
+            
+            if (inputPassword === adminConfig.adminPassword) {
+                isAdminAuthenticated = true;
+                errorDiv.innerHTML = '<div class="status success">認証成功！管理者モードにアクセスしています...</div>';
+                
+                // パスワード入力欄をクリア
+                document.getElementById('adminPassword').value = '';
+                
+                setTimeout(() => {
+                    selectMode('admin');
+                }, 1000);
+            } else {
+                errorDiv.innerHTML = '<div class="status error">パスワードが間違っています</div>';
+                
+                // 一定時間後にエラーメッセージを消去
+                setTimeout(() => {
+                    errorDiv.innerHTML = '';
+                }, 3000);
+            }
+        }
+
         // モード選択
         function selectMode(mode) {
+            // 管理者モードには認証が必要
+            if (mode === 'admin' && !isAdminAuthenticated) {
+                alert('管理者認証が必要です');
+                return;
+            }
+            
             currentMode = mode;
             document.getElementById('modeSelector').style.display = mode === 'none' ? 'block' : 'none';
             document.getElementById('adminNav').classList.toggle('active', mode === 'admin');
@@ -792,6 +888,42 @@
             }
         }
 
+        // 管理者ログアウト
+        function adminLogout() {
+            isAdminAuthenticated = false;
+            selectMode('none');
+        }
+
+        // 管理者パスワード変更
+        function changeAdminPassword() {
+            const newPassword = document.getElementById('newAdminPassword').value;
+            const confirmPassword = document.getElementById('confirmAdminPassword').value;
+            
+            if (!newPassword || !confirmPassword) {
+                alert('両方のパスワード欄を入力してください');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('パスワードが一致しません');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                alert('パスワードは8文字以上で設定してください');
+                return;
+            }
+            
+            adminConfig.adminPassword = newPassword;
+            localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
+            
+            // 入力欄をクリア
+            document.getElementById('newAdminPassword').value = '';
+            document.getElementById('confirmAdminPassword').value = '';
+            
+            alert('パスワードが変更されました！次回ログイン時から新しいパスワードが必要になります。');
+        }
+
         // 管理者設定保存
         function saveAdminConfig() {
             adminConfig.apiKey = document.getElementById('adminApiKey').value;
@@ -829,7 +961,8 @@
         function loadAdminConfig() {
             const saved = localStorage.getItem('adminConfig');
             if (saved) {
-                adminConfig = { ...adminConfig, ...JSON.parse(saved) };
+                const savedConfig = JSON.parse(saved);
+                adminConfig = { ...adminConfig, ...savedConfig };
             }
             
             document.getElementById('adminApiKey').value = adminConfig.apiKey || '';
@@ -1148,6 +1281,16 @@ ${adminConfig.responseInstructions.replace('{responseLength}', adminConfig.respo
                 chatInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         sendMessage();
+                    }
+                });
+            }
+
+            // 管理者パスワード入力でEnterキー対応
+            const adminPasswordInput = document.getElementById('adminPassword');
+            if (adminPasswordInput) {
+                adminPasswordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        attemptAdminAccess();
                     }
                 });
             }
