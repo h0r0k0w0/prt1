@@ -1120,10 +1120,15 @@
             item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
             item.innerHTML = `
                 <h4 style="margin-bottom: 10px; color: #495057;">${scenario.title}</h4>
-                <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.substring(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
-                <button class="btn" onclick="deleteScenario(${index})" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
+                <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.slice(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
+                <button class="btn deleteBtn" data-index="${index}"  style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
             `;
             list.appendChild(item);
+        });
+        list.querySelectorAll('.deleteBtn').forEach(btn => {
+          btn.addEventListener('click', e => {
+            deleteScenario(Number(e.currentTarget.dataset.index));
+          });
         });
     }
 
