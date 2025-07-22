@@ -384,12 +384,6 @@
             background: #5a6268;
         }
 
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-        }
-
         @media (max-width: 768px) {
             .content {
                 padding: 20px;
@@ -415,7 +409,7 @@
             <p>他者の認知と感情を理解する能力を向上させましょう</p>
         </div>
 
-        <!-- モード選択画面（最初に表示される画面） -->
+        <!-- モード選択画面 -->
         <div id="modeSelector" class="mode-selector">
             <h2 style="margin-bottom: 20px; color: #495057;">実験参加者の方へ</h2>
             <p style="margin-bottom: 30px; color: #6c757d; font-size: 18px;">
@@ -423,7 +417,7 @@
                 下のボタンから実験を開始してください。
             </p>
             <div class="mode-buttons">
-                <button class="mode-btn participant" onclick="selectMode('participant')" style="transform: scale(1.1); margin-bottom: 30px;">
+                <button id="participantBtn" class="mode-btn participant" style="transform: scale(1.1); margin-bottom: 30px;">
                     🎯 実験を開始する<br>
                     <small>メンタライズ訓練実施</small>
                 </button>
@@ -440,7 +434,7 @@
                             <label for="adminPassword" style="font-size: 14px;">管理者パスワード</label>
                             <input type="password" id="adminPassword" placeholder="パスワードを入力" style="margin-bottom: 15px;">
                         </div>
-                        <button class="btn" onclick="attemptAdminAccess()" style="width: 100%; font-size: 14px; padding: 10px;">
+                        <button id="adminAccessBtn" class="btn" style="width: 100%; font-size: 14px; padding: 10px;">
                             🔧 管理者モードにアクセス
                         </button>
                         <div id="adminAccessError" style="margin-top: 10px;"></div>
@@ -449,34 +443,33 @@
             </div>
         </div>
 
-        <!-- 管理者ナビゲーション（管理者モード時のみ表示） -->
+        <!-- 管理者ナビゲーション -->
         <div id="adminNav" class="nav">
             <div class="nav-buttons">
-                <button class="nav-btn active" onclick="showAdminScreen('adminConfig')">🔧 システム設定</button>
-                <button class="nav-btn" onclick="showAdminScreen('adminScenarios')">📝 シナリオ管理</button>
-                <button class="nav-btn" onclick="showAdminScreen('adminLogs')">📋 データ閲覧</button>
+                <button id="adminConfigNav" class="nav-btn active">🔧 システム設定</button>
+                <button id="adminScenariosNav" class="nav-btn">📝 シナリオ管理</button>
+                <button id="adminLogsNav" class="nav-btn">📋 データ閲覧</button>
             </div>
         </div>
 
-        <!-- 被験者ナビゲーション（被験者モード時のみ表示） -->
+        <!-- 被験者ナビゲーション -->
         <div id="participantNav" class="nav">
             <div class="nav-buttons">
-                <button class="nav-btn active" onclick="showParticipantScreen('participantStart')">🚀 実験開始</button>
+                <button id="participantStartNav" class="nav-btn active">🚀 実験開始</button>
             </div>
         </div>
 
         <div class="content">
-            <!-- 管理者画面群 -->
+            <!-- 管理者画面 -->
             <div id="adminConfig" class="screen">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <button id="adminLogoutBtn" class="back-btn">← ログアウト</button>
                     <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
                         🔐 管理者モード
                     </div>
                 </div>
                 <h2>🔧 システム設定</h2>
                 
-                <!-- パスワード変更セクション -->
                 <div class="admin-config">
                     <h3>🔒 セキュリティ設定</h3>
                     <div class="config-grid">
@@ -489,10 +482,7 @@
                             <input type="password" id="confirmAdminPassword" placeholder="パスワードを再入力">
                         </div>
                     </div>
-                    <button class="btn" onclick="changeAdminPassword()" style="background: #dc3545;">パスワードを変更</button>
-                    <div style="margin-top: 10px; font-size: 14px; color: #6c757d;">
-                        ⚠️ パスワードを変更すると、次回から新しいパスワードが必要になります（6文字以上）
-                    </div>
+                    <button id="changePasswordBtn" class="btn" style="background: #dc3545;">パスワードを変更</button>
                 </div>
 
                 <div class="admin-config">
@@ -511,7 +501,7 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn" onclick="saveAdminConfig()">設定を保存</button>
+                    <button id="saveConfigBtn" class="btn">設定を保存</button>
                 </div>
                 
                 <div class="admin-config">
@@ -520,7 +510,7 @@
                         <label for="systemPrompt">基本指示</label>
                         <textarea id="systemPrompt" style="height: 150px;"></textarea>
                     </div>
-                    <button class="btn" onclick="savePromptConfig()">プロンプトを保存</button>
+                    <button id="savePromptBtn" class="btn">プロンプトを保存</button>
                 </div>
                 
                 <div id="configStatus"></div>
@@ -528,7 +518,7 @@
 
             <div id="adminScenarios" class="screen">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <button id="adminLogoutBtn2" class="back-btn">← ログアウト</button>
                     <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
                         🔐 管理者モード
                     </div>
@@ -545,17 +535,17 @@
                         <label for="scenarioContent">シナリオ内容</label>
                         <textarea id="scenarioContent" placeholder="登場人物、状況、対話内容を詳細に記述してください"></textarea>
                     </div>
-                    <button class="btn" onclick="addScenario()">シナリオを追加</button>
+                    <button id="addScenarioBtn" class="btn">シナリオを追加</button>
                 </div>
 
                 <div id="scenarioList">
-                    <div class="loading">シナリオを読み込み中...</div>
+                    <div style="text-align: center; padding: 20px; color: #6c757d;">シナリオを読み込み中...</div>
                 </div>
             </div>
 
             <div id="adminLogs" class="screen">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
+                    <button id="adminLogoutBtn3" class="back-btn">← ログアウト</button>
                     <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
                         🔐 管理者モード
                     </div>
@@ -567,13 +557,13 @@
                     <div class="config-grid">
                         <div class="form-group">
                             <label for="filterParticipant">参加者ID</label>
-                            <select id="filterParticipant" onchange="filterLogs()">
+                            <select id="filterParticipant">
                                 <option value="">全ての参加者</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="filterDay">実験日</label>
-                            <select id="filterDay" onchange="filterLogs()">
+                            <select id="filterDay">
                                 <option value="">全ての日</option>
                                 <option value="1">1日目</option>
                                 <option value="2">2日目</option>
@@ -585,17 +575,17 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn" onclick="exportData()">📁 データをCSV出力</button>
+                    <button id="exportDataBtn" class="btn">📁 データをCSV出力</button>
                 </div>
 
                 <div id="experimentLogsList">
-                    <div class="loading">実験データを読み込み中...</div>
+                    <div style="text-align: center; padding: 20px; color: #6c757d;">実験データを読み込み中...</div>
                 </div>
             </div>
 
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
-                <button class="back-btn" onclick="selectMode('none')">← モード選択に戻る</button>
+                <button id="backToModeBtn" class="back-btn">← モード選択に戻る</button>
                 <div class="participant-interface">
                     <div class="participant-header">
                         <h2>🎯 メンタライズ訓練実験</h2>
@@ -621,7 +611,7 @@
                                     <option value="7">7日目（自力メンタライズ）</option>
                                 </select>
                             </div>
-                            <button class="btn" onclick="startExperiment()">実験開始</button>
+                            <button id="startExperimentBtn" class="btn">実験開始</button>
                         </div>
 
                         <!-- 実験実行中の画面 -->
@@ -643,7 +633,7 @@
                                     <label for="userAnalysis">登場人物の気持ちや考えを分析してください</label>
                                     <textarea id="userAnalysis" placeholder="登場人物の感情、考え、動機などを自由に記述してください"></textarea>
                                 </div>
-                                <button class="btn" onclick="submitAnalysis()">分析を提出</button>
+                                <button id="submitAnalysisBtn" class="btn">分析を提出</button>
                             </div>
 
                             <!-- エージェント対話画面 -->
@@ -653,17 +643,17 @@
                                     <div class="chat-messages" id="chatMessages"></div>
                                     <div class="chat-input">
                                         <input type="text" id="chatInput" placeholder="メッセージを入力...">
-                                        <button onclick="sendMessage()">送信</button>
+                                        <button id="sendMessageBtn">送信</button>
                                     </div>
                                 </div>
-                                <button class="btn" onclick="finishChat()" style="margin-top: 15px; background: #28a745;">対話を終了する</button>
+                                <button id="finishChatBtn" class="btn" style="margin-top: 15px; background: #28a745;">対話を終了する</button>
                             </div>
                             
                             <!-- 実験完了画面 -->
                             <div id="experimentComplete" style="display: none; text-align: center;">
                                 <h3>🎉 実験完了</h3>
                                 <p>本日の実験が完了しました。ご参加いただき、ありがとうございました。</p>
-                                <button class="btn" onclick="resetExperiment()">新しい実験を開始</button>
+                                <button id="resetExperimentBtn" class="btn">新しい実験を開始</button>
                             </div>
                         </div>
                     </div>
@@ -673,414 +663,235 @@
     </div>
 
     <script>
-        // 代替CDNからSupabaseを読み込む関数（最初に定義）
-        function loadSupabaseFromAlternative() {
-            console.log('メインCDNから読み込みに失敗、代替CDNを試行中...');
+    // グローバル変数
+    let currentMode = 'none';
+    let isAdminAuthenticated = false;
+    let scenarios = [];
+    let experimentLogs = [];
+    let supabase = null;
+    let isSupabaseAvailable = false;
+    
+    let adminConfig = {
+        adminPassword: 'MentalizeAdmin2024!',
+        apiKey: '',
+        model: 'gpt-3.5-turbo',
+        systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。'
+    };
+    
+    let currentScenarioIndex = 0;
+    let currentDay = 1;
+    let participantId = '';
+
+    // デフォルトシナリオ
+    const defaultScenarios = [
+        {
+            title: "友人同士の会話",
+            content: "大学の図書館で、太郎と花子が期末試験について話している。太郎：「もう全然分からない。このままじゃ絶対に落ちる」花子：「大丈夫だよ、一緒に勉強しよう」太郎：「君は頭いいからそう言えるんだ」太郎は机に突っ伏し、花子は困った表情を浮かべている。"
+        },
+        {
+            title: "職場での会話", 
+            content: "オフィスで新入社員のA子と先輩のB男が話している。A子：「すみません、まだ理解できていません」B男：「もう3回説明したよね」A子は下を向き、B男は少しイライラした様子で腕を組んでいる。周りの同僚たちはその様子をちらちらと見ている。"
+        }
+    ];
+
+    // Supabase初期化
+    function initializeSupabase() {
+        try {
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.src = 'https://unpkg.com/@supabase/supabase-js@2';
             script.onload = function() {
-                console.log('代替CDNからSupabaseを読み込みました');
-                if (window.initAfterSupabaseLoad) {
-                    window.initAfterSupabaseLoad();
+                if (window.supabase && window.supabase.createClient) {
+                    const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
+                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';
+                    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                    isSupabaseAvailable = true;
+                    console.log('✅ Supabase初期化成功');
+                    loadDataFromSupabase();
+                } else {
+                    console.warn('⚠️ Supabaseライブラリが見つかりません');
+                    loadFromLocalStorage();
                 }
             };
             script.onerror = function() {
-                console.warn('すべてのCDNから読み込みに失敗しました。ローカルモードで動作します。');
-                if (window.initAfterSupabaseLoad) {
-                    window.initAfterSupabaseLoad();
-                }
+                console.warn('⚠️ Supabaseライブラリの読み込みに失敗しました');
+                loadFromLocalStorage();
             };
             document.head.appendChild(script);
+        } catch (error) {
+            console.error('❌ Supabase初期化エラー:', error);
+            loadFromLocalStorage();
         }
-    </script>
-    
-    <!-- Supabase CDN - 複数のCDNを試行 -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2" onerror="loadSupabaseFromAlternative()"></script>
-    
-    <script>
-        
-        // Supabase設定
-        let supabase = null;
-        let isSupabaseAvailable = false;
-        
-        // Supabaseの初期化を確認
-        function initializeSupabase() {
-            try {
-                // 複数の方法でSupabaseの存在を確認
-                const supabaseObj = window.supabase || window.Supabase || (window.globalThis && window.globalThis.supabase);
-                
-                if (supabaseObj && supabaseObj.createClient) {
-                    const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';
-                    
-                    supabase = supabaseObj.createClient(supabaseUrl, supabaseKey);
-                    isSupabaseAvailable = true;
-                    console.log('✅ Supabase初期化成功');
-                    
-                    // 接続テスト
-                    testSupabaseConnection();
-                    return true;
-                } else {
-                    console.warn('❌ Supabaseライブラリが読み込まれていません');
-                    isSupabaseAvailable = false;
-                    return false;
-                }
-            } catch (error) {
-                console.error('❌ Supabase初期化エラー:', error);
-                isSupabaseAvailable = false;
-                return false;
-            }
+    }
+
+    // Supabaseからデータを読み込み
+    async function loadDataFromSupabase() {
+        if (!supabase) {
+            loadFromLocalStorage();
+            return;
         }
         
-        // Supabase接続テスト
-        async function testSupabaseConnection() {
-            if (!supabase) return;
+        try {
+            await loadAdminSettings();
+            await loadScenarios();
+            await loadExperimentLogs();
             
-            try {
-                console.log('🔍 Supabase接続をテスト中...');
-                const { data, error } = await supabase
-                    .from('admin_settings')
-                    .select('id')
-                    .limit(1);
-                
-                if (error) {
-                    if (error.message.includes('relation "admin_settings" does not exist')) {
-                        console.warn('⚠️  テーブルが存在しません。管理者がテーブルを作成する必要があります。');
-                        showTableCreationInstructions();
-                    } else {
-                        console.warn('⚠️  Supabase接続エラー:', error.message);
-                    }
-                } else {
-                    console.log('✅ Supabase接続成功');
-                }
-            } catch (error) {
-                console.warn('⚠️  Supabase接続テストエラー:', error);
+            loadAdminConfigUI();
+            updateScenarioList();
+            updateLogsList();
+            
+            console.log('✅ Supabaseからデータ読み込み完了');
+        } catch (error) {
+            console.error('❌ Supabaseデータ読み込みエラー:', error);
+            loadFromLocalStorage();
+        }
+    }
+
+    // Supabaseから管理者設定を読み込み
+    async function loadAdminSettings() {
+        if (!supabase) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('admin_settings')
+                .select('*')
+                .eq('id', 'admin_config')
+                .single();
+            
+            if (error && error.code !== 'PGRST116') throw error;
+            
+            if (data && data.settings) {
+                adminConfig = { ...adminConfig, ...data.settings };
             }
+        } catch (error) {
+            console.error('管理者設定読み込みエラー:', error);
+        }
+    }
+
+    // Supabaseに管理者設定を保存
+    async function saveAdminSettings() {
+        if (!supabase) {
+            localStorage.setItem('mentalizeAdminConfig', JSON.stringify(adminConfig));
+            return;
         }
         
-        // テーブル作成指示を表示
-        function showTableCreationInstructions() {
-            console.log(`
-🔧 Supabaseでテーブルを作成してください:
-
-CREATE TABLE admin_settings (
-  id text PRIMARY KEY,
-  settings jsonb,
-  updated_at timestamp with time zone DEFAULT now()
-);
-
-CREATE TABLE participants (
-  id text PRIMARY KEY,
-  last_access timestamp with time zone DEFAULT now()
-);
-
-CREATE TABLE experiment_logs (
-  id bigserial PRIMARY KEY,
-  participant_id text,
-  day integer,
-  experiment_type text,
-  scenario_title text,
-  data jsonb,
-  created_at timestamp with time zone DEFAULT now()
-);
-            `);
+        try {
+            const { error } = await supabase
+                .from('admin_settings')
+                .upsert({
+                    id: 'admin_config',
+                    settings: adminConfig,
+                    updated_at: new Date().toISOString()
+                });
+            
+            if (error) throw error;
+        } catch (error) {
+            console.error('管理者設定保存エラー:', error);
+            localStorage.setItem('mentalizeAdminConfig', JSON.stringify(adminConfig));
         }
+    }
+
+    // Supabaseからシナリオを読み込み
+    async function loadScenarios() {
+        if (!supabase) return;
         
-        // 環境チェック
-        function checkEnvironment() {
-            const isClaudePreview = window.location.hostname === 'localhost' || 
-                                   window.location.hostname.includes('claude') ||
-                                   window.location.href.includes('preview');
+        try {
+            const { data, error } = await supabase
+                .from('admin_settings')
+                .select('*')
+                .eq('id', 'scenarios')
+                .single();
             
-            if (isClaudePreview) {
-                console.log('🔍 Claude プレビュー環境を検出しました。外部CDNが制限される可能性があります。');
-            }
+            if (error && error.code !== 'PGRST116') throw error;
             
-            console.log('🌐 環境情報:', {
-                hostname: window.location.hostname,
-                href: window.location.href,
-                userAgent: navigator.userAgent.substring(0, 50) + '...'
-            });
-        }
-
-        // グローバル変数
-        let currentMode = 'none';
-        let isAdminAuthenticated = false;
-        let scenarios = [];
-        let experimentLogs = [];
-        let adminConfig = {
-            adminPassword: 'MentalizeAdmin2024!',
-            apiKey: '',
-            model: 'gpt-3.5-turbo',
-            systemPrompt: `あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。`
-        };
-        
-        let currentScenarioIndex = 0;
-        let currentDay = 1;
-        let participantId = '';
-
-        // デフォルトシナリオ
-        const defaultScenarios = [
-            {
-                title: "友人同士の会話",
-                content: "大学の図書館で、太郎と花子が期末試験について話している。太郎：「もう全然分からない。このままじゃ絶対に落ちる」花子：「大丈夫だよ、一緒に勉強しよう」太郎：「君は頭いいからそう言えるんだ」太郎は机に突っ伏し、花子は困った表情を浮かべている。"
-            },
-            {
-                title: "職場での会話", 
-                content: "オフィスで新入社員のA子と先輩のB男が話している。A子：「すみません、まだ理解できていません」B男：「もう3回説明したよね」A子は下を向き、B男は少しイライラした様子で腕を組んでいる。周りの同僚たちはその様子をちらちらと見ている。"
-            }
-        ];
-
-        // 初期化（ページ読み込み時に実行）
-        async function init() {
-            console.log('🚀 システム初期化開始...');
-            
-            // 環境チェック
-            checkEnvironment();
-            
-            // Supabaseの初期化を確認
-            if (!initializeSupabase()) {
-                console.warn('⚠️  Supabaseが利用できません。ローカルストレージモードで動作します。');
-                // ローカルストレージから既存データを読み込み
-                loadFromLocalStorage();
-                // デフォルトデータで初期化
-                if (scenarios.length === 0) {
-                    scenarios = [...defaultScenarios];
-                }
-                updateScenarioList();
-                loadAdminConfigUI();
-                return;
-            }
-            
-            try {
-                await loadAdminSettings();
-                await loadScenarios();
-                await loadExperimentLogs();
-                
-                // 管理者画面の初期化
-                loadAdminConfigUI();
-                updateScenarioList();
-                updateLogsList();
-                
-                console.log('✅ 初期化完了');
-            } catch (error) {
-                console.error('❌ 初期化エラー:', error);
-                // エラーが発生してもデフォルトデータで続行
-                loadFromLocalStorage();
-                if (scenarios.length === 0) {
-                    scenarios = [...defaultScenarios];
-                }
-                updateScenarioList();
-                loadAdminConfigUI();
-            }
-        }
-        
-        // ローカルストレージからデータを読み込み
-        function loadFromLocalStorage() {
-            console.log('📱 ローカルストレージからデータを読み込み中...');
-            
-            // 管理者設定を読み込み
-            const savedAdminConfig = localStorage.getItem('mentalizeAdminConfig');
-            if (savedAdminConfig) {
-                try {
-                    adminConfig = { ...adminConfig, ...JSON.parse(savedAdminConfig) };
-                    console.log('✅ ローカル管理者設定を読み込みました');
-                } catch (error) {
-                    console.warn('⚠️  ローカル管理者設定の読み込みに失敗:', error);
-                }
-            }
-            
-            // シナリオを読み込み
-            const savedScenarios = localStorage.getItem('mentalizeScenarios');
-            if (savedScenarios) {
-                try {
-                    scenarios = JSON.parse(savedScenarios);
-                    console.log('✅ ローカルシナリオを読み込みました:', scenarios.length + '件');
-                } catch (error) {
-                    console.warn('⚠️  ローカルシナリオの読み込みに失敗:', error);
-                    scenarios = [...defaultScenarios];
-                }
-            }
-            
-            // 実験ログを読み込み
-            const savedLogs = localStorage.getItem('mentalizeExperimentLogs');
-            if (savedLogs) {
-                try {
-                    experimentLogs = JSON.parse(savedLogs);
-                    console.log('✅ ローカル実験ログを読み込みました:', experimentLogs.length + '件');
-                } catch (error) {
-                    console.warn('⚠️  ローカル実験ログの読み込みに失敗:', error);
-                    experimentLogs = [];
-                }
-            }
-        }
-
-        // Supabaseから管理者設定を読み込み
-        async function loadAdminSettings() {
-            if (!supabase) {
-                console.log('Supabaseが利用できません。ローカル設定を使用します。');
-                return;
-            }
-            
-            try {
-                console.log('管理者設定を読み込み中...');
-                const { data, error } = await supabase
-                    .from('admin_settings')
-                    .select('*')
-                    .eq('id', 'admin_config')
-                    .single();
-                
-                if (error) {
-                    if (error.code === 'PGRST116') {
-                        // データが存在しない場合は新規作成
-                        console.log('管理者設定が存在しないため、デフォルト設定で作成します');
-                        await saveAdminSettings();
-                        return;
-                    }
-                    throw error;
-                }
-                
-                if (data && data.settings) {
-                    adminConfig = { ...adminConfig, ...data.settings };
-                    console.log('管理者設定を読み込みました');
-                }
-            } catch (error) {
-                console.error('管理者設定読み込みエラー:', error);
-                console.log('デフォルト設定を使用します');
-            }
-        }
-
-        // Supabaseに管理者設定を保存
-        async function saveAdminSettings() {
-            if (!supabase) {
-                console.log('Supabaseが利用できません。ローカルストレージに保存します。');
-                localStorage.setItem('mentalizeAdminConfig', JSON.stringify(adminConfig));
-                return;
-            }
-            
-            try {
-                console.log('管理者設定を保存中...');
-                const { error } = await supabase
-                    .from('admin_settings')
-                    .upsert({
-                        id: 'admin_config',
-                        settings: adminConfig,
-                        updated_at: new Date().toISOString()
-                    });
-                
-                if (error) throw error;
-                console.log('管理者設定を保存しました');
-            } catch (error) {
-                console.error('管理者設定保存エラー:', error);
-                // フォールバック：ローカルストレージに保存
-                localStorage.setItem('mentalizeAdminConfig', JSON.stringify(adminConfig));
-                throw error;
-            }
-        }
-
-        // Supabaseからシナリオを読み込み
-        async function loadScenarios() {
-            if (!supabase) {
-                console.log('Supabaseが利用できません。デフォルトシナリオを使用します。');
+            if (data && data.settings && data.settings.scenarios) {
+                scenarios = data.settings.scenarios;
+            } else {
                 scenarios = [...defaultScenarios];
-                return;
+                await saveScenarios();
             }
-            
-            try {
-                console.log('シナリオを読み込み中...');
-                const { data, error } = await supabase
-                    .from('admin_settings')
-                    .select('*')
-                    .eq('id', 'scenarios')
-                    .single();
-                
-                if (error) {
-                    if (error.code === 'PGRST116') {
-                        console.log('シナリオが存在しないため、デフォルトシナリオで作成します');
-                        scenarios = [...defaultScenarios];
-                        await saveScenarios();
-                        return;
-                    }
-                    throw error;
-                }
-                
-                if (data && data.settings && data.settings.scenarios) {
-                    scenarios = data.settings.scenarios;
-                    console.log('シナリオを読み込みました:', scenarios.length + '件');
-                } else {
-                    scenarios = [...defaultScenarios];
-                    await saveScenarios();
-                }
-            } catch (error) {
-                console.error('シナリオ読み込みエラー:', error);
-                scenarios = [...defaultScenarios];
-                console.log('デフォルトシナリオを使用します');
-            }
+        } catch (error) {
+            console.error('シナリオ読み込みエラー:', error);
+            scenarios = [...defaultScenarios];
         }
+    }
 
-        // Supabaseにシナリオを保存
-        async function saveScenarios() {
-            if (!supabase) {
-                console.log('Supabaseが利用できません。ローカルストレージに保存します。');
-                localStorage.setItem('mentalizeScenarios', JSON.stringify(scenarios));
-                return;
-            }
-            
-            try {
-                console.log('シナリオを保存中...');
-                const { error } = await supabase
-                    .from('admin_settings')
-                    .upsert({
-                        id: 'scenarios',
-                        settings: { scenarios },
-                        updated_at: new Date().toISOString()
-                    });
-                
-                if (error) throw error;
-                console.log('シナリオを保存しました');
-            } catch (error) {
-                console.error('シナリオ保存エラー:', error);
-                // フォールバック：ローカルストレージに保存
-                localStorage.setItem('mentalizeScenarios', JSON.stringify(scenarios));
-                throw error;
-            }
+    // Supabaseにシナリオを保存
+    async function saveScenarios() {
+        if (!supabase) {
+            localStorage.setItem('mentalizeScenarios', JSON.stringify(scenarios));
+            return;
         }
-
-        // Supabaseから実験ログを読み込み
-        async function loadExperimentLogs() {
-            if (!supabase) {
-                console.log('Supabaseが利用できません。ローカルストレージからログを読み込みます。');
-                const logs = localStorage.getItem('mentalizeExperimentLogs');
-                experimentLogs = logs ? JSON.parse(logs) : [];
-                return;
-            }
+        
+        try {
+            const { error } = await supabase
+                .from('admin_settings')
+                .upsert({
+                    id: 'scenarios',
+                    settings: { scenarios },
+                    updated_at: new Date().toISOString()
+                });
             
-            try {
-                console.log('実験ログを読み込み中...');
-                const { data, error } = await supabase
-                    .from('experiment_logs')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                
-                experimentLogs = data || [];
-                console.log('実験ログを読み込みました:', experimentLogs.length + '件');
-            } catch (error) {
-                console.error('実験ログ読み込みエラー:', error);
-                const logs = localStorage.getItem('mentalizeExperimentLogs');
-                experimentLogs = logs ? JSON.parse(logs) : [];
-            }
+            if (error) throw error;
+        } catch (error) {
+            console.error('シナリオ保存エラー:', error);
+            localStorage.setItem('mentalizeScenarios', JSON.stringify(scenarios));
         }
+    }
 
-        // Supabaseに実験ログを保存
-        async function saveExperimentLog(logData) {
-            if (!supabase) {
-                console.log('Supabaseが利用できません。ローカルストレージに保存します。');
-                // ローカルストレージに保存
-                const logs = JSON.parse(localStorage.getItem('mentalizeExperimentLogs') || '[]');
-                const newLog = {
-                    id: Date.now(),
+    // Supabaseから実験ログを読み込み
+    async function loadExperimentLogs() {
+        if (!supabase) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('experiment_logs')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            experimentLogs = data || [];
+        } catch (error) {
+            console.error('実験ログ読み込みエラー:', error);
+        }
+    }
+
+    // Supabaseに実験ログを保存
+    async function saveExperimentLog(logData) {
+        if (!supabase) {
+            // ローカルストレージに保存
+            const logs = JSON.parse(localStorage.getItem('mentalizeExperimentLogs') || '[]');
+            const newLog = {
+                id: Date.now(),
+                participant_id: logData.participantId,
+                day: logData.day,
+                experiment_type: logData.experimentType,
+                scenario_title: logData.scenarioTitle,
+                data: {
+                    analysis: logData.analysis,
+                    chatHistory: logData.chatHistory,
+                    model: adminConfig.model,
+                    scenarioIndex: logData.scenarioIndex
+                },
+                created_at: new Date().toISOString()
+            };
+            logs.unshift(newLog);
+            localStorage.setItem('mentalizeExperimentLogs', JSON.stringify(logs));
+            experimentLogs = logs;
+            updateLogsList();
+            return;
+        }
+        
+        try {
+            await supabase
+                .from('participants')
+                .upsert({
+                    id: logData.participantId,
+                    last_access: new Date().toISOString()
+                });
+
+            const { error } = await supabase
+                .from('experiment_logs')
+                .insert({
                     participant_id: logData.participantId,
                     day: logData.day,
                     experiment_type: logData.experimentType,
@@ -1090,627 +901,586 @@ CREATE TABLE experiment_logs (
                         chatHistory: logData.chatHistory,
                         model: adminConfig.model,
                         scenarioIndex: logData.scenarioIndex
-                    },
-                    created_at: new Date().toISOString()
-                };
-                logs.unshift(newLog);
-                localStorage.setItem('mentalizeExperimentLogs', JSON.stringify(logs));
-                experimentLogs = logs;
-                
-                if (document.getElementById('experimentLogsList')) {
-                    updateLogsList();
-                }
-                return;
-            }
-            
-            try {
-                console.log('実験ログを保存中...', logData.participantId);
-                
-                // 参加者テーブルを更新
-                await supabase
-                    .from('participants')
-                    .upsert({
-                        id: logData.participantId,
-                        last_access: new Date().toISOString()
-                    });
-
-                // 実験ログを保存
-                const { error } = await supabase
-                    .from('experiment_logs')
-                    .insert({
-                        participant_id: logData.participantId,
-                        day: logData.day,
-                        experiment_type: logData.experimentType,
-                        scenario_title: logData.scenarioTitle,
-                        data: {
-                            analysis: logData.analysis,
-                            chatHistory: logData.chatHistory,
-                            model: adminConfig.model,
-                            scenarioIndex: logData.scenarioIndex
-                        }
-                    });
-                
-                if (error) throw error;
-                
-                console.log('実験ログを保存しました');
-                
-                // ログリストを再読み込み
-                await loadExperimentLogs();
-                if (document.getElementById('experimentLogsList')) {
-                    updateLogsList();
-                }
-            } catch (error) {
-                console.error('実験ログ保存エラー:', error);
-                alert('データの保存に失敗しました。ネットワーク接続を確認してください。\nエラー詳細: ' + error.message);
-            }
-        }
-
-        // 管理者アクセス試行
-        function attemptAdminAccess() {
-            const inputPassword = document.getElementById('adminPassword').value;
-            const errorDiv = document.getElementById('adminAccessError');
-            
-            if (!inputPassword) {
-                errorDiv.innerHTML = '<div class="status error">パスワードを入力してください</div>';
-                return;
-            }
-            
-            if (inputPassword === adminConfig.adminPassword) {
-                isAdminAuthenticated = true;
-                errorDiv.innerHTML = '<div class="status success">認証成功！管理者モードにアクセスしています...</div>';
-                
-                document.getElementById('adminPassword').value = '';
-                
-                setTimeout(() => {
-                    selectMode('admin');
-                }, 1000);
-            } else {
-                errorDiv.innerHTML = '<div class="status error">パスワードが間違っています</div>';
-                
-                setTimeout(() => {
-                    errorDiv.innerHTML = '';
-                }, 3000);
-            }
-        }
-
-        // モード選択
-        function selectMode(mode) {
-            if (mode === 'admin' && !isAdminAuthenticated) {
-                alert('管理者認証が必要です');
-                return;
-            }
-            
-            currentMode = mode;
-            document.getElementById('modeSelector').style.display = mode === 'none' ? 'block' : 'none';
-            document.getElementById('adminNav').classList.toggle('active', mode === 'admin');
-            document.getElementById('participantNav').classList.toggle('active', mode === 'participant');
-
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-
-            if (mode === 'admin') {
-                showAdminScreen('adminConfig');
-            } else if (mode === 'participant') {
-                showParticipantScreen('participantStart');
-            }
-        }
-
-        // 管理者画面切り替え
-        function showAdminScreen(screenId) {
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            
-            document.getElementById(screenId).classList.add('active');
-            if (event && event.target) {
-                event.target.classList.add('active');
-            }
-        }
-
-        // 被験者画面切り替え
-        function showParticipantScreen(screenId) {
-            document.querySelectorAll('#participantNav .nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            
-            document.getElementById(screenId).classList.add('active');
-            if (event && event.target) {
-                event.target.classList.add('active');
-            }
-        }
-
-        // 管理者ログアウト
-        function adminLogout() {
-            isAdminAuthenticated = false;
-            selectMode('none');
-        }
-
-        // 管理者パスワード変更
-        async function changeAdminPassword() {
-            const newPassword = document.getElementById('newAdminPassword').value;
-            const confirmPassword = document.getElementById('confirmAdminPassword').value;
-            
-            if (!newPassword || !confirmPassword) {
-                alert('両方のパスワード欄を入力してください');
-                return;
-            }
-            
-            if (newPassword !== confirmPassword) {
-                alert('パスワードが一致しません');
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                alert('パスワードは6文字以上で設定してください');
-                return;
-            }
-            
-            try {
-                adminConfig.adminPassword = newPassword;
-                await saveAdminSettings();
-                
-                document.getElementById('newAdminPassword').value = '';
-                document.getElementById('confirmAdminPassword').value = '';
-                
-                alert('パスワードが変更されました！次回ログイン時から新しいパスワードが必要になります。');
-            } catch (error) {
-                alert('パスワードの変更に失敗しました: ' + error.message);
-            }
-        }
-
-        // 管理者設定保存
-        async function saveAdminConfig() {
-            try {
-                adminConfig.apiKey = document.getElementById('adminApiKey').value;
-                adminConfig.model = document.getElementById('modelSelect').value;
-
-                await saveAdminSettings();
-                
-                document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
-                
-                setTimeout(() => {
-                    document.getElementById('configStatus').innerHTML = '';
-                }, 3000);
-            } catch (error) {
-                document.getElementById('configStatus').innerHTML = '<div class="status error">設定の保存に失敗しました: ' + error.message + '</div>';
-            }
-        }
-
-        // プロンプト設定保存
-        async function savePromptConfig() {
-            try {
-                adminConfig.systemPrompt = document.getElementById('systemPrompt').value;
-                await saveAdminSettings();
-                alert('プロンプト設定が保存されました！');
-            } catch (error) {
-                alert('プロンプト設定の保存に失敗しました: ' + error.message);
-            }
-        }
-
-        // 管理者設定UIに読み込み
-        function loadAdminConfigUI() {
-            if (document.getElementById('adminApiKey')) {
-                document.getElementById('adminApiKey').value = adminConfig.apiKey || '';
-            }
-            if (document.getElementById('modelSelect')) {
-                document.getElementById('modelSelect').value = adminConfig.model || 'gpt-3.5-turbo';
-            }
-            if (document.getElementById('systemPrompt')) {
-                document.getElementById('systemPrompt').value = adminConfig.systemPrompt || '';
-            }
-        }
-
-        // シナリオ追加
-        async function addScenario() {
-            const title = document.getElementById('scenarioTitle').value;
-            const content = document.getElementById('scenarioContent').value;
-
-            if (!title || !content) {
-                alert('タイトルと内容を入力してください');
-                return;
-            }
-
-            try {
-                scenarios.push({ title, content });
-                await saveScenarios();
-                updateScenarioList();
-                
-                document.getElementById('scenarioTitle').value = '';
-                document.getElementById('scenarioContent').value = '';
-                
-                alert('シナリオが追加されました！');
-            } catch (error) {
-                alert('シナリオの追加に失敗しました: ' + error.message);
-                // エラー時はロールバック
-                scenarios.pop();
-            }
-        }
-
-        // シナリオリスト更新
-        function updateScenarioList() {
-            const list = document.getElementById('scenarioList');
-            if (!list) return;
-            
-            list.innerHTML = '';
-            
-            if (scenarios.length === 0) {
-                list.innerHTML = '<p style="color: #6c757d; text-align: center;">シナリオがありません</p>';
-                return;
-            }
-            
-            scenarios.forEach((scenario, index) => {
-                const item = document.createElement('div');
-                item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px; transition: all 0.3s ease;';
-                item.innerHTML = `
-                    <h4 style="margin-bottom: 10px; color: #495057;">${scenario.title}</h4>
-                    <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.substring(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
-                    <button class="btn" onclick="deleteScenario(${index})" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        // シナリオ削除
-        async function deleteScenario(index) {
-            if (!confirm('このシナリオを削除しますか？')) return;
-
-            try {
-                const deletedScenario = scenarios[index];
-                scenarios.splice(index, 1);
-                await saveScenarios();
-                updateScenarioList();
-                alert('シナリオを削除しました');
-            } catch (error) {
-                alert('シナリオの削除に失敗しました: ' + error.message);
-                // エラー時は元に戻す
-                scenarios.splice(index, 0, deletedScenario);
-                updateScenarioList();
-            }
-        }
-
-        // ログリスト更新
-        function updateLogsList() {
-            updateParticipantFilter();
-            displayFilteredLogs();
-        }
-
-        // 参加者フィルター更新
-        function updateParticipantFilter() {
-            const filterSelect = document.getElementById('filterParticipant');
-            if (!filterSelect) return;
-            
-            const participants = [...new Set(experimentLogs.map(log => log.participant_id))];
-            filterSelect.innerHTML = '<option value="">全ての参加者</option>';
-            
-            participants.forEach(participant => {
-                const option = document.createElement('option');
-                option.value = participant;
-                option.textContent = participant;
-                filterSelect.appendChild(option);
-            });
-        }
-
-        // ログフィルタリング
-        function filterLogs() {
-            displayFilteredLogs();
-        }
-
-        // フィルタリングされたログを表示
-        function displayFilteredLogs() {
-            const list = document.getElementById('experimentLogsList');
-            if (!list) return;
-            
-            const participantFilter = document.getElementById('filterParticipant')?.value || '';
-            const dayFilter = document.getElementById('filterDay')?.value || '';
-            
-            let filteredLogs = experimentLogs.filter(log => {
-                return (!participantFilter || log.participant_id === participantFilter) &&
-                       (!dayFilter || log.day?.toString() === dayFilter);
-            });
-            
-            list.innerHTML = '';
-            
-            if (filteredLogs.length === 0) {
-                list.innerHTML = '<p style="color: #6c757d; text-align: center;">条件に合致するデータがありません</p>';
-                return;
-            }
-            
-            filteredLogs.forEach(log => {
-                const item = document.createElement('div');
-                item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
-                
-                const date = new Date(log.created_at).toLocaleString('ja-JP');
-                const typeLabels = {
-                    'self_analysis': '自力分析',
-                    'agent_assisted': 'エージェント支援'
-                };
-                
-                let content = '';
-                if (log.experiment_type === 'self_analysis') {
-                    content = `<div><strong>分析内容:</strong><br>${log.data?.analysis || ''}</div>`;
-                } else if (log.experiment_type === 'agent_assisted') {
-                    const chatHistory = log.data?.chatHistory || [];
-                    content = `<div><strong>会話履歴:</strong><br>${chatHistory.map(msg => `${msg.sender}: ${msg.content}`).join('<br>')}</div>`;
-                }
-                
-                item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <div>
-                            <span style="font-weight: 600;">参加者: ${log.participant_id}</span>
-                            <span style="margin-left: 10px; background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${typeLabels[log.experiment_type]}</span>
-                            ${log.day ? `<span style="margin-left: 10px; color: #6c757d;">Day ${log.day}</span>` : ''}
-                        </div>
-                        <div style="font-size: 14px; color: #6c757d;">${date}</div>
-                    </div>
-                    ${log.scenario_title ? `<div style="margin-bottom: 10px;"><strong>シナリオ:</strong> ${log.scenario_title}</div>` : ''}
-                    ${content}
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        // データCSV出力
-        function exportData() {
-            if (experimentLogs.length === 0) {
-                alert('出力するデータがありません');
-                return;
-            }
-            
-            let csv = 'ID,参加者ID,実験日,実験タイプ,シナリオ,データ,タイムスタンプ\n';
-            
-            experimentLogs.forEach(log => {
-                let data = '';
-                if (log.experiment_type === 'self_analysis') {
-                    data = log.data?.analysis?.replace(/"/g, '""') || '';
-                } else if (log.experiment_type === 'agent_assisted') {
-                    data = log.data?.chatHistory?.map(msg => `${msg.sender}: ${msg.content}`).join(' | ') || '';
-                }
-                
-                csv += `"${log.id}","${log.participant_id}","${log.day || ''}","${log.experiment_type}","${log.scenario_title || ''}","${data}","${log.created_at}"\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `mentalize_experiment_data_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
-        }
-
-        // 実験開始
-        async function startExperiment() {
-            participantId = document.getElementById('participantId').value;
-            currentDay = parseInt(document.getElementById('experimentDay').value);
-            
-            if (!participantId) {
-                alert('参加者IDを入力してください');
-                return;
-            }
-
-            if (scenarios.length === 0) {
-                alert('シナリオが設定されていません。管理者モードでシナリオを追加してください。');
-                return;
-            }
-
-            document.getElementById('participantSetup').style.display = 'none';
-            document.getElementById('experimentContent').style.display = 'block';
-            
-            startMainExperiment();
-        }
-
-        // メイン実験開始
-        function startMainExperiment() {
-            currentScenarioIndex = Math.floor(Math.random() * scenarios.length);
-            displayScenario();
-        }
-
-        // シナリオ表示
-        function displayScenario() {
-            const scenario = scenarios[currentScenarioIndex];
-            document.getElementById('currentScenarioTitle').textContent = scenario.title;
-            document.getElementById('currentScenarioContent').textContent = scenario.content;
-            document.getElementById('scenarioDisplay').style.display = 'block';
-            
-            document.getElementById('progressFill').style.width = '40%';
-            
-            if (currentDay === 1 || currentDay === 7) {
-                document.getElementById('selfMentalize').style.display = 'block';
-                document.getElementById('agentChat').style.display = 'none';
-            } else {
-                document.getElementById('selfMentalize').style.display = 'none';
-                document.getElementById('agentChat').style.display = 'block';
-                initializeChat();
-            }
-        }
-
-        // 分析提出
-        async function submitAnalysis() {
-            const analysis = document.getElementById('userAnalysis').value;
-            if (!analysis.trim()) {
-                alert('分析を入力してください');
-                return;
-            }
-
-            await saveExperimentLog({
-                participantId,
-                day: currentDay,
-                scenarioIndex: currentScenarioIndex,
-                scenarioTitle: scenarios[currentScenarioIndex].title,
-                analysis,
-                experimentType: 'self_analysis'
-            });
-
-            document.getElementById('progressFill').style.width = '100%';
-            document.getElementById('selfMentalize').style.display = 'none';
-            document.getElementById('experimentComplete').style.display = 'block';
-        }
-
-        // チャット初期化
-        function initializeChat() {
-            const messages = document.getElementById('chatMessages');
-            messages.innerHTML = '';
-            
-            addMessage('ai', 'こんにちは！このシナリオについて、登場人物の気持ちや考えを一緒に探ってみましょう。まず、どの人物に注目しますか？');
-            
-            document.getElementById('progressFill').style.width = '50%';
-        }
-
-        // チャット終了
-        async function finishChat() {
-            await saveExperimentLog({
-                participantId,
-                day: currentDay,
-                scenarioIndex: currentScenarioIndex,
-                scenarioTitle: scenarios[currentScenarioIndex].title,
-                chatHistory: getChatHistory(),
-                experimentType: 'agent_assisted'
-            });
-
-            document.getElementById('progressFill').style.width = '100%';
-            document.getElementById('agentChat').style.display = 'none';
-            document.getElementById('experimentComplete').style.display = 'block';
-        }
-
-        // 実験リセット
-        function resetExperiment() {
-            document.getElementById('experimentContent').style.display = 'none';
-            document.getElementById('participantSetup').style.display = 'block';
-            document.getElementById('userAnalysis').value = '';
-            document.getElementById('chatMessages').innerHTML = '';
-            document.getElementById('progressFill').style.width = '0%';
-            
-            ['scenarioDisplay', 'selfMentalize', 'agentChat', 'experimentComplete'].forEach(id => {
-                document.getElementById(id).style.display = 'none';
-            });
-        }
-
-        // メッセージ送信
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            
-            addMessage('user', message);
-            input.value = '';
-            
-            const response = await generateAIResponse(message);
-            addMessage('ai', response);
-        }
-
-        // チャット履歴取得
-        function getChatHistory() {
-            const messages = document.querySelectorAll('#chatMessages .message');
-            return Array.from(messages).map(msg => ({
-                sender: msg.classList.contains('user') ? 'user' : 'ai',
-                content: msg.textContent,
-                timestamp: new Date().toISOString()
-            }));
-        }
-
-        // メッセージ追加
-        function addMessage(sender, text) {
-            const messages = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            messageDiv.textContent = text;
-            messages.appendChild(messageDiv);
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        // AI応答生成
-        async function generateAIResponse(userMessage) {
-            if (adminConfig.apiKey && adminConfig.apiKey.startsWith('sk-')) {
-                try {
-                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${adminConfig.apiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: adminConfig.model,
-                            messages: [
-                                {
-                                    role: 'system',
-                                    content: adminConfig.systemPrompt
-                                },
-                                {
-                                    role: 'user',
-                                    content: `シナリオ: ${scenarios[currentScenarioIndex].content}\n\nユーザーの発言: ${userMessage}`
-                                }
-                            ],
-                            max_tokens: 300,
-                            temperature: 0.7
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('API request failed');
                     }
+                });
+            
+            if (error) throw error;
+            await loadExperimentLogs();
+            updateLogsList();
+        } catch (error) {
+            console.error('実験ログ保存エラー:', error);
+            alert('データの保存に失敗しました。');
+        }
+    }
 
+    // ローカルストレージから読み込み
+    function loadFromLocalStorage() {
+        // 管理者設定
+        const savedConfig = localStorage.getItem('mentalizeAdminConfig');
+        if (savedConfig) {
+            try {
+                adminConfig = { ...adminConfig, ...JSON.parse(savedConfig) };
+            } catch (error) {
+                console.warn('管理者設定読み込みエラー:', error);
+            }
+        }
+        
+        // シナリオ
+        const savedScenarios = localStorage.getItem('mentalizeScenarios');
+        if (savedScenarios) {
+            try {
+                scenarios = JSON.parse(savedScenarios);
+            } catch (error) {
+                scenarios = [...defaultScenarios];
+            }
+        } else {
+            scenarios = [...defaultScenarios];
+        }
+        
+        // 実験ログ
+        const savedLogs = localStorage.getItem('mentalizeExperimentLogs');
+        if (savedLogs) {
+            try {
+                experimentLogs = JSON.parse(savedLogs);
+            } catch (error) {
+                experimentLogs = [];
+            }
+        }
+        
+        // UIを更新
+        loadAdminConfigUI();
+        updateScenarioList();
+        updateLogsList();
+    }
+
+    // モード選択
+    function selectMode(mode) {
+        if (mode === 'admin' && !isAdminAuthenticated) {
+            alert('管理者認証が必要です');
+            return;
+        }
+        
+        currentMode = mode;
+        document.getElementById('modeSelector').style.display = mode === 'none' ? 'block' : 'none';
+        document.getElementById('adminNav').classList.toggle('active', mode === 'admin');
+        document.getElementById('participantNav').classList.toggle('active', mode === 'participant');
+
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+
+        if (mode === 'admin') {
+            showAdminScreen('adminConfig');
+        } else if (mode === 'participant') {
+            showParticipantScreen('participantStart');
+        }
+    }
+
+    // 画面切り替え
+    function showAdminScreen(screenId) {
+        document.querySelectorAll('#adminNav .nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function showParticipantScreen(screenId) {
+        document.querySelectorAll('#participantNav .nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // 管理者認証
+    function attemptAdminAccess() {
+        const inputPassword = document.getElementById('adminPassword').value;
+        const errorDiv = document.getElementById('adminAccessError');
+        
+        if (!inputPassword) {
+            errorDiv.innerHTML = '<div class="status error">パスワードを入力してください</div>';
+            return;
+        }
+        
+        if (inputPassword === adminConfig.adminPassword) {
+            isAdminAuthenticated = true;
+            errorDiv.innerHTML = '<div class="status success">認証成功！</div>';
+            document.getElementById('adminPassword').value = '';
+            setTimeout(() => selectMode('admin'), 1000);
+        } else {
+            errorDiv.innerHTML = '<div class="status error">パスワードが間違っています</div>';
+            setTimeout(() => errorDiv.innerHTML = '', 3000);
+        }
+    }
+
+    function adminLogout() {
+        isAdminAuthenticated = false;
+        selectMode('none');
+    }
+
+    // 管理者パスワード変更
+    async function changeAdminPassword() {
+        const newPassword = document.getElementById('newAdminPassword').value;
+        const confirmPassword = document.getElementById('confirmAdminPassword').value;
+        
+        if (!newPassword || !confirmPassword) {
+            alert('両方のパスワード欄を入力してください');
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            alert('パスワードが一致しません');
+            return;
+        }
+        
+        if (newPassword.length < 6) {
+            alert('パスワードは6文字以上で設定してください');
+            return;
+        }
+        
+        adminConfig.adminPassword = newPassword;
+        await saveAdminSettings();
+        
+        document.getElementById('newAdminPassword').value = '';
+        document.getElementById('confirmAdminPassword').value = '';
+        
+        alert('パスワードが変更されました！');
+    }
+
+    // 管理者設定保存
+    async function saveAdminConfig() {
+        adminConfig.apiKey = document.getElementById('adminApiKey').value;
+        adminConfig.model = document.getElementById('modelSelect').value;
+
+        await saveAdminSettings();
+        
+        document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
+        setTimeout(() => document.getElementById('configStatus').innerHTML = '', 3000);
+    }
+
+    // プロンプト設定保存
+    async function savePromptConfig() {
+        adminConfig.systemPrompt = document.getElementById('systemPrompt').value;
+        await saveAdminSettings();
+        alert('プロンプト設定が保存されました！');
+    }
+
+    // 管理者設定UIに読み込み
+    function loadAdminConfigUI() {
+        if (document.getElementById('adminApiKey')) {
+            document.getElementById('adminApiKey').value = adminConfig.apiKey || '';
+        }
+        if (document.getElementById('modelSelect')) {
+            document.getElementById('modelSelect').value = adminConfig.model || 'gpt-3.5-turbo';
+        }
+        if (document.getElementById('systemPrompt')) {
+            document.getElementById('systemPrompt').value = adminConfig.systemPrompt || '';
+        }
+    }
+
+    // シナリオ管理
+    async function addScenario() {
+        const title = document.getElementById('scenarioTitle').value;
+        const content = document.getElementById('scenarioContent').value;
+
+        if (!title || !content) {
+            alert('タイトルと内容を入力してください');
+            return;
+        }
+
+        scenarios.push({ title, content });
+        await saveScenarios();
+        updateScenarioList();
+        
+        document.getElementById('scenarioTitle').value = '';
+        document.getElementById('scenarioContent').value = '';
+        
+        alert('シナリオが追加されました！');
+    }
+
+    function updateScenarioList() {
+        const list = document.getElementById('scenarioList');
+        if (!list) return;
+        
+        list.innerHTML = '';
+        
+        if (scenarios.length === 0) {
+            list.innerHTML = '<p style="color: #6c757d; text-align: center;">シナリオがありません</p>';
+            return;
+        }
+        
+        scenarios.forEach((scenario, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
+            item.innerHTML = `
+                <h4 style="margin-bottom: 10px; color: #495057;">${scenario.title}</h4>
+                <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.substring(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
+                <button class="btn" onclick="deleteScenario(${index})" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    async function deleteScenario(index) {
+        if (!confirm('このシナリオを削除しますか？')) return;
+
+        scenarios.splice(index, 1);
+        await saveScenarios();
+        updateScenarioList();
+        alert('シナリオを削除しました');
+    }
+
+    // ログ管理
+    function updateLogsList() {
+        updateParticipantFilter();
+        displayFilteredLogs();
+    }
+
+    function updateParticipantFilter() {
+        const filterSelect = document.getElementById('filterParticipant');
+        if (!filterSelect) return;
+        
+        const participants = [...new Set(experimentLogs.map(log => log.participant_id))];
+        filterSelect.innerHTML = '<option value="">全ての参加者</option>';
+        
+        participants.forEach(participant => {
+            const option = document.createElement('option');
+            option.value = participant;
+            option.textContent = participant;
+            filterSelect.appendChild(option);
+        });
+    }
+
+    function displayFilteredLogs() {
+        const list = document.getElementById('experimentLogsList');
+        if (!list) return;
+        
+        const participantFilter = document.getElementById('filterParticipant')?.value || '';
+        const dayFilter = document.getElementById('filterDay')?.value || '';
+        
+        let filteredLogs = experimentLogs.filter(log => {
+            return (!participantFilter || log.participant_id === participantFilter) &&
+                   (!dayFilter || log.day?.toString() === dayFilter);
+        });
+        
+        list.innerHTML = '';
+        
+        if (filteredLogs.length === 0) {
+            list.innerHTML = '<p style="color: #6c757d; text-align: center;">条件に合致するデータがありません</p>';
+            return;
+        }
+        
+        filteredLogs.forEach(log => {
+            const item = document.createElement('div');
+            item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
+            
+            const date = new Date(log.created_at).toLocaleString('ja-JP');
+            const typeLabels = {
+                'self_analysis': '自力分析',
+                'agent_assisted': 'エージェント支援'
+            };
+            
+            let content = '';
+            if (log.experiment_type === 'self_analysis') {
+                content = `<div><strong>分析内容:</strong><br>${log.data?.analysis || ''}</div>`;
+            } else if (log.experiment_type === 'agent_assisted') {
+                const chatHistory = log.data?.chatHistory || [];
+                content = `<div><strong>会話履歴:</strong><br>${chatHistory.map(msg => `${msg.sender}: ${msg.content}`).join('<br>')}</div>`;
+            }
+            
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <div>
+                        <span style="font-weight: 600;">参加者: ${log.participant_id}</span>
+                        <span style="margin-left: 10px; background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${typeLabels[log.experiment_type]}</span>
+                        ${log.day ? `<span style="margin-left: 10px; color: #6c757d;">Day ${log.day}</span>` : ''}
+                    </div>
+                    <div style="font-size: 14px; color: #6c757d;">${date}</div>
+                </div>
+                ${log.scenario_title ? `<div style="margin-bottom: 10px;"><strong>シナリオ:</strong> ${log.scenario_title}</div>` : ''}
+                ${content}
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    function exportData() {
+        if (experimentLogs.length === 0) {
+            alert('出力するデータがありません');
+            return;
+        }
+        
+        let csv = 'ID,参加者ID,実験日,実験タイプ,シナリオ,データ,タイムスタンプ\n';
+        
+        experimentLogs.forEach(log => {
+            let data = '';
+            if (log.experiment_type === 'self_analysis') {
+                data = log.data?.analysis?.replace(/"/g, '""') || '';
+            } else if (log.experiment_type === 'agent_assisted') {
+                data = log.data?.chatHistory?.map(msg => `${msg.sender}: ${msg.content}`).join(' | ') || '';
+            }
+            
+            csv += `"${log.id}","${log.participant_id}","${log.day || ''}","${log.experiment_type}","${log.scenario_title || ''}","${data}","${log.created_at}"\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `mentalize_experiment_data_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    }
+
+    // 実験機能
+    function startExperiment() {
+        participantId = document.getElementById('participantId').value;
+        currentDay = parseInt(document.getElementById('experimentDay').value);
+        
+        if (!participantId) {
+            alert('参加者IDを入力してください');
+            return;
+        }
+
+        if (scenarios.length === 0) {
+            alert('シナリオが設定されていません');
+            return;
+        }
+
+        document.getElementById('participantSetup').style.display = 'none';
+        document.getElementById('experimentContent').style.display = 'block';
+        
+        currentScenarioIndex = Math.floor(Math.random() * scenarios.length);
+        displayScenario();
+    }
+
+    function displayScenario() {
+        const scenario = scenarios[currentScenarioIndex];
+        document.getElementById('currentScenarioTitle').textContent = scenario.title;
+        document.getElementById('currentScenarioContent').textContent = scenario.content;
+        document.getElementById('scenarioDisplay').style.display = 'block';
+        
+        document.getElementById('progressFill').style.width = '40%';
+        
+        if (currentDay === 1 || currentDay === 7) {
+            document.getElementById('selfMentalize').style.display = 'block';
+            document.getElementById('agentChat').style.display = 'none';
+        } else {
+            document.getElementById('selfMentalize').style.display = 'none';
+            document.getElementById('agentChat').style.display = 'block';
+            initializeChat();
+        }
+    }
+
+    async function submitAnalysis() {
+        const analysis = document.getElementById('userAnalysis').value;
+        if (!analysis.trim()) {
+            alert('分析を入力してください');
+            return;
+        }
+
+        await saveExperimentLog({
+            participantId,
+            day: currentDay,
+            scenarioIndex: currentScenarioIndex,
+            scenarioTitle: scenarios[currentScenarioIndex].title,
+            analysis,
+            experimentType: 'self_analysis'
+        });
+
+        document.getElementById('progressFill').style.width = '100%';
+        document.getElementById('selfMentalize').style.display = 'none';
+        document.getElementById('experimentComplete').style.display = 'block';
+    }
+
+    function initializeChat() {
+        const messages = document.getElementById('chatMessages');
+        messages.innerHTML = '';
+        
+        addMessage('ai', 'こんにちは！このシナリオについて、登場人物の気持ちや考えを一緒に探ってみましょう。まず、どの人物に注目しますか？');
+        
+        document.getElementById('progressFill').style.width = '50%';
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        addMessage('user', message);
+        input.value = '';
+        
+        const response = await generateAIResponse(message);
+        addMessage('ai', response);
+    }
+
+    function getChatHistory() {
+        const messages = document.querySelectorAll('#chatMessages .message');
+        return Array.from(messages).map(msg => ({
+            sender: msg.classList.contains('user') ? 'user' : 'ai',
+            content: msg.textContent,
+            timestamp: new Date().toISOString()
+        }));
+    }
+
+    function addMessage(sender, text) {
+        const messages = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        messageDiv.textContent = text;
+        messages.appendChild(messageDiv);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function generateAIResponse(userMessage) {
+        if (adminConfig.apiKey && adminConfig.apiKey.startsWith('sk-')) {
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminConfig.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: adminConfig.model,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: adminConfig.systemPrompt
+                            },
+                            {
+                                role: 'user',
+                                content: `シナリオ: ${scenarios[currentScenarioIndex].content}\n\nユーザーの発言: ${userMessage}`
+                            }
+                        ],
+                        max_tokens: 300,
+                        temperature: 0.7
+                    })
+                });
+
+                if (response.ok) {
                     const data = await response.json();
                     return data.choices[0].message.content;
-                } catch (error) {
-                    console.error('OpenAI API エラー:', error);
                 }
+            } catch (error) {
+                console.error('OpenAI API エラー:', error);
             }
-
-            // デモ用の応答
-            const responses = [
-                "なるほど、その観点は興味深いですね。登場人物の表情や行動からも何か読み取れることはありますか？",
-                "とても良い分析ですね。他の登場人物はどのような気持ちでいると思いますか？",
-                "その通りですね。さらに深く考えてみると、なぜそのような感情を抱いているのでしょうか？",
-                "素晴らしい気づきです。そこから読み取れる人間関係はどのようなものでしょうか？",
-                "興味深い指摘ですね。その状況で相手はどんなことを考えているでしょうか？",
-                "良い視点ですね。もし自分がその立場だったら、どのように感じるでしょうか？"
-            ];
-            
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return responses[Math.floor(Math.random() * responses.length)];
         }
 
-        // イベントリスナー設定
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 DOM読み込み完了');
-            
-            // Supabase初期化後の処理
-            window.initAfterSupabaseLoad = init;
-            
-            // すでにSupabaseが読み込まれている場合は即座に初期化
-            if (window.supabase || window.Supabase) {
-                init();
-            } else {
-                // 少し待ってから初期化を試行
-                setTimeout(init, 100);
-            }
-            
-            // チャット入力でEnterキー
-            const chatInput = document.getElementById('chatInput');
-            if (chatInput) {
-                chatInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        sendMessage();
-                    }
-                });
-            }
+        // デモ用の応答
+        const responses = [
+            "なるほど、その観点は興味深いですね。登場人物の表情や行動からも何か読み取れることはありますか？",
+            "とても良い分析ですね。他の登場人物はどのような気持ちでいると思いますか？",
+            "その通りですね。さらに深く考えてみると、なぜそのような感情を抱いているのでしょうか？",
+            "素晴らしい気づきです。そこから読み取れる人間関係はどのようなものでしょうか？",
+            "興味深い指摘ですね。その状況で相手はどんなことを考えているでしょうか？",
+            "良い視点ですね。もし自分がその立場だったら、どのように感じるでしょうか？"
+        ];
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
 
-            // パスワード入力でEnterキー
-            const adminPasswordInput = document.getElementById('adminPassword');
-            if (adminPasswordInput) {
-                adminPasswordInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        attemptAdminAccess();
-                    }
-                });
-            }
+    async function finishChat() {
+        await saveExperimentLog({
+            participantId,
+            day: currentDay,
+            scenarioIndex: currentScenarioIndex,
+            scenarioTitle: scenarios[currentScenarioIndex].title,
+            chatHistory: getChatHistory(),
+            experimentType: 'agent_assisted'
         });
+
+        document.getElementById('progressFill').style.width = '100%';
+        document.getElementById('agentChat').style.display = 'none';
+        document.getElementById('experimentComplete').style.display = 'block';
+    }
+
+    function resetExperiment() {
+        document.getElementById('experimentContent').style.display = 'none';
+        document.getElementById('participantSetup').style.display = 'block';
+        document.getElementById('userAnalysis').value = '';
+        document.getElementById('chatMessages').innerHTML = '';
+        document.getElementById('progressFill').style.width = '0%';
+        
+        ['scenarioDisplay', 'selfMentalize', 'agentChat', 'experimentComplete'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+    }
+
+    // 初期化とイベントリスナー設定
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 システム開始');
+        
+        // Supabase初期化
+        initializeSupabase();
+        
+        // ローカルデータ読み込み
+        loadFromLocalStorage();
+        
+        // イベントリスナー設定
+        document.getElementById('participantBtn').addEventListener('click', () => selectMode('participant'));
+        document.getElementById('adminAccessBtn').addEventListener('click', attemptAdminAccess);
+        document.getElementById('backToModeBtn').addEventListener('click', () => selectMode('none'));
+        
+        // 管理者イベント
+        document.getElementById('adminLogoutBtn').addEventListener('click', adminLogout);
+        document.getElementById('adminLogoutBtn2').addEventListener('click', adminLogout);
+        document.getElementById('adminLogoutBtn3').addEventListener('click', adminLogout);
+        
+        document.getElementById('adminConfigNav').addEventListener('click', () => {
+            showAdminScreen('adminConfig');
+            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('adminConfigNav').classList.add('active');
+        });
+        
+        document.getElementById('adminScenariosNav').addEventListener('click', () => {
+            showAdminScreen('adminScenarios');
+            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('adminScenariosNav').classList.add('active');
+        });
+        
+        document.getElementById('adminLogsNav').addEventListener('click', () => {
+            showAdminScreen('adminLogs');
+            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('adminLogsNav').classList.add('active');
+        });
+        
+        // 設定保存
+        document.getElementById('changePasswordBtn').addEventListener('click', changeAdminPassword);
+        document.getElementById('saveConfigBtn').addEventListener('click', saveAdminConfig);
+        document.getElementById('savePromptBtn').addEventListener('click', savePromptConfig);
+        
+        // シナリオ管理
+        document.getElementById('addScenarioBtn').addEventListener('click', addScenario);
+        
+        // データ出力
+        document.getElementById('exportDataBtn').addEventListener('click', exportData);
+        document.getElementById('filterParticipant').addEventListener('change', displayFilteredLogs);
+        document.getElementById('filterDay').addEventListener('change', displayFilteredLogs);
+        
+        // 実験イベント
+        document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
+        document.getElementById('submitAnalysisBtn').addEventListener('click', submitAnalysis);
+        document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+        document.getElementById('finishChatBtn').addEventListener('click', finishChat);
+        document.getElementById('resetExperimentBtn').addEventListener('click', resetExperiment);
+        
+        // キーボードイベント
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') attemptAdminAccess();
+        });
+        
+        console.log('✅ 初期化完了');
+    });
     </script>
 </body>
 </html>
