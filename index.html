@@ -699,7 +699,7 @@
         try {
             const script = document.createElement('script');
             script.type = 'module'; 
-            script.src = 'https://unpkg.com/@supabase/supabase-js@2?module';
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
             script.onload = function() {
                 if (window.supabase && window.supabase.createClient) {
                     const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
