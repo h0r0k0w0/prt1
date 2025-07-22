@@ -712,6 +712,10 @@
     // Supabase初期化
     // --- 方法B：ES Modules を import() で読み込む版 ---
     async function initializeSupabase () {
+      if (globalThis.__supabase) {
+        supabase = globalThis.__supabase;          // すでに作成済み
+        return loadDataFromSupabase();
+      }
       try {
         const mod          = await import('@supabase/supabase-js');
         // ImportMap により URL が解決される
@@ -728,6 +732,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // ★ anon キーを必ず使用
 
         supabase            = createClient(supabaseUrl, supabaseAnonKey);
+        globalThis.__supabase = supabase; 
         isSupabaseAvailable = true;
         console.log('✅ Supabase 初期化成功');
 
