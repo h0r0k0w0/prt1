@@ -1448,15 +1448,21 @@
     }
 
     // 初期化とイベントリスナー設定
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         console.log('🚀 システム開始');
-    　  initializeSupabase();
-   　   loadFromLocalStorage();        
+    　  
+   　   loadFromLocalStorage();  
+      
+        initializeSupabase().then(() => {
+          console.log('✅ Supabase 同期完了');
+        }).catch(err => {
+          console.error('❌ Supabase 初期化エラー:', err);
+        });
         // Supabase初期化
-        initializeSupabase();
+        
         
         // ローカルデータ読み込み
-        loadFromLocalStorage();
+        
         
         // イベントリスナー設定
         document.getElementById('participantBtn').addEventListener('click', () => selectMode('participant'));
