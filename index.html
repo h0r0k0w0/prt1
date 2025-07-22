@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>メンタライズ訓練システム</title>
-  　<script type="importmap">
-　  {
-　    "imports": {
-  　    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/module/index.js",
- 　     "@supabase/auth-js": "https://cdn.jsdelivr.net/npm/@supabase/auth-js@2/dist/module/index.js"
- 　   }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>メンタライズ訓練システム</title>
+
+  <!-- ① Import Map  : 裸インポートをブラウザで解決  -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/module/index.js",
+      "@supabase/auth-js":   "https://cdn.jsdelivr.net/npm/@supabase/auth-js@2/dist/module/index.js"
+    }
   }
-  </script>    
+  </script> 
     <style>
         * {
             margin: 0;
@@ -704,24 +706,24 @@
 
     // Supabase初期化
     // --- 方法B：ES Modules を import() で読み込む版 ---
-function initializeSupabase () {
-  try {
+    async function initializeSupabase () {
+      try {
+        // ImportMap により URL が解決される
         const { createClient } = await import('@supabase/supabase-js');
 
         const supabaseUrl  = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';   // ★ anon キーを必ず使用 ★
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // ★ anon キーを必ず使用
 
         supabase            = createClient(supabaseUrl, supabaseAnonKey);
         isSupabaseAvailable = true;
         console.log('✅ Supabase 初期化成功');
 
         await loadDataFromSupabase();
+      } catch (err) {
+        console.error('❌ Supabase 初期化エラー:', err);
+        loadFromLocalStorage();
+      }
     }
-  } catch (e) {
-    console.error('❌ Supabase 初期化エラー:', e);
-    loadFromLocalStorage();
-  }
-}
 
 
 
