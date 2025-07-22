@@ -700,7 +700,7 @@ async function initializeSupabase() {
   try {
     // ESM を動的に import して createClient を取得
     const { createClient } =
-      await import('https://cdn.skypack.dev/@supabase/supabase-js@2');
+      await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/module/index.js');
     
     const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
     const supabaseAnonKey =
