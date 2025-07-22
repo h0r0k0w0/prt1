@@ -384,46 +384,6 @@
             background: #5a6268;
         }
 
-        .scenario-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .scenario-item {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 15px;
-            padding: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .scenario-item:hover {
-            border-color: #667eea;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .survey-question {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .survey-question:hover {
-            border-color: #667eea;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .survey-question h4 {
-            color: #495057;
-            margin-bottom: 15px;
-        }
-
         .loading {
             text-align: center;
             padding: 20px;
@@ -494,8 +454,6 @@
             <div class="nav-buttons">
                 <button class="nav-btn active" onclick="showAdminScreen('adminConfig')">🔧 システム設定</button>
                 <button class="nav-btn" onclick="showAdminScreen('adminScenarios')">📝 シナリオ管理</button>
-                <button class="nav-btn" onclick="showAdminScreen('adminPrompts')">💬 プロンプト設定</button>
-                <button class="nav-btn" onclick="showAdminScreen('adminSurvey')">📊 アンケート設定</button>
                 <button class="nav-btn" onclick="showAdminScreen('adminLogs')">📋 データ閲覧</button>
             </div>
         </div>
@@ -508,7 +466,7 @@
         </div>
 
         <div class="content">
-            <!-- 管理者画面群（通常は非表示） -->
+            <!-- 管理者画面群 -->
             <div id="adminConfig" class="screen">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
@@ -517,6 +475,7 @@
                     </div>
                 </div>
                 <h2>🔧 システム設定</h2>
+                
                 <!-- パスワード変更セクション -->
                 <div class="admin-config">
                     <h3>🔒 セキュリティ設定</h3>
@@ -554,6 +513,16 @@
                     </div>
                     <button class="btn" onclick="saveAdminConfig()">設定を保存</button>
                 </div>
+                
+                <div class="admin-config">
+                    <h3>💬 システムプロンプト</h3>
+                    <div class="form-group">
+                        <label for="systemPrompt">基本指示</label>
+                        <textarea id="systemPrompt" style="height: 150px;"></textarea>
+                    </div>
+                    <button class="btn" onclick="savePromptConfig()">プロンプトを保存</button>
+                </div>
+                
                 <div id="configStatus"></div>
             </div>
 
@@ -579,64 +548,8 @@
                     <button class="btn" onclick="addScenario()">シナリオを追加</button>
                 </div>
 
-                <div id="scenarioList" class="scenario-list">
+                <div id="scenarioList">
                     <div class="loading">シナリオを読み込み中...</div>
-                </div>
-            </div>
-
-            <div id="adminPrompts" class="screen">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
-                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
-                        🔐 管理者モード
-                    </div>
-                </div>
-                <h2>💬 プロンプト設定</h2>
-                
-                <div class="admin-config">
-                    <h3>システムプロンプト</h3>
-                    <div class="form-group">
-                        <label for="systemPrompt">基本指示</label>
-                        <textarea id="systemPrompt" style="height: 150px;"></textarea>
-                    </div>
-                    <button class="btn" onclick="savePromptConfig()">プロンプトを保存</button>
-                </div>
-            </div>
-
-            <div id="adminSurvey" class="screen">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <button class="back-btn" onclick="adminLogout()">← ログアウト</button>
-                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
-                        🔐 管理者モード
-                    </div>
-                </div>
-                <h2>📊 アンケート設定</h2>
-                
-                <div class="admin-config">
-                    <h3>新しいアンケート質問を追加</h3>
-                    <div class="form-group">
-                        <label for="questionText">質問内容</label>
-                        <textarea id="questionText" placeholder="例: メンタライズについてどの程度理解していますか？"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="questionType">回答形式</label>
-                        <select id="questionType" onchange="toggleAnswerOptions()">
-                            <option value="text">自由記述</option>
-                            <option value="radio">単一選択</option>
-                            <option value="scale">5段階評価</option>
-                        </select>
-                    </div>
-                    <div id="answerOptionsDiv" style="display: none;">
-                        <div class="form-group">
-                            <label for="answerOptions">選択肢（改行区切り）</label>
-                            <textarea id="answerOptions"></textarea>
-                        </div>
-                    </div>
-                    <button class="btn" onclick="addSurveyQuestion()">質問を追加</button>
-                </div>
-
-                <div id="surveyQuestionsList">
-                    <div class="loading">アンケート質問を読み込み中...</div>
                 </div>
             </div>
 
@@ -680,7 +593,7 @@
                 </div>
             </div>
 
-            <!-- 被験者画面（通常は非表示） -->
+            <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
                 <button class="back-btn" onclick="selectMode('none')">← モード選択に戻る</button>
                 <div class="participant-interface">
@@ -711,7 +624,7 @@
                             <button class="btn" onclick="startExperiment()">実験開始</button>
                         </div>
 
-                        <!-- 実験実行中の画面（初期状態では非表示） -->
+                        <!-- 実験実行中の画面 -->
                         <div id="experimentContent" style="display: none;">
                             <div class="progress-bar">
                                 <div class="progress-fill" id="progressFill" style="width: 0%"></div>
@@ -746,7 +659,7 @@
                                 <button class="btn" onclick="finishChat()" style="margin-top: 15px; background: #28a745;">対話を終了する</button>
                             </div>
                             
-                            <!-- 実験完了画面（初期状態では非表示） -->
+                            <!-- 実験完了画面 -->
                             <div id="experimentComplete" style="display: none; text-align: center;">
                                 <h3>🎉 実験完了</h3>
                                 <p>本日の実験が完了しました。ご参加いただき、ありがとうございました。</p>
@@ -759,20 +672,141 @@
         </div>
     </div>
 
-    <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
+        // 代替CDNからSupabaseを読み込む関数（最初に定義）
+        function loadSupabaseFromAlternative() {
+            console.log('メインCDNから読み込みに失敗、代替CDNを試行中...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.onload = function() {
+                console.log('代替CDNからSupabaseを読み込みました');
+                if (window.initAfterSupabaseLoad) {
+                    window.initAfterSupabaseLoad();
+                }
+            };
+            script.onerror = function() {
+                console.warn('すべてのCDNから読み込みに失敗しました。ローカルモードで動作します。');
+                if (window.initAfterSupabaseLoad) {
+                    window.initAfterSupabaseLoad();
+                }
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+    
+    <!-- Supabase CDN - 複数のCDNを試行 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2" onerror="loadSupabaseFromAlternative()"></script>
+    
+    <script>
+        
         // Supabase設定
-        const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        let supabase = null;
+        let isSupabaseAvailable = false;
+        
+        // Supabaseの初期化を確認
+        function initializeSupabase() {
+            try {
+                // 複数の方法でSupabaseの存在を確認
+                const supabaseObj = window.supabase || window.Supabase || (window.globalThis && window.globalThis.supabase);
+                
+                if (supabaseObj && supabaseObj.createClient) {
+                    const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
+                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';
+                    
+                    supabase = supabaseObj.createClient(supabaseUrl, supabaseKey);
+                    isSupabaseAvailable = true;
+                    console.log('✅ Supabase初期化成功');
+                    
+                    // 接続テスト
+                    testSupabaseConnection();
+                    return true;
+                } else {
+                    console.warn('❌ Supabaseライブラリが読み込まれていません');
+                    isSupabaseAvailable = false;
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Supabase初期化エラー:', error);
+                isSupabaseAvailable = false;
+                return false;
+            }
+        }
+        
+        // Supabase接続テスト
+        async function testSupabaseConnection() {
+            if (!supabase) return;
+            
+            try {
+                console.log('🔍 Supabase接続をテスト中...');
+                const { data, error } = await supabase
+                    .from('admin_settings')
+                    .select('id')
+                    .limit(1);
+                
+                if (error) {
+                    if (error.message.includes('relation "admin_settings" does not exist')) {
+                        console.warn('⚠️  テーブルが存在しません。管理者がテーブルを作成する必要があります。');
+                        showTableCreationInstructions();
+                    } else {
+                        console.warn('⚠️  Supabase接続エラー:', error.message);
+                    }
+                } else {
+                    console.log('✅ Supabase接続成功');
+                }
+            } catch (error) {
+                console.warn('⚠️  Supabase接続テストエラー:', error);
+            }
+        }
+        
+        // テーブル作成指示を表示
+        function showTableCreationInstructions() {
+            console.log(`
+🔧 Supabaseでテーブルを作成してください:
+
+CREATE TABLE admin_settings (
+  id text PRIMARY KEY,
+  settings jsonb,
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE participants (
+  id text PRIMARY KEY,
+  last_access timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE experiment_logs (
+  id bigserial PRIMARY KEY,
+  participant_id text,
+  day integer,
+  experiment_type text,
+  scenario_title text,
+  data jsonb,
+  created_at timestamp with time zone DEFAULT now()
+);
+            `);
+        }
+        
+        // 環境チェック
+        function checkEnvironment() {
+            const isClaudePreview = window.location.hostname === 'localhost' || 
+                                   window.location.hostname.includes('claude') ||
+                                   window.location.href.includes('preview');
+            
+            if (isClaudePreview) {
+                console.log('🔍 Claude プレビュー環境を検出しました。外部CDNが制限される可能性があります。');
+            }
+            
+            console.log('🌐 環境情報:', {
+                hostname: window.location.hostname,
+                href: window.location.href,
+                userAgent: navigator.userAgent.substring(0, 50) + '...'
+            });
+        }
 
         // グローバル変数
         let currentMode = 'none';
         let isAdminAuthenticated = false;
         let scenarios = [];
-        let surveyQuestions = [];
         let experimentLogs = [];
         let adminConfig = {
             adminPassword: 'MentalizeAdmin2024!',
@@ -797,46 +831,135 @@
             }
         ];
 
-        // 初期化
+        // 初期化（ページ読み込み時に実行）
         async function init() {
+            console.log('🚀 システム初期化開始...');
+            
+            // 環境チェック
+            checkEnvironment();
+            
+            // Supabaseの初期化を確認
+            if (!initializeSupabase()) {
+                console.warn('⚠️  Supabaseが利用できません。ローカルストレージモードで動作します。');
+                // ローカルストレージから既存データを読み込み
+                loadFromLocalStorage();
+                // デフォルトデータで初期化
+                if (scenarios.length === 0) {
+                    scenarios = [...defaultScenarios];
+                }
+                updateScenarioList();
+                loadAdminConfigUI();
+                return;
+            }
+            
             try {
                 await loadAdminSettings();
                 await loadScenarios();
-                await loadSurveyQuestions();
                 await loadExperimentLogs();
                 
+                // 管理者画面の初期化
+                loadAdminConfigUI();
                 updateScenarioList();
-                updateSurveyQuestionsList();
                 updateLogsList();
+                
+                console.log('✅ 初期化完了');
             } catch (error) {
-                console.error('初期化エラー:', error);
+                console.error('❌ 初期化エラー:', error);
+                // エラーが発生してもデフォルトデータで続行
+                loadFromLocalStorage();
+                if (scenarios.length === 0) {
+                    scenarios = [...defaultScenarios];
+                }
+                updateScenarioList();
+                loadAdminConfigUI();
+            }
+        }
+        
+        // ローカルストレージからデータを読み込み
+        function loadFromLocalStorage() {
+            console.log('📱 ローカルストレージからデータを読み込み中...');
+            
+            // 管理者設定を読み込み
+            const savedAdminConfig = localStorage.getItem('mentalizeAdminConfig');
+            if (savedAdminConfig) {
+                try {
+                    adminConfig = { ...adminConfig, ...JSON.parse(savedAdminConfig) };
+                    console.log('✅ ローカル管理者設定を読み込みました');
+                } catch (error) {
+                    console.warn('⚠️  ローカル管理者設定の読み込みに失敗:', error);
+                }
+            }
+            
+            // シナリオを読み込み
+            const savedScenarios = localStorage.getItem('mentalizeScenarios');
+            if (savedScenarios) {
+                try {
+                    scenarios = JSON.parse(savedScenarios);
+                    console.log('✅ ローカルシナリオを読み込みました:', scenarios.length + '件');
+                } catch (error) {
+                    console.warn('⚠️  ローカルシナリオの読み込みに失敗:', error);
+                    scenarios = [...defaultScenarios];
+                }
+            }
+            
+            // 実験ログを読み込み
+            const savedLogs = localStorage.getItem('mentalizeExperimentLogs');
+            if (savedLogs) {
+                try {
+                    experimentLogs = JSON.parse(savedLogs);
+                    console.log('✅ ローカル実験ログを読み込みました:', experimentLogs.length + '件');
+                } catch (error) {
+                    console.warn('⚠️  ローカル実験ログの読み込みに失敗:', error);
+                    experimentLogs = [];
+                }
             }
         }
 
         // Supabaseから管理者設定を読み込み
         async function loadAdminSettings() {
+            if (!supabase) {
+                console.log('Supabaseが利用できません。ローカル設定を使用します。');
+                return;
+            }
+            
             try {
+                console.log('管理者設定を読み込み中...');
                 const { data, error } = await supabase
                     .from('admin_settings')
                     .select('*')
                     .eq('id', 'admin_config')
                     .single();
                 
-                if (error && error.code !== 'PGRST116') throw error;
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        // データが存在しない場合は新規作成
+                        console.log('管理者設定が存在しないため、デフォルト設定で作成します');
+                        await saveAdminSettings();
+                        return;
+                    }
+                    throw error;
+                }
                 
                 if (data && data.settings) {
                     adminConfig = { ...adminConfig, ...data.settings };
+                    console.log('管理者設定を読み込みました');
                 }
-                
-                loadAdminConfig();
             } catch (error) {
                 console.error('管理者設定読み込みエラー:', error);
+                console.log('デフォルト設定を使用します');
             }
         }
 
         // Supabaseに管理者設定を保存
         async function saveAdminSettings() {
+            if (!supabase) {
+                console.log('Supabaseが利用できません。ローカルストレージに保存します。');
+                localStorage.setItem('mentalizeAdminConfig', JSON.stringify(adminConfig));
+                return;
+            }
+            
             try {
+                console.log('管理者設定を保存中...');
                 const { error } = await supabase
                     .from('admin_settings')
                     .upsert({
@@ -846,56 +969,44 @@
                     });
                 
                 if (error) throw error;
+                console.log('管理者設定を保存しました');
             } catch (error) {
                 console.error('管理者設定保存エラー:', error);
+                // フォールバック：ローカルストレージに保存
+                localStorage.setItem('mentalizeAdminConfig', JSON.stringify(adminConfig));
+                throw error;
             }
-        }
-                // 管理者パスワード変更
-        async function changeAdminPassword() {
-            const newPassword = document.getElementById('newAdminPassword').value;
-            const confirmPassword = document.getElementById('confirmAdminPassword').value;
-            
-            if (!newPassword || !confirmPassword) {
-                alert('両方のパスワード欄を入力してください');
-                return;
-            }
-            
-            if (newPassword !== confirmPassword) {
-                alert('パスワードが一致しません');
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                alert('パスワードは6文字以上で設定してください');
-                return;
-            }
-            
-            // adminConfigのパスワードを更新
-            adminConfig.adminPassword = newPassword;
-            
-            // Supabaseに保存
-            await saveAdminSettings();
-            
-            // 入力欄をクリア
-            document.getElementById('newAdminPassword').value = '';
-            document.getElementById('confirmAdminPassword').value = '';
-            
-            alert('パスワードが変更されました！次回ログイン時から新しいパスワードが必要になります。');
         }
 
         // Supabaseからシナリオを読み込み
         async function loadScenarios() {
+            if (!supabase) {
+                console.log('Supabaseが利用できません。デフォルトシナリオを使用します。');
+                scenarios = [...defaultScenarios];
+                return;
+            }
+            
             try {
+                console.log('シナリオを読み込み中...');
                 const { data, error } = await supabase
                     .from('admin_settings')
                     .select('*')
                     .eq('id', 'scenarios')
                     .single();
                 
-                if (error && error.code !== 'PGRST116') throw error;
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        console.log('シナリオが存在しないため、デフォルトシナリオで作成します');
+                        scenarios = [...defaultScenarios];
+                        await saveScenarios();
+                        return;
+                    }
+                    throw error;
+                }
                 
                 if (data && data.settings && data.settings.scenarios) {
                     scenarios = data.settings.scenarios;
+                    console.log('シナリオを読み込みました:', scenarios.length + '件');
                 } else {
                     scenarios = [...defaultScenarios];
                     await saveScenarios();
@@ -903,12 +1014,20 @@
             } catch (error) {
                 console.error('シナリオ読み込みエラー:', error);
                 scenarios = [...defaultScenarios];
+                console.log('デフォルトシナリオを使用します');
             }
         }
 
         // Supabaseにシナリオを保存
         async function saveScenarios() {
+            if (!supabase) {
+                console.log('Supabaseが利用できません。ローカルストレージに保存します。');
+                localStorage.setItem('mentalizeScenarios', JSON.stringify(scenarios));
+                return;
+            }
+            
             try {
+                console.log('シナリオを保存中...');
                 const { error } = await supabase
                     .from('admin_settings')
                     .upsert({
@@ -918,53 +1037,26 @@
                     });
                 
                 if (error) throw error;
+                console.log('シナリオを保存しました');
             } catch (error) {
                 console.error('シナリオ保存エラー:', error);
-            }
-        }
-
-        // Supabaseからアンケート質問を読み込み
-        async function loadSurveyQuestions() {
-            try {
-                const { data, error } = await supabase
-                    .from('admin_settings')
-                    .select('*')
-                    .eq('id', 'survey_questions')
-                    .single();
-                
-                if (error && error.code !== 'PGRST116') throw error;
-                
-                if (data && data.settings && data.settings.questions) {
-                    surveyQuestions = data.settings.questions;
-                } else {
-                    surveyQuestions = [];
-                }
-            } catch (error) {
-                console.error('アンケート質問読み込みエラー:', error);
-                surveyQuestions = [];
-            }
-        }
-
-        // Supabaseにアンケート質問を保存
-        async function saveSurveyQuestions() {
-            try {
-                const { error } = await supabase
-                    .from('admin_settings')
-                    .upsert({
-                        id: 'survey_questions',
-                        settings: { questions: surveyQuestions },
-                        updated_at: new Date().toISOString()
-                    });
-                
-                if (error) throw error;
-            } catch (error) {
-                console.error('アンケート質問保存エラー:', error);
+                // フォールバック：ローカルストレージに保存
+                localStorage.setItem('mentalizeScenarios', JSON.stringify(scenarios));
+                throw error;
             }
         }
 
         // Supabaseから実験ログを読み込み
         async function loadExperimentLogs() {
+            if (!supabase) {
+                console.log('Supabaseが利用できません。ローカルストレージからログを読み込みます。');
+                const logs = localStorage.getItem('mentalizeExperimentLogs');
+                experimentLogs = logs ? JSON.parse(logs) : [];
+                return;
+            }
+            
             try {
+                console.log('実験ログを読み込み中...');
                 const { data, error } = await supabase
                     .from('experiment_logs')
                     .select('*')
@@ -973,15 +1065,48 @@
                 if (error) throw error;
                 
                 experimentLogs = data || [];
+                console.log('実験ログを読み込みました:', experimentLogs.length + '件');
             } catch (error) {
                 console.error('実験ログ読み込みエラー:', error);
-                experimentLogs = [];
+                const logs = localStorage.getItem('mentalizeExperimentLogs');
+                experimentLogs = logs ? JSON.parse(logs) : [];
             }
         }
 
         // Supabaseに実験ログを保存
         async function saveExperimentLog(logData) {
+            if (!supabase) {
+                console.log('Supabaseが利用できません。ローカルストレージに保存します。');
+                // ローカルストレージに保存
+                const logs = JSON.parse(localStorage.getItem('mentalizeExperimentLogs') || '[]');
+                const newLog = {
+                    id: Date.now(),
+                    participant_id: logData.participantId,
+                    day: logData.day,
+                    experiment_type: logData.experimentType,
+                    scenario_title: logData.scenarioTitle,
+                    data: {
+                        analysis: logData.analysis,
+                        chatHistory: logData.chatHistory,
+                        model: adminConfig.model,
+                        scenarioIndex: logData.scenarioIndex
+                    },
+                    created_at: new Date().toISOString()
+                };
+                logs.unshift(newLog);
+                localStorage.setItem('mentalizeExperimentLogs', JSON.stringify(logs));
+                experimentLogs = logs;
+                
+                if (document.getElementById('experimentLogsList')) {
+                    updateLogsList();
+                }
+                return;
+            }
+            
             try {
+                console.log('実験ログを保存中...', logData.participantId);
+                
+                // 参加者テーブルを更新
                 await supabase
                     .from('participants')
                     .upsert({
@@ -989,6 +1114,7 @@
                         last_access: new Date().toISOString()
                     });
 
+                // 実験ログを保存
                 const { error } = await supabase
                     .from('experiment_logs')
                     .insert({
@@ -999,21 +1125,23 @@
                         data: {
                             analysis: logData.analysis,
                             chatHistory: logData.chatHistory,
-                            surveyAnswers: logData.surveyAnswers,
-                            model: logData.model,
+                            model: adminConfig.model,
                             scenarioIndex: logData.scenarioIndex
                         }
                     });
                 
                 if (error) throw error;
                 
+                console.log('実験ログを保存しました');
+                
+                // ログリストを再読み込み
                 await loadExperimentLogs();
                 if (document.getElementById('experimentLogsList')) {
                     updateLogsList();
                 }
             } catch (error) {
                 console.error('実験ログ保存エラー:', error);
-                alert('データの保存に失敗しました。ネットワーク接続を確認してください。');
+                alert('データの保存に失敗しました。ネットワーク接続を確認してください。\nエラー詳細: ' + error.message);
             }
         }
 
@@ -1078,7 +1206,9 @@
             });
             
             document.getElementById(screenId).classList.add('active');
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
         }
 
         // 被験者画面切り替え
@@ -1102,42 +1232,92 @@
             selectMode('none');
         }
 
+        // 管理者パスワード変更
+        async function changeAdminPassword() {
+            const newPassword = document.getElementById('newAdminPassword').value;
+            const confirmPassword = document.getElementById('confirmAdminPassword').value;
+            
+            if (!newPassword || !confirmPassword) {
+                alert('両方のパスワード欄を入力してください');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('パスワードが一致しません');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                alert('パスワードは6文字以上で設定してください');
+                return;
+            }
+            
+            try {
+                adminConfig.adminPassword = newPassword;
+                await saveAdminSettings();
+                
+                document.getElementById('newAdminPassword').value = '';
+                document.getElementById('confirmAdminPassword').value = '';
+                
+                alert('パスワードが変更されました！次回ログイン時から新しいパスワードが必要になります。');
+            } catch (error) {
+                alert('パスワードの変更に失敗しました: ' + error.message);
+            }
+        }
+
         // 管理者設定保存
         async function saveAdminConfig() {
-            
+            try {
+                adminConfig.apiKey = document.getElementById('adminApiKey').value;
+                adminConfig.model = document.getElementById('modelSelect').value;
 
-
-            adminConfig.apiKey = document.getElementById('adminApiKey').value;
-            adminConfig.model = document.getElementById('modelSelect').value;
-
-            await saveAdminSettings();
-            
-            document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
-            
-            setTimeout(() => {
-                document.getElementById('configStatus').innerHTML = '';
-            }, 3000);
+                await saveAdminSettings();
+                
+                document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
+                
+                setTimeout(() => {
+                    document.getElementById('configStatus').innerHTML = '';
+                }, 3000);
+            } catch (error) {
+                document.getElementById('configStatus').innerHTML = '<div class="status error">設定の保存に失敗しました: ' + error.message + '</div>';
+            }
         }
 
         // プロンプト設定保存
         async function savePromptConfig() {
-            adminConfig.systemPrompt = document.getElementById('systemPrompt').value;
-            await saveAdminSettings();
-            alert('プロンプト設定が保存されました！');
+            try {
+                adminConfig.systemPrompt = document.getElementById('systemPrompt').value;
+                await saveAdminSettings();
+                alert('プロンプト設定が保存されました！');
+            } catch (error) {
+                alert('プロンプト設定の保存に失敗しました: ' + error.message);
+            }
         }
 
-        // 管理者設定読み込み
-        function loadAdminConfig() {
-            document.getElementById('adminApiKey').value = adminConfig.apiKey || '';
-            document.getElementById('modelSelect').value = adminConfig.model || 'gpt-3.5-turbo';
-            document.getElementById('systemPrompt').value = adminConfig.systemPrompt || '';
+        // 管理者設定UIに読み込み
+        function loadAdminConfigUI() {
+            if (document.getElementById('adminApiKey')) {
+                document.getElementById('adminApiKey').value = adminConfig.apiKey || '';
+            }
+            if (document.getElementById('modelSelect')) {
+                document.getElementById('modelSelect').value = adminConfig.model || 'gpt-3.5-turbo';
+            }
+            if (document.getElementById('systemPrompt')) {
+                document.getElementById('systemPrompt').value = adminConfig.systemPrompt || '';
+            }
         }
+
         // シナリオ追加
         async function addScenario() {
             const title = document.getElementById('scenarioTitle').value;
             const content = document.getElementById('scenarioContent').value;
 
-            if (title && content) {
+            if (!title || !content) {
+                alert('タイトルと内容を入力してください');
+                return;
+            }
+
+            try {
                 scenarios.push({ title, content });
                 await saveScenarios();
                 updateScenarioList();
@@ -1146,8 +1326,10 @@
                 document.getElementById('scenarioContent').value = '';
                 
                 alert('シナリオが追加されました！');
-            } else {
-                alert('タイトルと内容を入力してください');
+            } catch (error) {
+                alert('シナリオの追加に失敗しました: ' + error.message);
+                // エラー時はロールバック
+                scenarios.pop();
             }
         }
 
@@ -1158,13 +1340,18 @@
             
             list.innerHTML = '';
             
+            if (scenarios.length === 0) {
+                list.innerHTML = '<p style="color: #6c757d; text-align: center;">シナリオがありません</p>';
+                return;
+            }
+            
             scenarios.forEach((scenario, index) => {
                 const item = document.createElement('div');
-                item.className = 'scenario-item';
+                item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px; transition: all 0.3s ease;';
                 item.innerHTML = `
-                    <h4>${scenario.title}</h4>
-                    <p>${scenario.content.substring(0, 150)}...</p>
-                    <button class="btn" onclick="deleteScenario(${index})" style="margin-top: 10px; background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
+                    <h4 style="margin-bottom: 10px; color: #495057;">${scenario.title}</h4>
+                    <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.substring(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
+                    <button class="btn" onclick="deleteScenario(${index})" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
                 `;
                 list.appendChild(item);
             });
@@ -1172,103 +1359,19 @@
 
         // シナリオ削除
         async function deleteScenario(index) {
-            if (confirm('このシナリオを削除しますか？')) {
+            if (!confirm('このシナリオを削除しますか？')) return;
+
+            try {
+                const deletedScenario = scenarios[index];
                 scenarios.splice(index, 1);
                 await saveScenarios();
                 updateScenarioList();
-            }
-        }
-
-        // アンケート質問の選択肢表示切り替え
-        function toggleAnswerOptions() {
-            const questionType = document.getElementById('questionType')?.value;
-            const optionsDiv = document.getElementById('answerOptionsDiv');
-            
-            if (!optionsDiv) return;
-            
-            if (questionType === 'radio') {
-                optionsDiv.style.display = 'block';
-            } else {
-                optionsDiv.style.display = 'none';
-            }
-        }
-
-        // アンケート質問追加
-        async function addSurveyQuestion() {
-            const questionText = document.getElementById('questionText')?.value;
-            const questionType = document.getElementById('questionType')?.value;
-            const answerOptions = document.getElementById('answerOptions')?.value.split('\n').filter(opt => opt.trim());
-            
-            if (!questionText || !questionText.trim()) {
-                alert('質問内容を入力してください');
-                return;
-            }
-            
-            if (questionType === 'radio' && answerOptions.length === 0) {
-                alert('選択肢を入力してください');
-                return;
-            }
-            
-            const question = {
-                id: Date.now().toString(),
-                text: questionText,
-                type: questionType,
-                options: answerOptions
-            };
-            
-            surveyQuestions.push(question);
-            await saveSurveyQuestions();
-            updateSurveyQuestionsList();
-            
-            if (document.getElementById('questionText')) document.getElementById('questionText').value = '';
-            if (document.getElementById('answerOptions')) document.getElementById('answerOptions').value = '';
-            toggleAnswerOptions();
-            
-            alert('アンケート質問が追加されました！');
-        }
-
-        // アンケート質問リスト更新
-        function updateSurveyQuestionsList() {
-            const list = document.getElementById('surveyQuestionsList');
-            if (!list) return;
-            
-            list.innerHTML = '';
-            
-            if (surveyQuestions.length === 0) {
-                list.innerHTML = '<p style="color: #6c757d; text-align: center;">まだアンケート質問が設定されていません</p>';
-                return;
-            }
-            
-            surveyQuestions.forEach((question, index) => {
-                const item = document.createElement('div');
-                item.className = 'survey-question';
-                
-                const typeLabels = {
-                    'text': '自由記述',
-                    'radio': '単一選択',
-                    'scale': '5段階評価'
-                };
-                
-                item.innerHTML = `
-                    <h4>${question.text}</h4>
-                    <div style="margin-bottom: 10px;">
-                        <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 12px; font-size: 12px;">形式: ${typeLabels[question.type]}</span>
-                    </div>
-                    ${question.options && question.options.length > 0 ? 
-                        `<div style="margin-bottom: 15px;"><strong>選択肢:</strong><br>${question.options.map(opt => `• ${opt}`).join('<br>')}</div>` : 
-                        ''}
-                    <button class="btn" onclick="deleteSurveyQuestion(${index})" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        // アンケート質問削除
-        async function deleteSurveyQuestion(index) {
-            if (confirm('この質問を削除しますか？')) {
-                surveyQuestions.splice(index, 1);
-                await saveSurveyQuestions();
-                updateSurveyQuestionsList();
+                alert('シナリオを削除しました');
+            } catch (error) {
+                alert('シナリオの削除に失敗しました: ' + error.message);
+                // エラー時は元に戻す
+                scenarios.splice(index, 0, deletedScenario);
+                updateScenarioList();
             }
         }
 
@@ -1326,8 +1429,7 @@
                 const date = new Date(log.created_at).toLocaleString('ja-JP');
                 const typeLabels = {
                     'self_analysis': '自力分析',
-                    'agent_assisted': 'エージェント支援',
-                    'survey': 'アンケート回答'
+                    'agent_assisted': 'エージェント支援'
                 };
                 
                 let content = '';
@@ -1441,7 +1543,6 @@
                 scenarioIndex: currentScenarioIndex,
                 scenarioTitle: scenarios[currentScenarioIndex].title,
                 analysis,
-                model: adminConfig.model,
                 experimentType: 'self_analysis'
             });
 
@@ -1468,7 +1569,6 @@
                 scenarioIndex: currentScenarioIndex,
                 scenarioTitle: scenarios[currentScenarioIndex].title,
                 chatHistory: getChatHistory(),
-                model: adminConfig.model,
                 experimentType: 'agent_assisted'
             });
 
@@ -1567,7 +1667,9 @@
                 "なるほど、その観点は興味深いですね。登場人物の表情や行動からも何か読み取れることはありますか？",
                 "とても良い分析ですね。他の登場人物はどのような気持ちでいると思いますか？",
                 "その通りですね。さらに深く考えてみると、なぜそのような感情を抱いているのでしょうか？",
-                "素晴らしい気づきです。そこから読み取れる人間関係はどのようなものでしょうか？"
+                "素晴らしい気づきです。そこから読み取れる人間関係はどのようなものでしょうか？",
+                "興味深い指摘ですね。その状況で相手はどんなことを考えているでしょうか？",
+                "良い視点ですね。もし自分がその立場だったら、どのように感じるでしょうか？"
             ];
             
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1576,6 +1678,20 @@
 
         // イベントリスナー設定
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM読み込み完了');
+            
+            // Supabase初期化後の処理
+            window.initAfterSupabaseLoad = init;
+            
+            // すでにSupabaseが読み込まれている場合は即座に初期化
+            if (window.supabase || window.Supabase) {
+                init();
+            } else {
+                // 少し待ってから初期化を試行
+                setTimeout(init, 100);
+            }
+            
+            // チャット入力でEnterキー
             const chatInput = document.getElementById('chatInput');
             if (chatInput) {
                 chatInput.addEventListener('keypress', function(e) {
@@ -1585,6 +1701,7 @@
                 });
             }
 
+            // パスワード入力でEnterキー
             const adminPasswordInput = document.getElementById('adminPassword');
             if (adminPasswordInput) {
                 adminPasswordInput.addEventListener('keypress', function(e) {
@@ -1593,17 +1710,7 @@
                     }
                 });
             }
-
-            // URLパラメータでモードを自動選択
-            const urlParams = new URLSearchParams(window.location.search);
-            const mode = urlParams.get('mode');
-            if (mode === 'participant') {
-                selectMode('participant');
-            }
         });
-
-        // 初期化実行
-        init();
     </script>
 </body>
 </html>
