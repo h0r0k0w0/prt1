@@ -750,12 +750,14 @@ async function initializeSupabase() {
                 .from('admin_settings')
                 .select('*')
                 .eq('id', 'admin_config')
-                .single();
+                .maybeSingle();
             
             if (error && error.code !== 'PGRST116') throw error;
             
-            if (data && data.settings) {
+            if (data) {
                 adminConfig = { ...adminConfig, ...data.settings };
+              } else {
+                console.log('admin_config 行が存在しないため、デフォルト設定を使用します');
             }
         } catch (error) {
             console.error('管理者設定読み込みエラー:', error);
@@ -794,16 +796,19 @@ async function initializeSupabase() {
                 .from('admin_settings')
                 .select('*')
                 .eq('id', 'scenarios')
-                .single();
+                .maybeSingle();
             
             if (error && error.code !== 'PGRST116') throw error;
             
-            if (data && data.settings && data.settings.scenarios) {
-                scenarios = data.settings.scenarios;
+            if (data) {
+     // 行がある → 取得したシナリオを使用
+              scenarios = data.settings.scenarios;
             } else {
-                scenarios = [...defaultScenarios];
-                await saveScenarios();
+       // 行が無い → デフォルトシナリオで初期化し、DB に保存
+              scenarios = [...defaultScenarios];
+              await saveScenarios();   // ここで行が作成される
             }
+            
         } catch (error) {
             console.error('シナリオ読み込みエラー:', error);
             scenarios = [...defaultScenarios];
