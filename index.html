@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>メンタライズ訓練システム</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  　<script type="importmap">
+　  {
+　    "imports": {
+  　    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/module/index.js",
+ 　     "@supabase/auth-js": "https://cdn.jsdelivr.net/npm/@supabase/auth-js@2/dist/module/index.js"
+ 　   }
+  }
+  </script>    
     <style>
         * {
             margin: 0;
@@ -699,18 +706,16 @@
     // --- 方法B：ES Modules を import() で読み込む版 ---
 function initializeSupabase () {
   try {
-    if (window.supabase && window.supabase.createClient) {
-      const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-      const supabaseAnonKey = '★ anon キーに差し替えて下さい ★';
+        const { createClient } = await import('@supabase/supabase-js');
 
-      supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-      isSupabaseAvailable = true;
-      console.log('✅ Supabase 初期化成功');
+        const supabaseUrl  = 'https://ivlmmqsdnmvzermlrger.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';   // ★ anon キーを必ず使用 ★
 
-      loadDataFromSupabase();
-    } else {
-      console.warn('⚠️ Supabase ライブラリが見つかりません');
-      loadFromLocalStorage();
+        supabase            = createClient(supabaseUrl, supabaseAnonKey);
+        isSupabaseAvailable = true;
+        console.log('✅ Supabase 初期化成功');
+
+        await loadDataFromSupabase();
     }
   } catch (e) {
     console.error('❌ Supabase 初期化エラー:', e);
@@ -1420,9 +1425,10 @@ function initializeSupabase () {
     }
 
     // 初期化とイベントリスナー設定
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
         console.log('🚀 システム開始');
-        
+    　  initializeSupabase();
+   　   loadFromLocalStorage();        
         // Supabase初期化
         initializeSupabase();
         
@@ -1485,7 +1491,7 @@ function initializeSupabase () {
         document.getElementById('adminPassword').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') attemptAdminAccess();
         });
-        
+        //Java終わり
         console.log('✅ 初期化完了');
     });
     </script>
