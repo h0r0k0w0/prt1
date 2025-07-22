@@ -8,15 +8,16 @@
   <!-- ① Import Map  : 裸インポートをブラウザで解決  -->
   <script type="importmap">
   {
-    "imports": {
-      "@supabase/supabase-js"  : "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?module",
-      "@supabase/auth-js"      : "https://cdn.jsdelivr.net/npm/@supabase/auth-js@2?module",
-      "@supabase/postgrest-js" : "https://cdn.jsdelivr.net/npm/@supabase/postgrest-js@1?module",
-      "@supabase/realtime-js"  : "https://cdn.jsdelivr.net/npm/@supabase/realtime-js@2?module",
-      "@supabase/storage-js"   : "https://cdn.jsdelivr.net/npm/@supabase/storage-js@2?module",
-      "@supabase/functions-js" : "https://cdn.jsdelivr.net/npm/@supabase/functions-js@2?module"
-    }
+  "imports": {
+    "@supabase/supabase-js"  : "https://esm.sh/@supabase/supabase-js@2",
+    "@supabase/auth-js"      : "https://esm.sh/@supabase/auth-js@2",
+    "@supabase/postgrest-js" : "https://esm.sh/@supabase/postgrest-js@1",
+    "@supabase/realtime-js"  : "https://esm.sh/@supabase/realtime-js@2",
+    "@supabase/storage-js"   : "https://esm.sh/@supabase/storage-js@2",
+    "@supabase/functions-js" : "https://esm.sh/@supabase/functions-js@2"
   }
+}
+
   </script>
     <style>
         * {
@@ -712,12 +713,17 @@
     // --- 方法B：ES Modules を import() で読み込む版 ---
     async function initializeSupabase () {
       try {
+        const mod          = await import('@supabase/supabase-js');
         // ImportMap により URL が解決される
         
-        const supa = await import('@supabase/supabase-js');
-        const createClient = supa.createClient || supa.default;
-        if (!createClient) throw new Error('createClient not found');
-
+        const createClient =
+              mod.createClient           // 通常の名前付き
+           ?? mod.default?.createClient  // default がオブジェクト
+           ?? mod.default;               // default が関数
+        if (typeof createClient !== 'function') {
+          throw new Error('createClient not found in module');
+        }
+        
         const supabaseUrl  = 'https://ivlmmqsdnmvzermlrger.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // ★ anon キーを必ず使用
 
