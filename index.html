@@ -517,7 +517,39 @@
                     </div>
                 </div>
                 <h2>🔧 システム設定</h2>
-                
+                // 管理者パスワード変更
+        async function changeAdminPassword() {
+            const newPassword = document.getElementById('newAdminPassword').value;
+            const confirmPassword = document.getElementById('confirmAdminPassword').value;
+            
+            if (!newPassword || !confirmPassword) {
+                alert('両方のパスワード欄を入力してください');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('パスワードが一致しません');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                alert('パスワードは6文字以上で設定してください');
+                return;
+            }
+            
+            // adminConfigのパスワードを更新
+            adminConfig.adminPassword = newPassword;
+            
+            // Supabaseに保存
+            await saveAdminSettings();
+            
+            // 入力欄をクリア
+            document.getElementById('newAdminPassword').value = '';
+            document.getElementById('confirmAdminPassword').value = '';
+            
+            alert('パスワードが変更されました！次回ログイン時から新しいパスワードが必要になります。');
+        }
+
                 <div class="admin-config">
                     <h3>🔑 OpenAI API 設定</h3>
                     <div class="config-grid">
@@ -1054,6 +1086,26 @@
 
         // 管理者設定保存
         async function saveAdminConfig() {
+            
+<!-- パスワード変更セクション -->
+                <div class="admin-config">
+                    <h3>🔒 セキュリティ設定</h3>
+                    <div class="config-grid">
+                        <div class="form-group">
+                            <label for="newAdminPassword">管理者パスワードを変更</label>
+                            <input type="password" id="newAdminPassword" placeholder="新しいパスワード">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmAdminPassword">パスワード確認</label>
+                            <input type="password" id="confirmAdminPassword" placeholder="パスワードを再入力">
+                        </div>
+                    </div>
+                    <button class="btn" onclick="changeAdminPassword()" style="background: #dc3545;">パスワードを変更</button>
+                    <div style="margin-top: 10px; font-size: 14px; color: #6c757d;">
+                        ⚠️ パスワードを変更すると、次回から新しいパスワードが必要になります（6文字以上）
+                    </div>
+                </div>
+
             adminConfig.apiKey = document.getElementById('adminApiKey').value;
             adminConfig.model = document.getElementById('modelSelect').value;
 
