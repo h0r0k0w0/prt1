@@ -662,7 +662,7 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
     // グローバル変数
     let currentMode = 'none';
     let isAdminAuthenticated = false;
@@ -695,34 +695,28 @@
     ];
 
     // Supabase初期化
-    function initializeSupabase() {
-        try {
-            const script = document.createElement('script');
-            script.type = 'module'; 
-            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-            script.onload = function() {
-                if (window.supabase && window.supabase.createClient) {
-                    const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';
-                    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                    isSupabaseAvailable = true;
-                    console.log('✅ Supabase初期化成功');
-                    loadDataFromSupabase();
-                } else {
-                    console.warn('⚠️ Supabaseライブラリが見つかりません');
-                    loadFromLocalStorage();
-                }
-            };
-            script.onerror = function() {
-                console.warn('⚠️ Supabaseライブラリの読み込みに失敗しました');
-                loadFromLocalStorage();
-            };
-            document.head.appendChild(script);
-        } catch (error) {
-            console.error('❌ Supabase初期化エラー:', error);
-            loadFromLocalStorage();
-        }
-    }
+    // --- 方法B：ES Modules を import() で読み込む版 ---
+async function initializeSupabase() {
+  try {
+    // ESM を動的に import して createClient を取得
+    const { createClient } =
+      await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+
+    const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
+    const supabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8';
+
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    isSupabaseAvailable = true;
+    console.log('✅ Supabase 初期化成功');
+
+    loadDataFromSupabase();          // ← 既存の関数呼び出しはそのまま
+  } catch (error) {
+    console.warn('⚠️ Supabase の読み込みに失敗しました', error);
+    loadFromLocalStorage();          // ← ローカルストレージ fallback もそのまま
+  }
+}
+
 
     // Supabaseからデータを読み込み
     async function loadDataFromSupabase() {
