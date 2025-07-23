@@ -42,10 +42,6 @@ jobs:
           try {
             console.log('🚀 Claude Assistant 開始');
             
-            // 環境変数チェック
-            console.log('APIキー存在確認:', !!process.env.ANTHROPIC_API_KEY);
-            console.log('GitHubトークン存在確認:', !!process.env.GITHUB_TOKEN);
-            
             if (!process.env.ANTHROPIC_API_KEY) {
               throw new Error('❌ ANTHROPIC_API_KEY が設定されていません');
             }
@@ -63,13 +59,12 @@ jobs:
             if (context.event_name === 'issues') {
               issueBody = context.event.issue?.body || '';
               issueNumber = context.event.issue?.number;
-              console.log('Issueイベント - 番号:', issueNumber);
             } else if (context.event_name === 'issue_comment') {
               issueBody = context.event.comment?.body || '';
               issueNumber = context.event.issue?.number;
-              console.log('コメントイベント - 番号:', issueNumber);
             }
             
+            console.log('Issue番号:', issueNumber);
             console.log('本文（抜粋）:', issueBody.substring(0, 100));
             
             // @claude メンションチェック
@@ -159,6 +154,7 @@ jobs:
           }
         }
         
+        // main関数を実行
         main();
         EOF
         
