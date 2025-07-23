@@ -515,6 +515,24 @@
                                 <option value="gpt-4o">GPT-4o</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                          <label for="maxTokens">最大トークン数</label>
+                          <input type="number" id="maxTokens" value="300" min="1">
+                        </div>
+                        <div class="form-group">
+                          <label for="temperature">Temperature</label>
+                          <input type="number" id="temperature" value="0.7" step="0.1" min="0" max="2">
+                        </div>
+                        <div class="form-group">
+                          <label for="sessionTimeout">セッションタイムアウト (分)</label>
+                          <input type="number" id="sessionTimeout" value="30" min="1">
+                        </div>
+                        <div class="form-group">
+                          <label for="showTimer">セッション経過時間の表示</label><br>
+                          <input type="checkbox" id="showTimer" checked>
+                          <span>表示する</span>
+                         </div>
+
                     </div>
                     <button id="saveConfigBtn" class="btn">設定を保存</button>
                 </div>
@@ -1086,8 +1104,12 @@
     async function saveAdminConfig() {
         adminConfig.apiKey = document.getElementById('adminApiKey').value;
         adminConfig.model = document.getElementById('modelSelect').value;
-
-        await saveAdminSettings();
+        adminConfig.maxTokens = Number(document.getElementById('maxTokens').value);
+        adminConfig.temperature = Number(document.getElementById('temperature').value);
+        adminConfig.sessionTimeout = Number(document.getElementById('sessionTimeout').value);
+        adminConfig.showSessionTimer = document.getElementById('showTimer').checked;
+        await saveAdminSettings();  // Supabaseにアップサート:contentReference[oaicite:8]{index=8}
+   
         
         document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
         setTimeout(() => document.getElementById('configStatus').innerHTML = '', 3000);
@@ -1102,16 +1124,25 @@
 
     // 管理者設定UIに読み込み
     function loadAdminConfigUI() {
-        if (document.getElementById('adminApiKey')) {
-            document.getElementById('adminApiKey').value = adminConfig.apiKey || '';
-        }
-        if (document.getElementById('modelSelect')) {
-            document.getElementById('modelSelect').value = adminConfig.model || 'gpt-3.5-turbo';
-        }
-        if (document.getElementById('systemPrompt')) {
-            document.getElementById('systemPrompt').value = adminConfig.systemPrompt || '';
-        }
+        const apiKeyInput = document.getElementById('adminApiKey');
+        if (apiKeyInput) apiKeyInput.value = adminConfig.apiKey || '';
+
+        const modelSelect = document.getElementById('modelSelect');
+        if (modelSelect) modelSelect.value = adminConfig.model || 'gpt-3.5-turbo';
+
+        const maxTokensInput = document.getElementById('maxTokens');
+        if (maxTokensInput) maxTokensInput.value = adminConfig.maxTokens ?? 300;
+
+        const tempInput = document.getElementById('temperature');
+        if (tempInput) tempInput.value = adminConfig.temperature ?? 0.7;
+
+        const timeoutInput = document.getElementById('sessionTimeout');
+        if (timeoutInput) timeoutInput.value = adminConfig.sessionTimeout ?? 30;
+
+        const showTimerCheckbox = document.getElementById('showTimer');
+        if (showTimerCheckbox) showTimerCheckbox.checked = adminConfig.showSessionTimer ?? true;
     }
+
 
     // シナリオ管理
     async function addScenario() {
@@ -1449,15 +1480,44 @@
 
     // 初期化とイベントリスナー設定
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log('🚀 システム開始');
+      console.log('🚀 システム開始');
     　  
-   　   loadFromLocalStorage();  
-      
-        initializeSupabase().then(() => {
-          console.log('✅ Supabase 同期完了');
-        }).catch(err => {
-          console.error('❌ Supabase 初期化エラー:', err);
-        });
+   　 loadFromLocalStorage();  
+
+      try {
+        await initializeSupabase();  // Supabaseの初期化
+        console.log('✅ Supabase 同期完了');
+
+        await fetchAdminConfig();     // 管理設定の取得（adminConfig に読み込み）
+        loadAdminConfigUI();          // UIへの反映
+
+    // ✅ 管理設定のリアルタイム監視を開始
+        supabase.channel('admin-config-watch')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'admin_settings',
+              filter: 'id=eq.admin_config'  // 固定IDの設定レコードのみを対象
+            },
+            (payload) => {
+              if (payload.new) {
+                adminConfig = payload.new.settings;
+                loadAdminConfigUI(); // UIを即時更新
+              }
+             }
+           )
+           .subscribe();
+       } catch (err) {
+         console.error('❌ Supabase 初期化エラー:', err);
+       }
+     });
+        // initializeSupabase().then(() => {
+        //   console.log('✅ Supabase 同期完了');
+        // }).catch(err => {
+        //   console.error('❌ Supabase 初期化エラー:', err);
+        // });
         // Supabase初期化
         
         
