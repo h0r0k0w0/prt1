@@ -1750,7 +1750,7 @@
       } catch (err) {
         console.error('❌ 初期化中にエラー:', err);
       }
-    });      
+      // 多分ここで切らせるとまずいかも});      
 
     // ✅ 管理設定のリアルタイム監視を開始
         supabase.channel('admin-config-watch')
