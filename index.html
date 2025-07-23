@@ -819,27 +819,27 @@
 
 
     // Supabaseからデータを読み込み
-    // async function loadDataFromSupabase() {
-    //     if (!supabase) {
-    //         loadFromLocalStorage();
-    //         return;
-    //     }
+    async function loadDataFromSupabase() {
+        if (!supabase) {
+            loadFromLocalStorage();
+            return;
+        }
         
-    //     try {
-    //         await loadAdminSettings();
-    //         await loadScenarios();
-    //         await loadExperimentLogs();
+        try {
+            await loadAdminSettings();
+            await loadScenarios();
+            await loadExperimentLogs();
             
-    //         loadAdminConfigUI();
-    //         updateScenarioList();
-    //         updateLogsList();
+            loadAdminConfigUI();
+            updateScenarioList();
+            updateLogsList();
             
-    //         console.log('✅ Supabaseからデータ読み込み完了');
-    //     } catch (error) {
-    //         console.error('❌ Supabaseデータ読み込みエラー:', error);
-    //         loadFromLocalStorage();
-    //     }
-    // }
+            console.log('✅ Supabaseからデータ読み込み完了');
+        } catch (error) {
+            console.error('❌ Supabaseデータ読み込みエラー:', error);
+            loadFromLocalStorage();
+        }
+    }
     async function initializeSupabase () {
       if (globalThis.__supabase) {
         supabase = globalThis.__supabase;
@@ -859,7 +859,7 @@
         }
     
         const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-        const supabaseAnonKey = '（省略）'; // 必ず anon を使ってください
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // anon key を使用
     
         supabase = createClient(supabaseUrl, supabaseAnonKey);
         globalThis.__supabase = supabase;
@@ -920,6 +920,11 @@
         `;
         tbody.appendChild(row);
       });
+    }
+
+    // 管理者設定を取得（fetchAdminConfigのエイリアス）
+    async function fetchAdminConfig() {
+        return await loadAdminSettings();
     }
 
     // Supabaseから管理者設定を読み込み
