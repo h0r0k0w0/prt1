@@ -505,11 +505,23 @@
                 </div>
 
                 <div class="admin-config">
-                    <h3>🔑 OpenAI API 設定</h3>
+                    <h3>🤖 AI API 設定</h3>
                     <div class="config-grid">
                         <div class="form-group">
+                            <label for="apiProvider">APIプロバイダー</label>
+                            <select id="apiProvider">
+                                <option value="openai">OpenAI</option>
+                                <option value="claude">Claude (Anthropic)</option>
+                                <option value="custom">カスタムURL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="adminApiKey">API キー</label>
-                            <input type="password" id="adminApiKey" placeholder="sk-...">
+                            <input type="password" id="adminApiKey" placeholder="APIキーを入力...">
+                        </div>
+                        <div class="form-group" id="customUrlGroup" style="display: none;">
+                            <label for="customApiUrl">カスタムAPI URL</label>
+                            <input type="text" id="customApiUrl" placeholder="https://api.example.com/v1/chat/completions">
                         </div>
                         <div class="form-group">
                             <label for="modelSelect">使用モデル</label>
@@ -517,6 +529,10 @@
                                 <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                                 <option value="gpt-4">GPT-4</option>
                                 <option value="gpt-4o">GPT-4o</option>
+                                <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                                <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                                <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -832,7 +848,9 @@
     
     let adminConfig = {
         adminPassword: 'MentalizeAdmin2024!',
+        apiProvider: 'openai',
         apiKey: '',
+        customApiUrl: '',
         model: 'gpt-3.5-turbo',
         systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。'
     };
@@ -1266,12 +1284,6 @@
         document.getElementById('modeSelector').style.display = mode === 'none' ? 'block' : 'none';
         document.getElementById('adminNav').classList.toggle('active', mode === 'admin');
         document.getElementById('participantNav').classList.toggle('active', mode === 'participant');
-        document.getElementById('adminSurveysNav').addEventListener('click', () => {
-            showAdminScreen('adminSurveys');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminSurveysNav').classList.add('active');
-            loadSurveys();
-        });
 
 
         document.querySelectorAll('.screen').forEach(screen => {
@@ -1363,14 +1375,15 @@
 
     // 管理者設定保存
     async function saveAdminConfig() {
+        adminConfig.apiProvider = document.getElementById('apiProvider').value;
         adminConfig.apiKey = document.getElementById('adminApiKey').value;
+        adminConfig.customApiUrl = document.getElementById('customApiUrl').value;
         adminConfig.model = document.getElementById('modelSelect').value;
         adminConfig.maxTokens = Number(document.getElementById('maxTokens').value);
         adminConfig.temperature = Number(document.getElementById('temperature').value);
         adminConfig.sessionTimeout = Number(document.getElementById('sessionTimeout').value);
         adminConfig.showSessionTimer = document.getElementById('showTimer').checked;
-        await saveAdminSettings();  // Supabaseにアップサート:contentReference[oaicite:8]{index=8}
-   
+        await saveAdminSettings();
         
         document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
         setTimeout(() => document.getElementById('configStatus').innerHTML = '', 3000);
@@ -1418,11 +1431,23 @@
 
     // 管理者設定UIに読み込み
     function loadAdminConfigUI() {
+        const apiProviderSelect = document.getElementById('apiProvider');
+        if (apiProviderSelect) {
+            apiProviderSelect.value = adminConfig.apiProvider || 'openai';
+            updateApiProviderUI();
+        }
+
         const apiKeyInput = document.getElementById('adminApiKey');
         if (apiKeyInput) apiKeyInput.value = adminConfig.apiKey || '';
+        
+        const customUrlInput = document.getElementById('customApiUrl');
+        if (customUrlInput) customUrlInput.value = adminConfig.customApiUrl || '';
 
         const modelSelect = document.getElementById('modelSelect');
-        if (modelSelect) modelSelect.value = adminConfig.model || 'gpt-3.5-turbo';
+        if (modelSelect) {
+            modelSelect.value = adminConfig.model || 'gpt-3.5-turbo';
+            updateModelOptions();
+        }
 
         const maxTokensInput = document.getElementById('maxTokens');
         if (maxTokensInput) maxTokensInput.value = adminConfig.maxTokens ?? 300;
@@ -1435,6 +1460,75 @@
 
         const showTimerCheckbox = document.getElementById('showTimer');
         if (showTimerCheckbox) showTimerCheckbox.checked = adminConfig.showSessionTimer ?? true;
+        
+        const systemPromptInput = document.getElementById('systemPrompt');
+        if (systemPromptInput) systemPromptInput.value = adminConfig.systemPrompt || '';
+    }
+    
+    // APIプロバイダーUIの更新
+    function updateApiProviderUI() {
+        const provider = document.getElementById('apiProvider')?.value;
+        const customUrlGroup = document.getElementById('customUrlGroup');
+        
+        if (customUrlGroup) {
+            customUrlGroup.style.display = provider === 'custom' ? 'block' : 'none';
+        }
+        
+        updateModelOptions();
+    }
+    
+    // モデル選択肢の更新
+    function updateModelOptions() {
+        const provider = document.getElementById('apiProvider')?.value;
+        const modelSelect = document.getElementById('modelSelect');
+        
+        if (modelSelect) {
+            modelSelect.innerHTML = '';
+            
+            if (provider === 'openai') {
+                const openaiModels = [
+                    { value: 'gpt-3.5-turbo', text: 'GPT-3.5 Turbo' },
+                    { value: 'gpt-4', text: 'GPT-4' },
+                    { value: 'gpt-4o', text: 'GPT-4o' },
+                    { value: 'gpt-4o-mini', text: 'GPT-4o Mini' }
+                ];
+                openaiModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.value;
+                    option.textContent = model.text;
+                    modelSelect.appendChild(option);
+                });
+            } else if (provider === 'claude') {
+                const claudeModels = [
+                    { value: 'claude-3-5-sonnet-20241022', text: 'Claude 3.5 Sonnet' },
+                    { value: 'claude-3-sonnet-20240229', text: 'Claude 3 Sonnet' },
+                    { value: 'claude-3-opus-20240229', text: 'Claude 3 Opus' },
+                    { value: 'claude-3-haiku-20240307', text: 'Claude 3 Haiku' }
+                ];
+                claudeModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.value;
+                    option.textContent = model.text;
+                    modelSelect.appendChild(option);
+                });
+            } else {
+                // カスタムの場合は基本モデルを表示
+                const basicModels = [
+                    { value: 'custom-model', text: 'カスタムモデル' }
+                ];
+                basicModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.value;
+                    option.textContent = model.text;
+                    modelSelect.appendChild(option);
+                });
+            }
+            
+            // 保存されたモデルがある場合はそれを選択
+            if (adminConfig.model) {
+                modelSelect.value = adminConfig.model;
+            }
+        }
     }
 
     async function addSurvey() {
@@ -1729,37 +1823,88 @@
             systemPrompt += '\n\n参考用想定質問:\n' + currentScenario.promptQuestions.map(q => `- ${q}`).join('\n');
         }
         
-        if (adminConfig.apiKey && adminConfig.apiKey.startsWith('sk-')) {
+        const userContent = `シナリオ: ${currentScenario.content}\n\nユーザーの発言: ${userMessage}`;
+        
+        if (adminConfig.apiKey) {
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
+                let apiUrl, headers, requestBody;
+                
+                if (adminConfig.apiProvider === 'openai') {
+                    if (!adminConfig.apiKey.startsWith('sk-')) {
+                        throw new Error('OpenAI APIキーの形式が正しくありません');
+                    }
+                    
+                    apiUrl = 'https://api.openai.com/v1/chat/completions';
+                    headers = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${adminConfig.apiKey}`
-                    },
-                    body: JSON.stringify({
+                    };
+                    requestBody = {
                         model: adminConfig.model,
                         messages: [
-                            {
-                                role: 'system',
-                                content: systemPrompt
-                            },
-                            {
-                                role: 'user',
-                                content: `シナリオ: ${currentScenario.content}\n\nユーザーの発言: ${userMessage}`
-                            }
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userContent }
                         ],
                         max_tokens: adminConfig.maxTokens || 300,
                         temperature: adminConfig.temperature || 0.7
-                    })
+                    };
+                } else if (adminConfig.apiProvider === 'claude') {
+                    apiUrl = 'https://api.anthropic.com/v1/messages';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'x-api-key': adminConfig.apiKey,
+                        'anthropic-version': '2023-06-01'
+                    };
+                    requestBody = {
+                        model: adminConfig.model,
+                        max_tokens: adminConfig.maxTokens || 300,
+                        temperature: adminConfig.temperature || 0.7,
+                        system: systemPrompt,
+                        messages: [{ role: 'user', content: userContent }]
+                    };
+                } else if (adminConfig.apiProvider === 'custom') {
+                    if (!adminConfig.customApiUrl) {
+                        throw new Error('カスタムAPI URLが設定されていません');
+                    }
+                    
+                    apiUrl = adminConfig.customApiUrl;
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminConfig.apiKey}`
+                    };
+                    requestBody = {
+                        model: adminConfig.model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userContent }
+                        ],
+                        max_tokens: adminConfig.maxTokens || 300,
+                        temperature: adminConfig.temperature || 0.7
+                    };
+                }
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    return data.choices[0].message.content;
+                    
+                    if (adminConfig.apiProvider === 'claude') {
+                        return data.content[0].text;
+                    } else {
+                        return data.choices[0].message.content;
+                    }
+                } else {
+                    const errorData = await response.text();
+                    console.error(`APIエラー (${response.status}):`, errorData);
+                    throw new Error(`APIリクエストが失敗しました (${response.status})`);
                 }
             } catch (error) {
-                console.error('OpenAI API エラー:', error);
+                console.error('AI API エラー:', error);
+                addMessage('ai', '申し訳ございません、AIサービスに接続できませんでした。デモモードで続行します。');
             }
         }
 
@@ -1926,12 +2071,23 @@
         document.getElementById('participantBtn').addEventListener('click', () => selectMode('participant'));
         document.getElementById('adminAccessBtn').addEventListener('click', attemptAdminAccess);
         document.getElementById('backToModeBtn').addEventListener('click', () => selectMode('none'));
+        // APIプロバイダー変更イベント
+        document.getElementById('apiProvider').addEventListener('change', updateApiProviderUI);
+        
         // アンケート関連イベント
         document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
         document.getElementById('saveSurveyBtn').addEventListener('click', saveSurvey);
         document.getElementById('loadSurveyResultsBtn').addEventListener('click', loadSurveyResults);
         document.getElementById('resultParticipant').addEventListener('change', displaySurveyResults);
         document.getElementById('resultDay').addEventListener('change', displaySurveyResults);
+        
+        // 管理者ナビゲーションイベント
+        document.getElementById('adminSurveysNav').addEventListener('click', () => {
+            showAdminScreen('adminSurveys');
+            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('adminSurveysNav').classList.add('active');
+            loadSurveys();
+        });
         document.getElementById('showUserSessionsBtn').addEventListener('click', function() {
             const section = document.getElementById('userSessionsSection');
             if (section.style.display === 'none') {
@@ -1948,7 +2104,7 @@
         document.getElementById('adminLogoutBtn4').addEventListener('click', adminLogout);
 
         
-        // シナリオの質問タイプ切り替えイベント
+        // アンケートの質問タイプ切り替えイベント
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('question-type')) {
                 const container = e.target.closest('.question-item');
@@ -2135,6 +2291,316 @@
                 document.body.removeChild(overlay);
                 resolve();
             });
+        });
+    }
+    
+    // アンケートデータの読み込み
+    async function loadSurveys() {
+        if (!supabase) {
+            // ローカルストレージから読み込み
+            const savedSurveys = localStorage.getItem('mentalizeSurveys');
+            if (savedSurveys) {
+                try {
+                    surveys = JSON.parse(savedSurveys);
+                } catch (error) {
+                    surveys = [];
+                }
+            }
+            updateSurveyList();
+            loadSurveyResultsForDisplay();
+            return;
+        }
+        
+        try {
+            const { data, error } = await supabase
+                .from('admin_settings')
+                .select('*')
+                .eq('id', 'surveys')
+                .maybeSingle();
+            
+            if (error && error.code !== 'PGRST116') throw error;
+            
+            if (data) {
+                surveys = data.settings.surveys || [];
+            } else {
+                surveys = [];
+                await saveSurveys(); // 空の配列で初期化
+            }
+            
+            updateSurveyList();
+            loadSurveyResultsForDisplay();
+            console.log('✅ アンケートデータ読み込み完了');
+        } catch (error) {
+            console.error('❌ アンケートデータ読み込みエラー:', error);
+            surveys = [];
+        }
+    }
+    
+    // アンケートデータの保存
+    async function saveSurveys() {
+        if (!supabase) {
+            localStorage.setItem('mentalizeSurveys', JSON.stringify(surveys));
+            return;
+        }
+        
+        try {
+            const { error } = await supabase
+                .from('admin_settings')
+                .upsert({
+                    id: 'surveys',
+                    settings: { surveys },
+                    updated_at: new Date().toISOString()
+                });
+            
+            if (error) throw error;
+        } catch (error) {
+            console.error('アンケート保存エラー:', error);
+            localStorage.setItem('mentalizeSurveys', JSON.stringify(surveys));
+        }
+    }
+    
+    // 質問を追加
+    function addQuestion() {
+        const container = document.getElementById('questionsContainer');
+        const questionCount = container.querySelectorAll('.question-item').length;
+        
+        const questionItem = document.createElement('div');
+        questionItem.className = 'question-item';
+        questionItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;';
+        
+        questionItem.innerHTML = `
+            <div class="form-group">
+                <label>質問内容</label>
+                <textarea class="question-text" placeholder="質問を入力してください" style="height: 60px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>回答形式</label>
+                <select class="question-type">
+                    <option value="text">自由記述</option>
+                    <option value="radio">単一選択</option>
+                    <option value="checkbox">複数選択</option>
+                    <option value="scale">数段階評価</option>
+                </select>
+            </div>
+            <div class="options-container" style="display: none;">
+                <label>選択肢（改行区切り）</label>
+                <textarea class="question-options" placeholder="選択肢1\n選択肢2\n選択肢3" style="height: 80px;"></textarea>
+            </div>
+            <div class="scale-container" style="display: none;">
+                <label>評価範囲</label>
+                <select class="scale-range">
+                    <option value="1-5">1-5段階</option>
+                    <option value="1-7">1-7段階</option>
+                    <option value="1-10">1-10段階</option>
+                </select>
+            </div>
+            <button type="button" class="btn remove-question" style="background: #dc3545; margin-top: 10px;">質問を削除</button>
+        `;
+        
+        container.appendChild(questionItem);
+        
+        // 削除ボタンのイベントリスナー
+        questionItem.querySelector('.remove-question').addEventListener('click', () => {
+            if (container.querySelectorAll('.question-item').length > 1) {
+                questionItem.remove();
+            } else {
+                alert('少なくとも1つの質問が必要です');
+            }
+        });
+    }
+    
+    // アンケートを保存
+    async function saveSurvey() {
+        const day = Number(document.getElementById('surveyDay').value);
+        const timing = document.querySelector('input[name="surveyTiming"]:checked').value;
+        const questions = collectQuestionInputs();
+        
+        if (questions.length === 0) {
+            alert('少なくとも1つの質問を追加してください');
+            return;
+        }
+        
+        const surveyExists = surveys.find(s => s.day === day && s.timing === timing);
+        if (surveyExists) {
+            if (!confirm(`${day}日目の${timing === 'start' ? '開始時' : '終了時'}アンケートは既に存在します。上書きしますか？`)) {
+                return;
+            }
+            // 既存のアンケートを削除
+            const index = surveys.findIndex(s => s.day === day && s.timing === timing);
+            surveys.splice(index, 1);
+        }
+        
+        surveys.push({ day, timing, questions });
+        await saveSurveys();
+        updateSurveyList();
+        
+        // フォームをリセット
+        document.getElementById('surveyDay').value = '1';
+        document.querySelector('input[name="surveyTiming"][value="start"]').checked = true;
+        const container = document.getElementById('questionsContainer');
+        const questionItems = container.querySelectorAll('.question-item');
+        questionItems.forEach((item, index) => {
+            if (index > 0) item.remove(); // 最初の質問以外を削除
+        });
+        if (questionItems.length > 0) {
+            questionItems[0].querySelector('.question-text').value = '';
+            questionItems[0].querySelector('.question-options').value = '';
+        }
+        
+        alert('アンケートが保存されました！');
+    }
+    
+    // 質問入力データを収集
+    function collectQuestionInputs() {
+        const questions = [];
+        const questionItems = document.querySelectorAll('.question-item');
+        
+        questionItems.forEach(item => {
+            const text = item.querySelector('.question-text').value.trim();
+            const type = item.querySelector('.question-type').value;
+            
+            if (!text) return; // 空の質問はスキップ
+            
+            const question = { text, type };
+            
+            if (type === 'radio' || type === 'checkbox') {
+                const optionsText = item.querySelector('.question-options').value.trim();
+                question.options = optionsText ? optionsText.split('\n').filter(opt => opt.trim()) : [];
+            } else if (type === 'scale') {
+                question.range = item.querySelector('.scale-range').value;
+            }
+            
+            questions.push(question);
+        });
+        
+        return questions;
+    }
+    
+    // アンケート一覧を更新
+    function updateSurveyList() {
+        const list = document.getElementById('surveysList');
+        if (!list) return;
+        
+        list.innerHTML = '';
+        
+        if (surveys.length === 0) {
+            list.innerHTML = '<p style="color: #6c757d; text-align: center;">アンケートがありません</p>';
+            return;
+        }
+        
+        surveys.forEach((survey, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
+            
+            const timingText = survey.timing === 'start' ? '開始時' : '終了時';
+            
+            item.innerHTML = `
+                <h4 style="margin-bottom: 10px; color: #495057;">${survey.day}日目 ${timingText}アンケート</h4>
+                <p style="margin-bottom: 15px; color: #6c757d;">質問数: ${survey.questions.length}問</p>
+                <button class="btn deleteSurveyBtn" data-index="${index}" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
+            `;
+            
+            list.appendChild(item);
+        });
+        
+        // 削除ボタンのイベントリスナー
+        list.querySelectorAll('.deleteSurveyBtn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                deleteSurvey(Number(e.currentTarget.dataset.index));
+            });
+        });
+    }
+    
+    // アンケートを削除
+    async function deleteSurvey(index) {
+        if (!confirm('このアンケートを削除しますか？')) return;
+        
+        surveys.splice(index, 1);
+        await saveSurveys();
+        updateSurveyList();
+        alert('アンケートを削除しました');
+    }
+    
+    // アンケート結果の読み込み（表示用）
+    async function loadSurveyResultsForDisplay() {
+        if (!supabase) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('survey_results')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            surveyResults = data || [];
+            
+            // 参加者セレクトボックスを更新
+            const participants = [...new Set(surveyResults.map(result => result.participant_id))];
+            const select = document.getElementById('resultParticipant');
+            if (select) {
+                select.innerHTML = '<option value="">全ての参加者</option>';
+                participants.forEach(participant => {
+                    const option = document.createElement('option');
+                    option.value = participant;
+                    option.textContent = participant;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('❌ アンケート結果読み込みエラー:', error);
+        }
+    }
+    
+    // アンケート結果を読み込み
+    async function loadSurveyResults() {
+        await loadSurveyResultsForDisplay();
+        displaySurveyResults();
+    }
+    
+    // アンケート結果を表示
+    function displaySurveyResults() {
+        const resultsDiv = document.getElementById('surveyResults');
+        if (!resultsDiv) return;
+        
+        const participantFilter = document.getElementById('resultParticipant')?.value || '';
+        const dayFilter = document.getElementById('resultDay')?.value || '';
+        
+        let filteredResults = surveyResults.filter(result => {
+            return (!participantFilter || result.participant_id === participantFilter) &&
+                   (!dayFilter || result.day?.toString() === dayFilter);
+        });
+        
+        resultsDiv.innerHTML = '';
+        
+        if (filteredResults.length === 0) {
+            resultsDiv.innerHTML = '<p style="color: #6c757d; text-align: center;">条件に合致する結果がありません</p>';
+            return;
+        }
+        
+        filteredResults.forEach(result => {
+            const item = document.createElement('div');
+            item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
+            
+            const timingText = result.timing === 'start' ? '開始時' : '終了時';
+            const date = new Date(result.created_at).toLocaleString('ja-JP');
+            
+            let answersHtml = '';
+            result.answers.forEach((answer, index) => {
+                answersHtml += `<div style="margin-bottom: 10px;"><strong>Q${index + 1}:</strong> ${answer.question}<br><strong>回答:</strong> ${answer.answer}</div>`;
+            });
+            
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <div>
+                        <span style="font-weight: 600;">参加者: ${result.participant_id}</span>
+                        <span style="margin-left: 10px; background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${result.day}日目 ${timingText}</span>
+                    </div>
+                    <div style="font-size: 14px; color: #6c757d;">${date}</div>
+                </div>
+                ${answersHtml}
+            `;
+            
+            resultsDiv.appendChild(item);
         });
     }
     
