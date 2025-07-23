@@ -611,6 +611,16 @@
                         <textarea id="scenarioPromptQuestions" placeholder="想定される質問1\n想定される質問2\n想定される質問3" style="height: 120px;"></textarea>
                         <small style="color: #6c757d;">エージェントが参考にする想定質問を入力してください</small>
                     </div>
+                    <div class="form-group">
+                        <label for="scenarioHiddenContext">隠れたコンテキスト・ニュアンス（自由記述）</label>
+                        <textarea id="scenarioHiddenContext" placeholder="文章中には書かれていないが読み取れる背景情報、登場人物の心理状態、状況の詳細、暗黙の前提など、AIが理解すべき隠れた情報を自由に記述してください。" style="height: 100px;"></textarea>
+                        <small style="color: #6c757d;">シナリオの深層的な意味やニュアンスを柔軟に記述できます</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="scenarioAnalysisPoints">分析時の着目点（自由記述）</label>
+                        <textarea id="scenarioAnalysisPoints" placeholder="感情変化、人間関係の動き、コミュニケーションパターン、心理的メカニズムなど、特に注意深く分析すべき要素を自由に記述してください。" style="height: 100px;"></textarea>
+                        <small style="color: #6c757d;">AIが分析する際に重点的に考慮すべきポイントを指定できます</small>
+                    </div>
                     <button id="addScenarioBtn" class="btn">シナリオを追加</button>
                 </div>
 
