@@ -19,6 +19,7 @@
 }
 
   </script>
+  <div id="surveyContainer" style="display: none; padding: 1em; background: #f9f9f9;"></div>
     <style>
         * {
             margin: 0;
@@ -579,7 +580,7 @@
                     <div style="text-align: center; padding: 20px; color: #6c757d;">シナリオを読み込み中...</div>
                 </div>
             </div>
-          　<div class="admin-section" id="userSessionsSection">
+          　<div id="userSessionsSection" class="screen admin-section" style="display:none;">
               <h3>📋 ユーザーセッション一覧</h3>
               <table id="userSessionsTable" border="1">
                 <thead>
@@ -748,10 +749,12 @@
             content: "オフィスで新入社員のA子と先輩のB男が話している。A子：「すみません、まだ理解できていません」B男：「もう3回説明したよね」A子は下を向き、B男は少しイライラした様子で腕を組んでいる。周りの同僚たちはその様子をちらちらと見ている。"
         }
     ];
-
+    </script>
+   <div id="surveyContainer" style="padding: 1em; background: #f9f9f9;"></div>
+     <script type="module">
     // Supabase初期化
     // --- 方法B：ES Modules を import() で読み込む版 ---
-    <div id="surveyContainer" style="padding: 1em; background: #f9f9f9;"></div>
+   
     async function initializeSupabase () {
       if (globalThis.__supabase) {
         supabase = globalThis.__supabase;          // すでに作成済み
@@ -1115,6 +1118,7 @@
             errorDiv.innerHTML = '<div class="status success">認証成功！</div>';
             document.getElementById('adminPassword').value = '';
             setTimeout(() => selectMode('admin'), 1000);
+            document.getElementById('userSessionsSection').style.display = 'block';
         } else {
             errorDiv.innerHTML = '<div class="status error">パスワードが間違っています</div>';
             setTimeout(() => errorDiv.innerHTML = '', 3000);
@@ -1638,10 +1642,11 @@
       try {
         await initializeSupabase();  // Supabaseの初期化
         console.log('✅ Supabase 同期完了');
-        await loadUserSessionsUI();
+        
 
         await fetchAdminConfig();     // 管理設定の取得（adminConfig に読み込み）
         loadAdminConfigUI();          // UIへの反映
+        await loadUserSessionsUI();
       // ✅ ここからアンケート出題の処理（参加者用）
         const user = supabase.auth.getUser ? (await supabase.auth.getUser()).data.user : null;
         if (!user) throw new Error('ユーザー情報が取得できませんでした');
