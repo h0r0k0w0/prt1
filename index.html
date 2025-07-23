@@ -1689,7 +1689,8 @@
            )
            .subscribe();
        //}
-       catch (err) {
+       try {
+       } catch (err) {
          console.error('❌ Supabase 初期化エラー:', err);
        }
      });
