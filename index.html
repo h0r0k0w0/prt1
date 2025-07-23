@@ -797,13 +797,19 @@
                             
                             <!-- シナリオ表示 -->
                             <div id="scenarioDisplay" class="scenario-card" style="display: none;">
-                                <h3 id="currentScenarioTitle"></h3>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h3 id="currentScenarioTitle" style="margin: 0;"></h3>
+                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 戻る</button>
+                                </div>
                                 <p id="currentScenarioContent"></p>
                             </div>
 
                             <!-- 自力分析画面 -->
                             <div id="selfMentalize" style="display: none;">
-                                <h3>あなたの分析</h3>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h3 style="margin: 0;">あなたの分析</h3>
+                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 戻る</button>
+                                </div>
                                 <div class="form-group">
                                     <label for="userAnalysis">登場人物の気持ちや考えを分析してください</label>
                                     <textarea id="userAnalysis" placeholder="登場人物の感情、考え、動機などを自由に記述してください"></textarea>
@@ -813,7 +819,10 @@
 
                             <!-- エージェント対話画面 -->
                             <div id="agentChat" style="display: none;">
-                                <h3>エージェントとの対話</h3>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h3 style="margin: 0;">エージェントとの対話</h3>
+                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 戻る</button>
+                                </div>
                                 <div class="chat-container">
                                     <div class="chat-messages" id="chatMessages"></div>
                                     <div class="chat-input">
@@ -867,8 +876,10 @@
             promptQuestions: [
                 "太郎はなぜ不安になっているのでしょうか？",
                 "花子の支援に対して太郎はどう反応すると思いますか？",
-                "この状況で两者の関係はどう変化するでしょうか？"
-            ]
+                "この状況で両者の関係はどう変化するでしょうか？"
+            ],
+            hiddenContext: "太郎は過去にテストで失敗した経験があり、自信を失っている。花子は太郎の性格を理解しており、優しくサポートしたいと思っている。花子は自分の努力を過小評価しがちで、太郎のコンプレックスを無意識に刺激してしまうことがある。",
+            analysisPoints: "登場人物の感情変化、自尊心とコンプレックスの相互作用、支援の意図と受け手の反応のズレ、友人関係におけるコミュニケーションの困難さ"
         },
         {
             title: "職場での会話", 
@@ -877,7 +888,9 @@
                 "A子はなぜ理解できないのでしょうか？",
                 "B男のイライラの背景には何があると思いますか？",
                 "周りの同僚たちはどんな気持ちでしょうか？"
-            ]
+            ],
+            hiddenContext: "A子は新卒で緊張しやすく、理解力が人よりも時間がかかるタイプだが、頑張り屋である。B男は中堅手で教えるのが上手ではないが、プレッシャーを感じている。周りの同僚たちは両者を心配しているが、介入すべきか迷っている。",
+            analysisPoints: "新人特有のストレスと学習プロセス、指導する側のプレッシャーと教育スキルの不一致、職場の雰囲気と第三者の心理、権力関係が与える影響"
         }
     ];
     
@@ -1546,6 +1559,8 @@
         const title = document.getElementById('scenarioTitle').value;
         const content = document.getElementById('scenarioContent').value;
         const promptQuestionsText = document.getElementById('scenarioPromptQuestions').value;
+        const hiddenContext = document.getElementById('scenarioHiddenContext').value;
+        const analysisPoints = document.getElementById('scenarioAnalysisPoints').value;
 
         if (!title || !content) {
             alert('タイトルと内容を入力してください');
@@ -1553,13 +1568,24 @@
         }
         
         const promptQuestions = promptQuestionsText ? promptQuestionsText.split('\n').filter(q => q.trim()) : [];
-        scenarios.push({ title, content, promptQuestions });
+        const newScenario = {
+            title,
+            content,
+            promptQuestions,
+            hiddenContext: hiddenContext || '',
+            analysisPoints: analysisPoints || ''
+        };
+        
+        scenarios.push(newScenario);
         await saveScenarios();
         updateScenarioList();
         
+        // 入力フィールドをクリア
         document.getElementById('scenarioTitle').value = '';
         document.getElementById('scenarioContent').value = '';
         document.getElementById('scenarioPromptQuestions').value = '';
+        document.getElementById('scenarioHiddenContext').value = '';
+        document.getElementById('scenarioAnalysisPoints').value = '';
         
         alert('シナリオが追加されました！');
     }
@@ -1578,9 +1604,20 @@
         scenarios.forEach((scenario, index) => {
             const item = document.createElement('div');
             item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
+            
+            // 隠れたコンテキストや分析ポイントの表示
+            let additionalInfo = '';
+            if (scenario.hiddenContext && scenario.hiddenContext.trim()) {
+                additionalInfo += `<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;"><strong>隠れたコンテキスト:</strong> ${scenario.hiddenContext.slice(0, 100)}${scenario.hiddenContext.length > 100 ? '...' : ''}</div>`;
+            }
+            if (scenario.analysisPoints && scenario.analysisPoints.trim()) {
+                additionalInfo += `<div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 5px;"><strong>分析ポイント:</strong> ${scenario.analysisPoints.slice(0, 100)}${scenario.analysisPoints.length > 100 ? '...' : ''}</div>`;
+            }
+            
             item.innerHTML = `
                 <h4 style="margin-bottom: 10px; color: #495057;">${scenario.title}</h4>
                 <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.slice(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
+                ${additionalInfo}
                 <button class="btn deleteBtn" data-index="${index}"  style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
             `;
             list.appendChild(item);
@@ -1701,6 +1738,120 @@
         link.click();
     }
 
+    // 参加者の過去のログを確認する関数
+    async function checkPreviousLogs(participantId, selectedDay) {
+        const participantLogs = experimentLogs.filter(log => 
+            log.participant_id === participantId && log.day !== selectedDay
+        );
+        
+        if (participantLogs.length > 0) {
+            // 過去のログがある場合は確認ダイアログを表示
+            const previousDays = [...new Set(participantLogs.map(log => log.day))].sort();
+            const daysList = previousDays.map(day => `${day}日目`).join('、');
+            
+            const confirmed = confirm(
+                `参加者ID「${participantId}」の過去の実験記録が見つかりました。\n` +
+                `過去の参加日: ${daysList}\n\n` +
+                `過去の会話ログを確認しますか？\n` +
+                `「OK」で過去ログ表示、「キャンセル」で実験を続行します。`
+            );
+            
+            if (confirmed) {
+                showPreviousLogsModal(participantLogs);
+                return false; // 実験開始を中断
+            }
+        }
+        return true; // 実験開始を続行
+    }
+    
+    // 過去ログを表示するモーダル
+    function showPreviousLogsModal(logs) {
+        const modal = document.createElement('div');
+        modal.id = 'previousLogsModal';
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.7); z-index: 1000; display: flex; 
+            align-items: center; justify-content: center;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: white; padding: 20px; border-radius: 10px; 
+            max-width: 80%; max-height: 80%; overflow-y: auto;
+            min-width: 600px;
+        `;
+        
+        let logsHtml = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>過去の実験ログ（参加者: ${participantId}）</h3>
+                <button onclick="closePreviousLogsModal()" style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">✕ 閉じる</button>
+            </div>
+        `;
+        
+        // 日付順にソート
+        logs.sort((a, b) => a.day - b.day);
+        
+        logs.forEach(log => {
+            const date = new Date(log.created_at).toLocaleString('ja-JP');
+            logsHtml += `
+                <div style="border: 1px solid #e9ecef; margin-bottom: 15px; border-radius: 8px; padding: 15px; background: #f8f9fa;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <strong style="color: #495057;">${log.day}日目 - ${log.experiment_type === 'self_analysis' ? '自力メンタライズ' : 'エージェント支援'}</strong>
+                        <span style="color: #6c757d; font-size: 14px;">${date}</span>
+                    </div>
+                    <div style="margin-bottom: 10px;"><strong>シナリオ:</strong> ${log.scenario_title}</div>
+            `;
+            
+            if (log.data && log.data.chatHistory && log.data.chatHistory.length > 0) {
+                logsHtml += `
+                    <div style="margin-top: 10px;">
+                        <strong>会話ログ:</strong>
+                        <div style="background: white; padding: 10px; border-radius: 5px; margin-top: 5px; max-height: 200px; overflow-y: auto;">
+                `;
+                log.data.chatHistory.forEach(msg => {
+                    const isUser = msg.role === 'user';
+                    logsHtml += `
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: ${isUser ? '#007bff' : '#28a745'};">${isUser ? '参加者' : 'AI'}:</strong>
+                            <span style="margin-left: 8px;">${msg.content}</span>
+                        </div>
+                    `;
+                });
+                logsHtml += '</div></div>';
+            }
+            
+            if (log.data && log.data.analysis) {
+                logsHtml += `
+                    <div style="margin-top: 10px;">
+                        <strong>分析結果:</strong>
+                        <div style="background: white; padding: 10px; border-radius: 5px; margin-top: 5px;">${log.data.analysis}</div>
+                    </div>
+                `;
+            }
+            
+            logsHtml += '</div>';
+        });
+        
+        logsHtml += `
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="closePreviousLogsModal()" class="btn" style="margin-right: 10px;">閉じる</button>
+                <button onclick="closePreviousLogsModal(); startExperiment();" class="btn" style="background: #28a745;">実験を続行</button>
+            </div>
+        `;
+        
+        content.innerHTML = logsHtml;
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+    }
+    
+    // モーダルを閉じる関数
+    window.closePreviousLogsModal = function() {
+        const modal = document.getElementById('previousLogsModal');
+        if (modal) {
+            document.body.removeChild(modal);
+        }
+    };
+
     // 実験機能
     async function startExperiment() {
         participantId = document.getElementById('participantId').value;
@@ -1714,6 +1865,12 @@
         if (scenarios.length === 0) {
             alert('シナリオが設定されていません');
             return;
+        }
+        
+        // 過去のログをチェック
+        const shouldContinue = await checkPreviousLogs(participantId, currentDay);
+        if (!shouldContinue) {
+            return; // 過去ログ表示中なので実験開始を中断
         }
         
         // 実験開始時のアンケートをチェック
@@ -1821,6 +1978,16 @@
         // 想定質問がある場合はプロンプトに追加
         if (currentScenario.promptQuestions && currentScenario.promptQuestions.length > 0) {
             systemPrompt += '\n\n参考用想定質問:\n' + currentScenario.promptQuestions.map(q => `- ${q}`).join('\n');
+        }
+        
+        // 隠れたコンテキストがある場合はプロンプトに追加
+        if (currentScenario.hiddenContext && currentScenario.hiddenContext.trim()) {
+            systemPrompt += '\n\n背景情報・ニュアンス:\n' + currentScenario.hiddenContext;
+        }
+        
+        // 分析ポイントがある場合はプロンプトに追加
+        if (currentScenario.analysisPoints && currentScenario.analysisPoints.trim()) {
+            systemPrompt += '\n\n分析時の着目点:\n' + currentScenario.analysisPoints;
         }
         
         const userContent = `シナリオ: ${currentScenario.content}\n\nユーザーの発言: ${userMessage}`;
@@ -2008,6 +2175,18 @@
             document.getElementById(id).style.display = 'none';
         });
     }
+    
+    // 実験セットアップ画面に戻る関数
+    window.goBackToExperimentSetup = function() {
+        const confirmed = confirm(
+            '実験を中断して、最初の画面に戻りますか？\n' +
+            '未保存のデータは失われる可能性があります。'
+        );
+        
+        if (confirmed) {
+            resetExperiment();
+        }
+    };
 
     // 初期化とイベントリスナー設定
     document.addEventListener('DOMContentLoaded', async () => {
@@ -2523,7 +2702,13 @@
     
     // アンケート結果の読み込み（表示用）
     async function loadSurveyResultsForDisplay() {
-        if (!supabase) return;
+        if (!supabase) {
+            // Supabaseが利用できない場合はローカルストレージから読み込み
+            const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
+            surveyResults = results;
+            updateParticipantSelect();
+            return;
+        }
         
         try {
             const { data, error } = await supabase
@@ -2531,23 +2716,41 @@
                 .select('*')
                 .order('created_at', { ascending: false });
             
-            if (error) throw error;
-            surveyResults = data || [];
-            
-            // 参加者セレクトボックスを更新
-            const participants = [...new Set(surveyResults.map(result => result.participant_id))];
-            const select = document.getElementById('resultParticipant');
-            if (select) {
-                select.innerHTML = '<option value="">全ての参加者</option>';
-                participants.forEach(participant => {
-                    const option = document.createElement('option');
-                    option.value = participant;
-                    option.textContent = participant;
-                    select.appendChild(option);
-                });
+            if (error) {
+                // survey_resultsテーブルが存在しない場合（42P01エラー）はローカルストレージにフォールバック
+                if (error.code === '42P01') {
+                    console.warn('⚠️ survey_resultsテーブルが存在しません。ローカルストレージを使用します。');
+                    const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
+                    surveyResults = results;
+                    updateParticipantSelect();
+                    return;
+                }
+                throw error;
             }
+            surveyResults = data || [];
+            updateParticipantSelect();
+            
         } catch (error) {
             console.error('❌ アンケート結果読み込みエラー:', error);
+            // エラーが発生した場合もローカルストレージにフォールバック
+            const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
+            surveyResults = results;
+            updateParticipantSelect();
+        }
+    }
+    
+    // 参加者セレクトボックス更新を別関数に分離
+    function updateParticipantSelect() {
+        const participants = [...new Set(surveyResults.map(result => result.participant_id))];
+        const select = document.getElementById('resultParticipant');
+        if (select) {
+            select.innerHTML = '<option value="">全ての参加者</option>';
+            participants.forEach(participant => {
+                const option = document.createElement('option');
+                option.value = participant;
+                option.textContent = participant;
+                select.appendChild(option);
+            });
         }
     }
     
@@ -2633,10 +2836,44 @@
                     answers: resultData.answers
                 });
             
-            if (error) throw error;
+            if (error) {
+                // survey_resultsテーブルが存在しない場合（42P01エラー）はローカルストレージにフォールバック
+                if (error.code === '42P01') {
+                    console.warn('⚠️ survey_resultsテーブルが存在しません。ローカルストレージに保存します。');
+                    const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
+                    const newResult = {
+                        id: Date.now(),
+                        participant_id: resultData.participantId,
+                        day: resultData.day,
+                        timing: resultData.timing,
+                        answers: resultData.answers,
+                        created_at: new Date().toISOString()
+                    };
+                    results.unshift(newResult);
+                    localStorage.setItem('mentalizeSurveyResults', JSON.stringify(results));
+                    surveyResults = results;
+                    console.log('✅ アンケート結果ローカル保存完了');
+                    return;
+                }
+                throw error;
+            }
             console.log('✅ アンケート結果保存完了');
         } catch (error) {
             console.error('❌ アンケート結果保存エラー:', error);
+            // その他のエラーでもローカルストレージにフォールバック
+            const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
+            const newResult = {
+                id: Date.now(),
+                participant_id: resultData.participantId,
+                day: resultData.day,
+                timing: resultData.timing,
+                answers: resultData.answers,
+                created_at: new Date().toISOString()
+            };
+            results.unshift(newResult);
+            localStorage.setItem('mentalizeSurveyResults', JSON.stringify(results));
+            surveyResults = results;
+            console.log('✅ アンケート結果ローカル保存完了（フォールバック）');
         }
     }
     
