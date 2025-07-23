@@ -755,55 +755,55 @@
     // Supabase初期化
     // --- 方法B：ES Modules を import() で読み込む版 ---
    
-    async function initializeSupabase () {
-      if (globalThis.__supabase) {
-        supabase = globalThis.__supabase;          // すでに作成済み
-        return loadDataFromSupabase();
-      }
-      try {
-        const mod          = await import('@supabase/supabase-js');
-        // ImportMap により URL が解決される
+//     async function initializeSupabase () {
+//       if (globalThis.__supabase) {
+//         supabase = globalThis.__supabase;          // すでに作成済み
+//         return loadDataFromSupabase();
+//       }
+//       try {
+//         const mod          = await import('@supabase/supabase-js');
+//         // ImportMap により URL が解決される
         
-        const createClient =
-              mod.createClient           // 通常の名前付き
-           ?? mod.default?.createClient  // default がオブジェクト
-           ?? mod.default;               // default が関数
-        if (typeof createClient !== 'function') {
-          throw new Error('createClient not found in module');
-        }
+//         const createClient =
+//               mod.createClient           // 通常の名前付き
+//            ?? mod.default?.createClient  // default がオブジェクト
+//            ?? mod.default;               // default が関数
+//         if (typeof createClient !== 'function') {
+//           throw new Error('createClient not found in module');
+//         }
         
-        const supabaseUrl  = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // ★ anon キーを必ず使用
+//         const supabaseUrl  = 'https://ivlmmqsdnmvzermlrger.supabase.co';
+//         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // ★ anon キーを必ず使用
 
-        supabase            = createClient(supabaseUrl, supabaseAnonKey);
+//         supabase            = createClient(supabaseUrl, supabaseAnonKey);
 
         
-        globalThis.__supabase = supabase; 
+//         globalThis.__supabase = supabase; 
         
-        isSupabaseAvailable = true;
-        console.log('✅ Supabase 初期化成功');
-// ✅ admin_configのリアルタイム監視設定
-// ✅ 各設定のリアルタイム監視設定
-        const settingsToWatch = ['admin_config', 'scenarios', 'surveys'];
+//         isSupabaseAvailable = true;
+//         console.log('✅ Supabase 初期化成功');
+// // ✅ admin_configのリアルタイム監視設定
+// // ✅ 各設定のリアルタイム監視設定
+//         const settingsToWatch = ['admin_config', 'scenarios', 'surveys'];
         
-        settingsToWatch.forEach((settingId) => {
-          supabase
-            .channel(`watch-${settingId}`)
-            .on(
-              'postgres_changes',
-              {
-                event: '*',
-                schema: 'public',
-                table: 'admin_settings',
-                filter: `id=eq.${settingId}`
-              },
-              async (payload) => {
-                console.log(`🔄 ${settingId} が更新されました`);
-                await loadDataFromSupabase(); // すべて再取得・再反映
-              }
-            )
-            .subscribe();
-        });
+//         settingsToWatch.forEach((settingId) => {
+//           supabase
+//             .channel(`watch-${settingId}`)
+//             .on(
+//               'postgres_changes',
+//               {
+//                 event: '*',
+//                 schema: 'public',
+//                 table: 'admin_settings',
+//                 filter: `id=eq.${settingId}`
+//               },
+//               async (payload) => {
+//                 console.log(`🔄 ${settingId} が更新されました`);
+//                 await loadDataFromSupabase(); // すべて再取得・再反映
+//               }
+//             )
+//             .subscribe();
+//         });
 
 
 
