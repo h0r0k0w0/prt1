@@ -782,6 +782,32 @@
         
         isSupabaseAvailable = true;
         console.log('✅ Supabase 初期化成功');
+// ✅ admin_configのリアルタイム監視設定
+// ✅ 各設定のリアルタイム監視設定
+        const settingsToWatch = ['admin_config', 'scenarios', 'surveys'];
+        
+        settingsToWatch.forEach((settingId) => {
+          supabase
+            .channel(`watch-${settingId}`)
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'admin_settings',
+                filter: `id=eq.${settingId}`
+              },
+              async (payload) => {
+                console.log(`🔄 ${settingId} が更新されました`);
+                await loadDataFromSupabase(); // すべて再取得・再反映
+              }
+            )
+            .subscribe();
+        });
+
+
+
+        
 
         await loadDataFromSupabase();
       } catch (err) {
@@ -793,27 +819,83 @@
 
 
     // Supabaseからデータを読み込み
-    async function loadDataFromSupabase() {
-        if (!supabase) {
-            loadFromLocalStorage();
-            return;
-        }
+    // async function loadDataFromSupabase() {
+    //     if (!supabase) {
+    //         loadFromLocalStorage();
+    //         return;
+    //     }
         
-        try {
-            await loadAdminSettings();
-            await loadScenarios();
-            await loadExperimentLogs();
+    //     try {
+    //         await loadAdminSettings();
+    //         await loadScenarios();
+    //         await loadExperimentLogs();
             
-            loadAdminConfigUI();
-            updateScenarioList();
-            updateLogsList();
+    //         loadAdminConfigUI();
+    //         updateScenarioList();
+    //         updateLogsList();
             
-            console.log('✅ Supabaseからデータ読み込み完了');
-        } catch (error) {
-            console.error('❌ Supabaseデータ読み込みエラー:', error);
-            loadFromLocalStorage();
+    //         console.log('✅ Supabaseからデータ読み込み完了');
+    //     } catch (error) {
+    //         console.error('❌ Supabaseデータ読み込みエラー:', error);
+    //         loadFromLocalStorage();
+    //     }
+    // }
+    async function initializeSupabase () {
+      if (globalThis.__supabase) {
+        supabase = globalThis.__supabase;
+        return loadDataFromSupabase();
+      }
+    
+      try {
+        const mod = await import('@supabase/supabase-js');
+    
+        const createClient =
+              mod.createClient
+           ?? mod.default?.createClient
+           ?? mod.default;
+    
+        if (typeof createClient !== 'function') {
+          throw new Error('createClient not found in module');
         }
+    
+        const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
+        const supabaseAnonKey = '（省略）'; // 必ず anon を使ってください
+    
+        supabase = createClient(supabaseUrl, supabaseAnonKey);
+        globalThis.__supabase = supabase;
+        isSupabaseAvailable = true;
+    
+        console.log('✅ Supabase 初期化成功');
+    
+        // 🎯 3種類の設定を購読
+        const settingsToWatch = ['admin_config', 'scenarios', 'surveys'];
+    
+        settingsToWatch.forEach((settingId) => {
+          supabase
+            .channel(`watch-${settingId}`)
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'admin_settings',
+                filter: `id=eq.${settingId}`
+              },
+              async (payload) => {
+                console.log(`🔄 ${settingId} が更新されました`);
+                await loadDataFromSupabase(); // 最新状態を再読み込み
+              }
+            )
+            .subscribe();
+        });
+    
+        await loadDataFromSupabase(); // 初期読み込み
+      } catch (err) {
+        console.error('❌ Supabase 初期化エラー:', err);
+        loadFromLocalStorage();
+      }
     }
+
       //ユーザーセッションの読み込み
     async function loadUserSessionsUI() {
       const { data, error } = await supabase
@@ -1689,11 +1771,11 @@
            )
            .subscribe();
        //}
-       try {
-       } catch (err) {
-         console.error('❌ Supabase 初期化エラー:', err);
-       }
-     });
+       // try {
+       // } catch (err) {
+       //   console.error('❌ Supabase 初期化エラー:', err);
+       // }
+     //});
         // initializeSupabase().then(() => {
         //   console.log('✅ Supabase 同期完了');
         // }).catch(err => {
