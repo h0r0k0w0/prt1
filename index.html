@@ -801,6 +801,10 @@
 
                         <!-- 実験実行中の画面 -->
                         <div id="experimentContent" style="display: none;">
+                            <!-- セッション経過時間表示 -->
+                            <div id="sessionTimer" style="display: none; text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px; font-family: monospace; font-size: 16px; font-weight: bold; color: #495057;">
+                                ⏱️ 経過時間: <span id="timerDisplay">00:00:00</span>
+                            </div>
                             <div class="progress-bar">
                                 <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                             </div>
@@ -1055,28 +1059,51 @@
 
       //ユーザーセッションの読み込み
     async function loadUserSessionsUI() {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .order('start_date', { ascending: true });
-    
-      if (error) {
-        console.error('❌ ユーザーセッション取得失敗:', error);
+      if (!supabase) {
+        console.log('⚠️ Supabase未接続のため、ユーザーセッション一覧をスキップします');
         return;
       }
-    
-      const tbody = document.getElementById('userSessionsTable').querySelector('tbody');
-      tbody.innerHTML = ''; // 一度クリア
-    
-      data.forEach(session => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${session.user_id}</td>
-          <td>${new Date(session.start_date).toLocaleString()}</td>
-          <td>${new Date(session.updated_at).toLocaleString()}</td>
-        `;
-        tbody.appendChild(row);
-      });
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_sessions')
+          .select('*')
+          .order('updated_at', { ascending: false }); // 最新更新順に変更
+      
+        if (error) {
+          console.error('❌ ユーザーセッション取得失敗:', error);
+          return;
+        }
+      
+        const tbody = document.getElementById('userSessionsTable')?.querySelector('tbody');
+        if (!tbody) {
+          console.warn('⚠️ ユーザーセッションテーブルが見つかりません');
+          return;
+        }
+        
+        tbody.innerHTML = ''; // 一度クリア
+      
+        if (data && data.length > 0) {
+          data.forEach(session => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td style="padding: 8px; border: 1px solid #ddd;">${session.user_id}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${new Date(session.start_date).toLocaleString()}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${new Date(session.updated_at).toLocaleString()}</td>
+            `;
+            tbody.appendChild(row);
+          });
+          console.log(`✅ ${data.length}件のユーザーセッションを表示しました`);
+        } else {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td colspan="3" style="padding: 20px; text-align: center; color: #6c757d; border: 1px solid #ddd;">まだセッションデータがありません</td>
+          `;
+          tbody.appendChild(row);
+        }
+      } catch (err) {
+        console.error('❌ ユーザーセッション読み込み中にエラー:', err);
+      }
     }
 
     // 管理者設定を取得（fetchAdminConfigのエイリアス）
@@ -1889,8 +1916,14 @@
             await showSurvey(startSurvey, 'start');
         }
 
+        // ユーザーセッションを初期化/更新
+        await initializeUserSession(participantId);
+
         document.getElementById('participantSetup').style.display = 'none';
         document.getElementById('experimentContent').style.display = 'block';
+        
+        // セッションタイマーを開始
+        startSessionTimer();
         
         currentScenarioIndex = Math.floor(Math.random() * scenarios.length);
         displayScenario();
@@ -2100,6 +2133,11 @@
     }
 
     async function initializeUserSession(userId) {
+      if (!supabase) {
+        console.log('⚠️ Supabase未接続のため、セッション管理をスキップします');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('user_sessions')
         .select('*')
@@ -2115,8 +2153,23 @@
           console.error('❌ セッション初期登録エラー:', insertError);
         } else {
           console.log('✅ セッション初期登録完了');
+          // セッション一覧を更新
+          await loadUserSessionsUI();
         }
       } else if (data) {
+        // 既存セッションの最終更新時刻を更新
+        const { error: updateError } = await supabase
+          .from('user_sessions')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('user_id', userId);
+          
+        if (updateError) {
+          console.error('❌ セッション更新エラー:', updateError);
+        } else {
+          console.log('✅ セッション更新完了');
+          // セッション一覧を更新
+          await loadUserSessionsUI();
+        }
         console.log('📅 既存のセッション開始日:', data.start_date);
       } else {
         console.error('❌ セッション情報取得エラー:', error);
@@ -2174,7 +2227,55 @@
         document.getElementById('experimentComplete').style.display = 'block';
     }
 
+    // セッションタイマー関連の変数
+    let sessionStartTime = null;
+    let timerInterval = null;
+    
+    // セッションタイマーを開始する関数
+    function startSessionTimer() {
+        // 管理者設定でタイマー表示が有効な場合のみ表示
+        if (adminConfig.showSessionTimer) {
+            document.getElementById('sessionTimer').style.display = 'block';
+        } else {
+            document.getElementById('sessionTimer').style.display = 'none';
+            return; // タイマー表示が無効な場合は処理を終了
+        }
+        
+        sessionStartTime = new Date();
+        
+        // 既存のタイマーがあれば停止
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        
+        // 1秒ごとにタイマーを更新
+        timerInterval = setInterval(() => {
+            if (sessionStartTime) {
+                const elapsed = new Date() - sessionStartTime;
+                const hours = Math.floor(elapsed / 3600000);
+                const minutes = Math.floor((elapsed % 3600000) / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                
+                const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                document.getElementById('timerDisplay').textContent = timeString;
+            }
+        }, 1000);
+    }
+    
+    // セッションタイマーを停止する関数
+    function stopSessionTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        sessionStartTime = null;
+        document.getElementById('sessionTimer').style.display = 'none';
+    }
+    
     function resetExperiment() {
+        // セッションタイマーを停止
+        stopSessionTimer();
+        
         document.getElementById('experimentContent').style.display = 'none';
         document.getElementById('participantSetup').style.display = 'block';
         document.getElementById('userAnalysis').value = '';
@@ -2215,6 +2316,10 @@
         // アンケート系は参加者モード時に処理するように変更
         await loadSurveys(); // アンケートデータを読み込み
         console.log('📋 アンケート機能が初期化されました');
+        
+        // アンケート結果の読み込みを強制実行
+        await loadSurveyResultsForDisplay();
+        console.log('📊 アンケート結果の読み込みが完了しました');
     
       } catch (err) {
         console.error('❌ 初期化中にエラー:', err);
@@ -2712,11 +2817,14 @@
     
     // アンケート結果の読み込み（表示用）
     async function loadSurveyResultsForDisplay() {
+        console.log('🔄 アンケート結果を読み込み中...');
+        
         if (!supabase) {
             // Supabaseが利用できない場合はローカルストレージから読み込み
             const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
             surveyResults = results;
             updateParticipantSelect();
+            console.log(`✅ ローカルストレージから${results.length}件のアンケート結果を読み込みました`);
             return;
         }
         
@@ -2733,12 +2841,19 @@
                     const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
                     surveyResults = results;
                     updateParticipantSelect();
+                    console.log(`✅ ローカルストレージから${results.length}件のアンケート結果を読み込みました`);
                     return;
                 }
                 throw error;
             }
             surveyResults = data || [];
             updateParticipantSelect();
+            console.log(`✅ Supabaseから${surveyResults.length}件のアンケート結果を読み込みました`);
+            
+            // 画面に結果があれば更新
+            if (document.getElementById('surveyResults')) {
+                displaySurveyResults();
+            }
             
         } catch (error) {
             console.error('❌ アンケート結果読み込みエラー:', error);
@@ -2746,6 +2861,11 @@
             const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
             surveyResults = results;
             updateParticipantSelect();
+            console.log(`✅ フォールバック: ローカルストレージから${results.length}件のアンケート結果を読み込みました`);
+            // 画面に結果があれば更新
+            if (document.getElementById('surveyResults')) {
+                displaySurveyResults();
+            }
         }
     }
     
