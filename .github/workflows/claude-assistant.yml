@@ -1,0 +1,165 @@
+name: Claude AI Assistant
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  claude-response:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm init -y
+        npm install @anthropic-ai/sdk
+        
+    - name: Run Claude AI Assistant
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: |
+        cat << 'EOF' > claude-assistant.js
+        const Anthropic = require('@anthropic-ai/sdk');
+        const https = require('https');
+        
+        async function main() {
+          try {
+            console.log('🚀 Claude Assistant 開始');
+            
+            // 環境変数チェック
+            console.log('APIキー存在確認:', !!process.env.ANTHROPIC_API_KEY);
+            console.log('GitHubトークン存在確認:', !!process.env.GITHUB_TOKEN);
+            
+            if (!process.env.ANTHROPIC_API_KEY) {
+              throw new Error('❌ ANTHROPIC_API_KEY が設定されていません');
+            }
+            
+            if (!process.env.GITHUB_CONTEXT) {
+              throw new Error('❌ GITHUB_CONTEXT が設定されていません');
+            }
+            
+            const context = JSON.parse(process.env.GITHUB_CONTEXT);
+            console.log('イベントタイプ:', context.event_name);
+            
+            let issueBody = '';
+            let issueNumber = null;
+            
+            if (context.event_name === 'issues') {
+              issueBody = context.event.issue?.body || '';
+              issueNumber = context.event.issue?.number;
+              console.log('Issueイベント - 番号:', issueNumber);
+            } else if (context.event_name === 'issue_comment') {
+              issueBody = context.event.comment?.body || '';
+              issueNumber = context.event.issue?.number;
+              console.log('コメントイベント - 番号:', issueNumber);
+            }
+            
+            console.log('本文（抜粋）:', issueBody.substring(0, 100));
+            
+            // @claude メンションチェック
+            if (!issueBody.includes('@claude')) {
+              console.log('❌ @claude メンションが見つかりません - 処理終了');
+              return;
+            }
+            
+            console.log('✅ @claude メンション発見');
+            
+            // Anthropic クライアント初期化
+            const anthropic = new Anthropic({
+              apiKey: process.env.ANTHROPIC_API_KEY,
+            });
+            
+            const message = issueBody.replace(/@claude/g, '').trim();
+            console.log('Claudeに送信するメッセージ長:', message.length);
+            
+            console.log('🤖 Claude API呼び出し開始...');
+            const response = await anthropic.messages.create({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 4000,
+              messages: [{
+                role: 'user',
+                content: `以下のGitHubの課題について、技術的なアドバイスをお願いします：\n\n${message}`
+              }]
+            });
+            
+            const reply = response.content[0].text;
+            console.log('✅ Claude からの返答を取得（長さ: ' + reply.length + '文字）');
+            
+            // GitHub APIでコメント投稿
+            const repoFullName = context.repository.full_name;
+            console.log('リポジトリ:', repoFullName);
+            
+            const commentData = JSON.stringify({
+              body: `🤖 **Claude AI Assistant**\n\n${reply}`
+            });
+            
+            const options = {
+              hostname: 'api.github.com',
+              port: 443,
+              path: `/repos/${repoFullName}/issues/${issueNumber}/comments`,
+              method: 'POST',
+              headers: {
+                'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(commentData),
+                'User-Agent': 'Claude-Assistant'
+              }
+            };
+            
+            console.log('📤 GitHub APIにコメント投稿中...');
+            
+            await new Promise((resolve, reject) => {
+              const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => data += chunk);
+                res.on('end', () => {
+                  console.log('GitHub API レスポンス:', res.statusCode);
+                  if (res.statusCode >= 200 && res.statusCode < 300) {
+                    console.log('✅ コメント投稿成功！');
+                    resolve();
+                  } else {
+                    console.error('❌ GitHub API エラー:', data);
+                    reject(new Error(`GitHub API エラー: ${res.statusCode} - ${data}`));
+                  }
+                });
+              });
+              
+              req.on('error', (error) => {
+                console.error('❌ HTTPリクエストエラー:', error.message);
+                reject(error);
+              });
+              
+              req.write(commentData);
+              req.end();
+            });
+            
+            console.log('🎉 処理完了！');
+            
+          } catch (error) {
+            console.error('❌ 致命的エラー:', error.message);
+            console.error('エラー詳細:', error);
+            process.exit(1);
+          }
+        }
+        
+        main();
+        EOF
+        
+        node claude-assistant.js
