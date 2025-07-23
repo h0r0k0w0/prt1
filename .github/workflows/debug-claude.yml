@@ -1,0 +1,118 @@
+name: Claude AI Assistant Debug
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  claude-response:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Debug Environment
+      run: |
+        echo "=== 環境変数チェック ==="
+        echo "Node.js version: $(node --version)"
+        echo "npm version: $(npm --version)"
+        echo "APIキー存在: ${{ secrets.ANTHROPIC_API_KEY != '' }}"
+        echo "GitHubトークン存在: ${{ secrets.GITHUB_TOKEN != '' }}"
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        echo "=== パッケージインストール ==="
+        npm init -y
+        npm install @anthropic-ai/sdk
+        echo "インストール完了"
+        
+    - name: Simple Test
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: |
+        echo "=== テストスクリプト実行 ==="
+        cat << 'EOF' > test-script.js
+        console.log('🚀 テストスクリプト開始');
+        
+        // 環境変数の確認
+        console.log('Node.js version:', process.version);
+        console.log('APIキー設定:', process.env.ANTHROPIC_API_KEY ? 'あり' : 'なし');
+        console.log('GitHubトークン設定:', process.env.GITHUB_TOKEN ? 'あり' : 'なし');
+        
+        // GitHub Contextの確認
+        try {
+          const context = JSON.parse(process.env.GITHUB_CONTEXT || '{}');
+          console.log('イベントタイプ:', context.event_name);
+          console.log('リポジトリ:', context.repository?.full_name);
+          
+          let issueBody = '';
+          if (context.event_name === 'issues') {
+            issueBody = context.event.issue?.body || '';
+            console.log('Issue本文（最初の50文字）:', issueBody.substring(0, 50));
+          } else if (context.event_name === 'issue_comment') {
+            issueBody = context.event.comment?.body || '';
+            console.log('コメント本文（最初の50文字）:', issueBody.substring(0, 50));
+          }
+          
+          if (!issueBody.includes('@claude')) {
+            console.log('❌ @claude メンションなし - 処理スキップ');
+            process.exit(0);
+          }
+          
+          console.log('✅ @claude メンション発見');
+          
+        } catch (error) {
+          console.error('❌ GitHub Context解析エラー:', error.message);
+          process.exit(1);
+        }
+        
+        // Anthropic SDKのテスト
+        try {
+          console.log('📦 Anthropic SDK読み込みテスト...');
+          const Anthropic = require('@anthropic-ai/sdk');
+          console.log('✅ SDK読み込み成功');
+          
+          if (!process.env.ANTHROPIC_API_KEY) {
+            throw new Error('APIキーが設定されていません');
+          }
+          
+          const anthropic = new Anthropic({
+            apiKey: process.env.ANTHROPIC_API_KEY,
+          });
+          console.log('✅ Anthropicクライアント初期化成功');
+          
+          // 簡単なAPI呼び出しテスト
+          console.log('🤖 Claude API呼び出しテスト...');
+          const response = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 100,
+            messages: [{
+              role: 'user',
+              content: 'こんにちは！短く挨拶してください。'
+            }]
+          });
+          
+          console.log('✅ API呼び出し成功');
+          console.log('返答:', response.content[0].text);
+          
+        } catch (error) {
+          console.error('❌ Anthropic SDK エラー:', error.message);
+          console.error('エラー詳細:', error);
+          process.exit(1);
+        }
+        
+        console.log('🎉 全てのテスト完了！');
+        EOF
+        
+        node test-script.js
