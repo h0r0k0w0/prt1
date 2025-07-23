@@ -464,6 +464,8 @@
                 <button id="adminConfigNav" class="nav-btn active">🔧 システム設定</button>
                 <button id="adminScenariosNav" class="nav-btn">📝 シナリオ管理</button>
                 <button id="adminLogsNav" class="nav-btn">📋 データ閲覧</button>
+                <button id="adminSurveysNav" class="nav-btn">アンケート</button>
+
             </div>
         </div>
 
@@ -545,7 +547,9 @@
                     </div>
                     <button id="savePromptBtn" class="btn">プロンプトを保存</button>
                 </div>
-                
+
+
+
                 <div id="configStatus"></div>
             </div>
 
@@ -575,7 +579,25 @@
                     <div style="text-align: center; padding: 20px; color: #6c757d;">シナリオを読み込み中...</div>
                 </div>
             </div>
+          　<div class="admin-section" id="userSessionsSection">
+              <h3>📋 ユーザーセッション一覧</h3>
+              <table id="userSessionsTable" border="1">
+                <thead>
+                  <tr>
+                    <th>ユーザーID</th>
+                    <th>開始日</th>
+                    <th>最終更新</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
 
+            <div id="adminSurveyEditor" class="admin-section" style="display:none;">
+              <h3>アンケート設定</h3>
+              <textarea id="surveyJsonEditor" style="width:100%; height:300px;"></textarea>
+              <button id="saveSurveyConfigBtn">保存</button>
+            </div>
             <div id="adminLogs" class="screen">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <button id="adminLogoutBtn3" class="back-btn">← ログアウト</button>
@@ -729,6 +751,7 @@
 
     // Supabase初期化
     // --- 方法B：ES Modules を import() で読み込む版 ---
+    <div id="surveyContainer" style="padding: 1em; background: #f9f9f9;"></div>
     async function initializeSupabase () {
       if (globalThis.__supabase) {
         supabase = globalThis.__supabase;          // すでに作成済み
@@ -787,6 +810,31 @@
             console.error('❌ Supabaseデータ読み込みエラー:', error);
             loadFromLocalStorage();
         }
+    }
+      //ユーザーセッションの読み込み
+    async function loadUserSessionsUI() {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .order('start_date', { ascending: true });
+    
+      if (error) {
+        console.error('❌ ユーザーセッション取得失敗:', error);
+        return;
+      }
+    
+      const tbody = document.getElementById('userSessionsTable').querySelector('tbody');
+      tbody.innerHTML = ''; // 一度クリア
+    
+      data.forEach(session => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${session.user_id}</td>
+          <td>${new Date(session.start_date).toLocaleString()}</td>
+          <td>${new Date(session.updated_at).toLocaleString()}</td>
+        `;
+        tbody.appendChild(row);
+      });
     }
 
     // Supabaseから管理者設定を読み込み
@@ -1012,6 +1060,13 @@
         document.getElementById('modeSelector').style.display = mode === 'none' ? 'block' : 'none';
         document.getElementById('adminNav').classList.toggle('active', mode === 'admin');
         document.getElementById('participantNav').classList.toggle('active', mode === 'participant');
+        document.getElementById('adminSurveysNav').addEventListener('click', () => {
+            showAdminScreen('adminSurveyEditor');
+            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('adminSurveysNav').classList.add('active');
+            loadSurveyConfig();
+        });
+
 
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
@@ -1115,6 +1170,39 @@
         setTimeout(() => document.getElementById('configStatus').innerHTML = '', 3000);
     }
 
+
+    //アンケートロード、保存
+    async function loadSurveyConfig() {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('settings')
+        .eq('id', 'surveys')
+        .single();
+  
+      if (error) {
+          console.error('アンケート設定読み込みエラー:', error);
+          return;
+      }
+  
+      document.getElementById('surveyJsonEditor').value = JSON.stringify(data.settings, null, 2);
+    }
+
+    async function saveSurveyConfig() {
+        const newSettings = document.getElementById('surveyJsonEditor').value;
+        try {
+            const parsed = JSON.parse(newSettings);
+            const { error } = await supabase
+                .from('admin_settings')
+                .upsert({ id: 'surveys', settings: parsed });
+    
+            if (error) throw error;
+    
+            alert('アンケート設定を保存しました！');
+        } catch (e) {
+            alert('JSON形式が正しくありません: ' + e.message);
+        }
+    }
+
     // プロンプト設定保存
     async function savePromptConfig() {
         adminConfig.systemPrompt = document.getElementById('systemPrompt').value;
@@ -1143,6 +1231,15 @@
         if (showTimerCheckbox) showTimerCheckbox.checked = adminConfig.showSessionTimer ?? true;
     }
 
+    async function addSurvey() {
+        const day = Number(document.getElementById('surveyDay').value);
+        const position = document.querySelector('input[name="surveyPosition"]:checked').value;
+        const questions = collectQuestionInputs();  // 複数質問をオブジェクト配列に整形
+        surveys.push({ day, position, questions });
+        await saveSurveys();  // admin_settingsにアップサート
+        updateSurveyList();
+        ...
+    }
 
     // シナリオ管理
     async function addScenario() {
@@ -1451,6 +1548,60 @@
         return responses[Math.floor(Math.random() * responses.length)];
     }
 
+    async function initializeUserSession(userId) {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+    
+      if (error && error.code === 'PGRST116') { // Not Found
+        const { error: insertError } = await supabase
+          .from('user_sessions')
+          .insert([{ user_id: userId, start_date: new Date().toISOString() }]);
+    
+        if (insertError) {
+          console.error('❌ セッション初期登録エラー:', insertError);
+        } else {
+          console.log('✅ セッション初期登録完了');
+        }
+      } else if (data) {
+        console.log('📅 既存のセッション開始日:', data.start_date);
+      } else {
+        console.error('❌ セッション情報取得エラー:', error);
+      }
+    }
+
+    async function getCurrentExperimentDay(userId) {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('start_date')
+        .eq('user_id', userId)
+        .single();
+    
+      const today = new Date();
+    
+      if (error || !data) {
+        // start_date がまだない場合、今日を開始日に登録
+        const { error: insertError } = await supabase
+          .from('user_sessions')
+          .insert([{ user_id: userId, start_date: today }]);
+    
+        if (insertError) {
+          console.error('❌ セッション登録エラー:', insertError);
+          return null;
+        }
+    
+        return 1; // 今日が初日
+      }
+    
+      const start = new Date(data.start_date);
+      const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+      return diffDays + 1;
+    }
+
+
+
     async function finishChat() {
         await saveExperimentLog({
             participantId,
@@ -1487,9 +1638,32 @@
       try {
         await initializeSupabase();  // Supabaseの初期化
         console.log('✅ Supabase 同期完了');
+        await loadUserSessionsUI();
 
         await fetchAdminConfig();     // 管理設定の取得（adminConfig に読み込み）
         loadAdminConfigUI();          // UIへの反映
+      // ✅ ここからアンケート出題の処理（参加者用）
+        const user = supabase.auth.getUser ? (await supabase.auth.getUser()).data.user : null;
+        if (!user) throw new Error('ユーザー情報が取得できませんでした');
+        
+        const currentDay = await getCurrentExperimentDay(user.id); // ← Supabaseから日数取得
+
+        const timing = 'start';             // 例：開始時アンケート（start or end）
+    
+        const surveyKey = `day${currentDay}_${timing}`;
+        const todaySurvey = adminConfig.surveys?.[surveyKey];
+    
+        if (todaySurvey && todaySurvey.length > 0) {
+          console.log(`📋 アンケート (${surveyKey}) を表示します`);
+          showSurveyUI(todaySurvey); // ← UI表示関数（後で一緒に書きます）
+        } else {
+          console.log(`🕊 アンケート (${surveyKey}) は定義されていません`);
+        }
+    
+      } catch (err) {
+        console.error('❌ 初期化中にエラー:', err);
+      }
+    });      
 
     // ✅ 管理設定のリアルタイム監視を開始
         supabase.channel('admin-config-watch')
@@ -1528,6 +1702,8 @@
         document.getElementById('participantBtn').addEventListener('click', () => selectMode('participant'));
         document.getElementById('adminAccessBtn').addEventListener('click', attemptAdminAccess);
         document.getElementById('backToModeBtn').addEventListener('click', () => selectMode('none'));
+        document.getElementById('saveSurveyConfigBtn').addEventListener('click', saveSurveyConfig);
+
         
         // 管理者イベント
         document.getElementById('adminLogoutBtn').addEventListener('click', adminLogout);
