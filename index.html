@@ -474,7 +474,7 @@
         <!-- 被験者ナビゲーション -->
         <div id="participantNav" class="nav">
             <div class="nav-buttons">
-                <button id="participantStartNav" class="nav-btn active">🚀 実験開始</button>
+                <!-- 実験開始ボタンは機能しないため削除 -->
             </div>
         </div>
 
@@ -777,6 +777,9 @@
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
                 <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
+                <div style="text-align: center; margin-bottom: 10px; color: #6c757d; font-size: 14px;">
+                    （実験開始を再度押すと途中から再開できます）
+                </div>
                 <div class="participant-interface">
                     <div class="participant-header">
                         <h2 id="participantScreenTitle">📅 日付選択メニュー</h2>
@@ -1829,28 +1832,93 @@
             const sameDayLogs = participantLogs.filter(log => log.day === selectedDay);
             const otherDayLogs = participantLogs.filter(log => log.day !== selectedDay);
             
-            let confirmMessage = `参加者ID「${participantId}」の過去の実験記録が見つかりました。\n`;
+            let messageText = `参加者ID「${participantId}」の過去の実験記録が見つかりました。\n`;
             
             if (sameDayLogs.length > 0) {
-                confirmMessage += `⚠️ ${selectedDay}日目に既に回答済みです！\n`;
+                messageText += `⚠️ ${selectedDay}日目に既に回答済みです！\n`;
             }
             
             if (otherDayLogs.length > 0) {
                 const previousDays = [...new Set(otherDayLogs.map(log => log.day))].sort();
                 const daysList = previousDays.map(day => `${day}日目`).join('、');
-                confirmMessage += `その他の参加日: ${daysList}\n`;
+                messageText += `その他の参加日: ${daysList}\n`;
             }
             
-            confirmMessage += `\n過去の会話ログを確認しますか？\n「OK」で過去ログ表示、「キャンセル」で実験を続行します。`;
+            // 3ボタンモーダルを表示
+            const choice = await showLogCheckModal(messageText, participantLogs);
             
-            const confirmed = confirm(confirmMessage);
-            
-            if (confirmed) {
+            if (choice === 'viewLogs') {
                 showPreviousLogsModal(participantLogs);
                 return false; // 実験開始を中断
+            } else if (choice === 'goBack') {
+                return false; // 実験開始を中断して日付選択に戻る
             }
+            // choice === 'startWithoutViewing' の場合は実験を続行
         }
         return true; // 実験開始を続行
+    }
+    
+    // 3ボタン選択モーダルを表示する関数
+    function showLogCheckModal(messageText, logs) {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.id = 'logCheckModal';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.7); z-index: 1000; display: flex; 
+                align-items: center; justify-content: center;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; padding: 30px; border-radius: 10px; 
+                max-width: 500px; text-align: center;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            `;
+            
+            const messageFormatted = messageText.replace(/\n/g, '<br>');
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #495057; margin-bottom: 15px;">🔍 過去の実験記録</h3>
+                    <p style="color: #6c757d; line-height: 1.5;">${messageFormatted}</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="startWithoutViewingBtn" class="btn" style="background: #28a745; color: white; padding: 12px 20px; font-size: 16px;">
+                        🚀 見ずに実験スタート
+                    </button>
+                    <button id="viewLogsBtn" class="btn" style="background: #007bff; color: white; padding: 12px 20px; font-size: 16px;">
+                        📋 会話ログを見る
+                    </button>
+                    <button id="goBackBtn" class="btn" style="background: #6c757d; color: white; padding: 12px 20px; font-size: 16px;">
+                        ← 前の画面に戻る
+                    </button>
+                </div>
+            `;
+            
+            // ボタンイベントリスナー
+            const startWithoutViewingBtn = content.querySelector('#startWithoutViewingBtn');
+            const viewLogsBtn = content.querySelector('#viewLogsBtn');
+            const goBackBtn = content.querySelector('#goBackBtn');
+            
+            startWithoutViewingBtn.onclick = () => {
+                document.body.removeChild(modal);
+                resolve('startWithoutViewing');
+            };
+            
+            viewLogsBtn.onclick = () => {
+                document.body.removeChild(modal);
+                resolve('viewLogs');
+            };
+            
+            goBackBtn.onclick = () => {
+                document.body.removeChild(modal);
+                resolve('goBack');
+            };
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        });
     }
     
     // 過去ログを表示するモーダル
