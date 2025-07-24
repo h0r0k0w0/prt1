@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -776,7 +777,8 @@
 
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
-                <div style="text-align: center; margin-bottom: 15px;">
+                <!-- 実験制御ボタン（実験実行中のみ表示） -->
+                <div id="experimentControls" style="display: none; text-align: center; margin-bottom: 15px;">
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: flex-start;">
                         <div style="text-align: center;">
                             <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
@@ -2077,6 +2079,9 @@
         document.getElementById('participantSetup').style.display = 'none';
         document.getElementById('experimentContent').style.display = 'block';
         
+        // 実験制御ボタンを表示
+        document.getElementById('experimentControls').style.display = 'block';
+        
         // 実験実行中はヘッダーを非表示にする
         document.querySelector('.participant-header').style.display = 'none';
         
@@ -2542,6 +2547,9 @@
         document.getElementById('experimentContent').style.display = 'none';
         document.getElementById('participantSetup').style.display = 'block';
         
+        // 実験制御ボタンを非表示
+        document.getElementById('experimentControls').style.display = 'none';
+        
         // ヘッダーを再表示
         document.querySelector('.participant-header').style.display = 'block';
         
@@ -2574,6 +2582,9 @@
         // 実験データを完全にクリア
         document.getElementById('experimentContent').style.display = 'none';
         document.getElementById('participantSetup').style.display = 'block';
+        
+        // 実験制御ボタンを非表示
+        document.getElementById('experimentControls').style.display = 'none';
         
         // ヘッダーを再表示
         document.querySelector('.participant-header').style.display = 'block';
