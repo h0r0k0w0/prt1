@@ -777,9 +777,19 @@
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
                 <div style="text-align: center; margin-bottom: 15px;">
-                    <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
-                    <div style="margin-top: 5px; color: #6c757d; font-size: 12px;">
-                        （実験開始を再度押すと途中から再開できます）
+                    <div style="display: flex; gap: 10px; justify-content: center; align-items: flex-start;">
+                        <div style="text-align: center;">
+                            <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
+                            <div style="margin-top: 5px; color: #6c757d; font-size: 12px;">
+                                （実験開始を再度押すと途中から再開できます）
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <button id="quitExperimentBtn" class="back-btn" style="background: #dc3545; border-color: #dc3545;">🚪 実験をやめて日付選択に戻る</button>
+                            <div style="margin-top: 5px; color: #6c757d; font-size: 12px;">
+                                （実験データは保存されずリセットされます）
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="participant-interface">
@@ -2544,6 +2554,50 @@
         });
     }
     
+    // 実験を完全に終了して日付選択に戻る関数
+    function quitExperiment() {
+        const confirmed = confirm(
+            '実験を完全に終了して日付選択に戻りますか？\n' +
+            '現在の実験データは保存されずに失われます。\n' +
+            '（一時中断とは異なり、完全にリセットされます）'
+        );
+        
+        if (!confirmed) {
+            return;
+        }
+        
+        // セッションタイマーを完全に停止（一時中断ではなく完全停止）
+        stopSessionTimer();
+        isPaused = false;
+        accumulatedTime = 0;
+        
+        // 実験データを完全にクリア
+        document.getElementById('experimentContent').style.display = 'none';
+        document.getElementById('participantSetup').style.display = 'block';
+        
+        // ヘッダーを再表示
+        document.querySelector('.participant-header').style.display = 'block';
+        
+        // フォームをクリア
+        document.getElementById('participantId').value = '';
+        document.getElementById('experimentDay').value = '1';
+        document.getElementById('userAnalysis').value = '';
+        document.getElementById('chatMessages').innerHTML = '';
+        document.getElementById('progressFill').style.width = '0%';
+        
+        // 全ての実験画面を非表示
+        ['scenarioDisplay', 'selfMentalize', 'agentChat', 'experimentComplete'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+        
+        // セッション情報をリセット
+        participantId = '';
+        currentDay = 1;
+        sessionStartTime = null;
+        
+        console.log('🚪 実験が完全に終了され、日付選択画面に戻りました');
+    }
+    
     // 実験セットアップ画面に戻る関数
     window.goBackToExperimentSetup = function() {
         const confirmed = confirm(
@@ -2608,6 +2662,7 @@
         document.getElementById('participantBtn').addEventListener('click', () => selectMode('participant'));
         document.getElementById('adminAccessBtn').addEventListener('click', attemptAdminAccess);
         document.getElementById('backToModeBtn').addEventListener('click', () => selectMode('none'));
+        document.getElementById('quitExperimentBtn').addEventListener('click', quitExperiment);
         // APIプロバイダー変更イベント
         document.getElementById('apiProvider').addEventListener('change', updateApiProviderUI);
         
