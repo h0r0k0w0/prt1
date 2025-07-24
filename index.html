@@ -2828,7 +2828,7 @@
         // 実験イベント
         document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
         document.getElementById('backToModeSelectBtn').addEventListener('click', () => {
-            showMode('none');
+            setMode('none');
         });
         document.getElementById('submitAnalysisBtn').addEventListener('click', submitAnalysis);
         document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
@@ -2914,10 +2914,13 @@
             });
             
             modal.innerHTML = `
-                <h3 style="margin-bottom: 20px; color: #495057;">📊 ${survey.day}日目 ${timingText}アンケート</h3>
-                ${questionsHtml}
-                <div style="text-align: center; margin-top: 20px;">
-                    <button id="submitSurveyBtn" class="btn">回答を提出</button>
+                <div style="position: relative;">
+                    <button id="closeSurveyBtn" style="position: absolute; top: -10px; right: -10px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1001;">&times;</button>
+                    <h3 style="margin-bottom: 20px; color: #495057; padding-right: 40px;">📊 ${survey.day}日目 ${timingText}アンケート</h3>
+                    ${questionsHtml}
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button id="submitSurveyBtn" class="btn">回答を提出</button>
+                    </div>
                 </div>
             `;
             
@@ -2957,6 +2960,14 @@
                 });
                 
                 document.body.removeChild(overlay);
+                resolve();
+            });
+            
+            // X ボタンのイベントリスナー
+            document.getElementById('closeSurveyBtn').addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                // 日付選択メニューに戻る
+                setMode('participant');
                 resolve();
             });
         });
