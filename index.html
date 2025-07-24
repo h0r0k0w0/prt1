@@ -2828,7 +2828,7 @@
         // 実験イベント
         document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
         document.getElementById('backToModeSelectBtn').addEventListener('click', () => {
-            setMode('none');
+            selectMode('none');
         });
         document.getElementById('submitAnalysisBtn').addEventListener('click', submitAnalysis);
         document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
@@ -2967,7 +2967,7 @@
             document.getElementById('closeSurveyBtn').addEventListener('click', () => {
                 document.body.removeChild(overlay);
                 // 日付選択メニューに戻る
-                setMode('participant');
+                selectMode('participant');
                 resolve();
             });
         });
