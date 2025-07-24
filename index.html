@@ -885,6 +885,7 @@
     let currentScenarioIndex = 0;
     let currentDay = 1;
     let participantId = '';
+    let isEditingMode = false;  // アンケート編集モードかどうかを追跡
 
     // デフォルトシナリオ
     const defaultScenarios = [
@@ -2773,15 +2774,31 @@
         
         const surveyExists = surveys.find(s => s.day === day && s.timing === timing);
         if (surveyExists) {
-            const choice = confirm(`${day}日目の${timing === 'start' ? '開始時' : '終了時'}アンケートは既に存在します。\n\n「OK」: 既存の質問に新しい質問を追加\n「キャンセル」: 操作を中止\n\n上書きしたい場合は、まずアンケート一覧から削除してください。`);
-            
-            if (!choice) {
-                return; // キャンセル
+            let choice;
+            if (isEditingMode) {
+                // 編集モードの場合は置換か追加かを選択
+                choice = confirm(`${day}日目の${timing === 'start' ? '開始時' : '終了時'}アンケートを更新します。\n\n「OK」: 既存の質問を新しい質問で置換\n「キャンセル」: 既存の質問に新しい質問を追加`);
+                
+                const existingIndex = surveys.findIndex(s => s.day === day && s.timing === timing);
+                if (choice) {
+                    // 置換: 既存の質問を完全に置き換える
+                    surveys[existingIndex].questions = questions;
+                } else {
+                    // 追加: 既存の質問に新しい質問を追加
+                    surveys[existingIndex].questions = [...surveys[existingIndex].questions, ...questions];
+                }
+            } else {
+                // 通常モードの場合は従来通り
+                choice = confirm(`${day}日目の${timing === 'start' ? '開始時' : '終了時'}アンケートは既に存在します。\n\n「OK」: 既存の質問に新しい質問を追加\n「キャンセル」: 操作を中止\n\n上書きしたい場合は、まずアンケート一覧から削除してください。`);
+                
+                if (!choice) {
+                    return; // キャンセル
+                }
+                
+                // 既存の質問に新しい質問を追加
+                const existingIndex = surveys.findIndex(s => s.day === day && s.timing === timing);
+                surveys[existingIndex].questions = [...surveys[existingIndex].questions, ...questions];
             }
-            
-            // 既存の質問に新しい質問を追加
-            const existingIndex = surveys.findIndex(s => s.day === day && s.timing === timing);
-            surveys[existingIndex].questions = [...surveys[existingIndex].questions, ...questions];
         } else {
             // 新しいアンケートを追加
             surveys.push({ day, timing, questions });
@@ -2789,6 +2806,9 @@
         
         await saveSurveys();
         updateSurveyList();
+        
+        // 編集モードを解除
+        isEditingMode = false;
         
         // フォームをリセット
         document.getElementById('surveyDay').value = '1';
@@ -2813,6 +2833,9 @@
             alert('アンケートが見つかりません');
             return;
         }
+        
+        // 編集モードを設定
+        isEditingMode = true;
         
         // フォームに既存の値を設定
         document.getElementById('surveyDay').value = day;
