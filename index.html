@@ -1903,7 +1903,7 @@
     };
 
     // 実験機能
-    async function startExperiment() {
+    window.startExperiment = async function startExperiment() {
         participantId = document.getElementById('participantId').value;
         currentDay = parseInt(document.getElementById('experimentDay').value);
         
@@ -2160,9 +2160,14 @@
           .from('user_sessions')
           .select('*')
           .eq('user_id', userIdStr)
-          .single();
+          .maybeSingle();
       
-        if (error && error.code === 'PGRST116') { // Not Found
+        if (error) {
+          console.error('❌ セッション取得エラー:', error);
+          return;
+        }
+        
+        if (!data) { // No record found
           try {
             const { error: insertError } = await supabase
               .from('user_sessions')
@@ -2761,15 +2766,20 @@
         
         const surveyExists = surveys.find(s => s.day === day && s.timing === timing);
         if (surveyExists) {
-            if (!confirm(`${day}日目の${timing === 'start' ? '開始時' : '終了時'}アンケートは既に存在します。上書きしますか？`)) {
-                return;
+            const choice = confirm(`${day}日目の${timing === 'start' ? '開始時' : '終了時'}アンケートは既に存在します。\n\n「OK」: 既存の質問に新しい質問を追加\n「キャンセル」: 操作を中止\n\n上書きしたい場合は、まずアンケート一覧から削除してください。`);
+            
+            if (!choice) {
+                return; // キャンセル
             }
-            // 既存のアンケートを削除
-            const index = surveys.findIndex(s => s.day === day && s.timing === timing);
-            surveys.splice(index, 1);
+            
+            // 既存の質問に新しい質問を追加
+            const existingIndex = surveys.findIndex(s => s.day === day && s.timing === timing);
+            surveys[existingIndex].questions = [...surveys[existingIndex].questions, ...questions];
+        } else {
+            // 新しいアンケートを追加
+            surveys.push({ day, timing, questions });
         }
         
-        surveys.push({ day, timing, questions });
         await saveSurveys();
         updateSurveyList();
         
@@ -2787,6 +2797,64 @@
         }
         
         alert('アンケートが保存されました！');
+    }
+    
+    // 既存アンケートを編集する
+    function editSurvey(day, timing) {
+        const survey = surveys.find(s => s.day === day && s.timing === timing);
+        if (!survey) {
+            alert('アンケートが見つかりません');
+            return;
+        }
+        
+        // フォームに既存の値を設定
+        document.getElementById('surveyDay').value = day;
+        document.querySelector(`input[name="surveyTiming"][value="${timing}"]`).checked = true;
+        
+        // アンケート管理画面を表示
+        showSurveyManagement();
+        
+        // 既存の質問をクリア
+        const container = document.getElementById('questionsContainer');
+        container.innerHTML = '';
+        
+        // 既存の質問を読み込み
+        survey.questions.forEach((question, index) => {
+            addQuestion();
+            const questionItems = container.querySelectorAll('.question-item');
+            const currentItem = questionItems[questionItems.length - 1];
+            
+            currentItem.querySelector('.question-text').value = question.text;
+            currentItem.querySelector('.question-type').value = question.type;
+            
+            if (question.options && (question.type === 'radio' || question.type === 'checkbox')) {
+                currentItem.querySelector('.question-options').value = question.options.join('\n');
+                currentItem.querySelector('.options-container').style.display = 'block';
+            } else if (question.range && question.type === 'scale') {
+                currentItem.querySelector('.scale-range').value = question.range;
+                currentItem.querySelector('.scale-container').style.display = 'block';
+            }
+            
+            // イベントリスナーを追加
+            const typeSelect = currentItem.querySelector('.question-type');
+            typeSelect.addEventListener('change', function() {
+                const optionsContainer = currentItem.querySelector('.options-container');
+                const scaleContainer = currentItem.querySelector('.scale-container');
+                
+                if (this.value === 'radio' || this.value === 'checkbox') {
+                    optionsContainer.style.display = 'block';
+                    scaleContainer.style.display = 'none';
+                } else if (this.value === 'scale') {
+                    optionsContainer.style.display = 'none';
+                    scaleContainer.style.display = 'block';
+                } else {
+                    optionsContainer.style.display = 'none';
+                    scaleContainer.style.display = 'none';
+                }
+            });
+        });
+        
+        alert(`${day}日目の${timing === 'start' ? '開始時' : '終了時'}アンケートを編集モードで読み込みました。\n質問を追加・修正後に保存してください。`);
     }
     
     // 質問入力データを収集
@@ -2836,10 +2904,20 @@
             item.innerHTML = `
                 <h4 style="margin-bottom: 10px; color: #495057;">${survey.day}日目 ${timingText}アンケート</h4>
                 <p style="margin-bottom: 15px; color: #6c757d;">質問数: ${survey.questions.length}問</p>
+                <button class="btn editSurveyBtn" data-day="${survey.day}" data-timing="${survey.timing}" style="background: #28a745; font-size: 14px; padding: 8px 16px; margin-right: 10px;">編集</button>
                 <button class="btn deleteSurveyBtn" data-index="${index}" style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
             `;
             
             list.appendChild(item);
+        });
+        
+        // 編集ボタンのイベントリスナー
+        list.querySelectorAll('.editSurveyBtn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const day = Number(e.currentTarget.dataset.day);
+                const timing = e.currentTarget.dataset.timing;
+                editSurvey(day, timing);
+            });
         });
         
         // 削除ボタンのイベントリスナー
