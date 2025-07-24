@@ -1884,8 +1884,9 @@
         
         logsHtml += `
             <div style="text-align: center; margin-top: 20px;">
-                <button onclick="closePreviousLogsModal()" class="btn" style="margin-right: 10px;">閉じる</button>
-                <button onclick="closePreviousLogsModal(); startExperiment();" class="btn" style="background: #28a745;">実験を続行</button>
+                <button onclick="closePreviousLogsModal()" class="btn" style="margin-right: 10px; background: #6c757d;">日付選択に戻る</button>
+                <button onclick="closePreviousLogsModal(); proceedWithExperiment();" class="btn" style="background: #28a745; margin-right: 10px;">このまま実験開始</button>
+                <button onclick="closePreviousLogsModal(); showParticipantScreen('participantStart');" class="btn" style="background: #007bff;">参加者メニューに戻る</button>
             </div>
         `;
         
@@ -1923,6 +1924,12 @@
             return; // 過去ログ表示中なので実験開始を中断
         }
         
+        // 過去ログチェック後の実験開始処理
+        await proceedWithExperiment();
+    }
+    
+    // 過去ログチェックを行わずに実験を開始する関数
+    window.proceedWithExperiment = async function proceedWithExperiment() {
         // 実験開始時のアンケートをチェック
         const startSurvey = surveys.find(s => s.day === currentDay && s.timing === 'start');
         if (startSurvey) {
@@ -2812,7 +2819,7 @@
         document.querySelector(`input[name="surveyTiming"][value="${timing}"]`).checked = true;
         
         // アンケート管理画面を表示
-        showSurveyManagement();
+        showAdminScreen('adminSurveys');
         
         // 既存の質問をクリア
         const container = document.getElementById('questionsContainer');
