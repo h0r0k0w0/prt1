@@ -776,9 +776,11 @@
 
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
-                <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
-                <div style="text-align: center; margin-bottom: 10px; color: #6c757d; font-size: 14px;">
-                    （実験開始を再度押すと途中から再開できます）
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
+                    <div style="margin-top: 5px; color: #6c757d; font-size: 12px;">
+                        （実験開始を再度押すと途中から再開できます）
+                    </div>
                 </div>
                 <div class="participant-interface">
                     <div class="participant-header">
@@ -820,18 +822,16 @@
                             
                             <!-- シナリオ表示 -->
                             <div id="scenarioDisplay" class="scenario-card" style="display: none;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <div style="margin-bottom: 15px;">
                                     <h3 id="currentScenarioTitle" style="margin: 0;"></h3>
-                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 日付選択メニューに戻る</button>
                                 </div>
                                 <p id="currentScenarioContent"></p>
                             </div>
 
                             <!-- 自力分析画面 -->
                             <div id="selfMentalize" style="display: none;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <div style="margin-bottom: 15px;">
                                     <h3 style="margin: 0;">あなたの分析</h3>
-                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 日付選択メニューに戻る</button>
                                 </div>
                                 <div class="form-group">
                                     <label for="userAnalysis">登場人物の気持ちや考えを分析してください</label>
@@ -842,9 +842,8 @@
 
                             <!-- エージェント対話画面 -->
                             <div id="agentChat" style="display: none;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <div style="margin-bottom: 15px;">
                                     <h3 style="margin: 0;">エージェントとの対話</h3>
-                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 日付選択メニューに戻る</button>
                                 </div>
                                 <div class="chat-container">
                                     <div class="chat-messages" id="chatMessages"></div>
@@ -1345,6 +1344,13 @@
             return;
         }
         
+        // タイマー制御：一時中断時はタイマーを停止、参加者モード復帰時は再開
+        if (mode === 'none') {
+            pauseSessionTimer(); // 一時中断時はタイマーを停止
+        } else if (mode === 'participant' && isPaused) {
+            resumeSessionTimer(); // 参加者モード復帰時はタイマーを再開
+        }
+        
         currentMode = mode;
         document.getElementById('modeSelector').style.display = mode === 'none' ? 'block' : 'none';
         document.getElementById('adminNav').classList.toggle('active', mode === 'admin');
@@ -1503,22 +1509,32 @@
 
     // 最低セッション時間が経過したかチェック
     function hasMinimumTimeElapsed() {
-        if (!sessionStartTime || !adminConfig.minimumSessionTime) {
-            return true; // タイマーが無効か、最低時間が設定されていない場合は許可
+        if (!adminConfig.minimumSessionTime) {
+            return true; // 最低時間が設定されていない場合は許可
         }
         
-        const elapsed = (new Date() - sessionStartTime) / 1000; // 経過時間を秒で計算
-        return elapsed >= adminConfig.minimumSessionTime;
+        let totalElapsed = accumulatedTime; // 蓄積された時間
+        if (sessionStartTime && !isPaused) {
+            totalElapsed += new Date() - sessionStartTime; // 現在セッションの時間
+        }
+        
+        const elapsedSeconds = totalElapsed / 1000; // 経過時間を秒で計算
+        return elapsedSeconds >= adminConfig.minimumSessionTime;
     }
 
     // 残り時間を取得（秒）
     function getRemainingTime() {
-        if (!sessionStartTime || !adminConfig.minimumSessionTime) {
+        if (!adminConfig.minimumSessionTime) {
             return 0;
         }
         
-        const elapsed = (new Date() - sessionStartTime) / 1000;
-        const remaining = adminConfig.minimumSessionTime - elapsed;
+        let totalElapsed = accumulatedTime; // 蓄積された時間
+        if (sessionStartTime && !isPaused) {
+            totalElapsed += new Date() - sessionStartTime; // 現在セッションの時間
+        }
+        
+        const elapsedSeconds = totalElapsed / 1000;
+        const remaining = adminConfig.minimumSessionTime - elapsedSeconds;
         return Math.max(0, Math.ceil(remaining));
     }
 
@@ -1992,7 +2008,7 @@
         logsHtml += `
             <div style="text-align: center; margin-top: 20px;">
                 <button onclick="closePreviousLogsModal()" class="btn" style="margin-right: 10px; background: #6c757d;">前の画面に戻る</button>
-                <button onclick="closePreviousLogsModal(); proceedWithExperiment();" class="btn" style="background: #28a745; margin-right: 10px;">見ずに実験スタート</button>
+                <button onclick="closePreviousLogsModal(); proceedWithExperiment();" class="btn" style="background: #28a745; margin-right: 10px;">実験スタート</button>
                 <div style="margin-top: 10px;">
                     <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">↑ 会話ログは上記に表示されています</p>
                 </div>
@@ -2432,6 +2448,8 @@
     // セッションタイマー関連の変数
     let sessionStartTime = null;
     let timerInterval = null;
+    let accumulatedTime = 0; // 蓄積された経過時間（ミリ秒）
+    let isPaused = false;
     
     // セッションタイマーを開始する関数
     function startSessionTimer() {
@@ -2456,11 +2474,12 @@
         
         // 1秒ごとにタイマーを更新
         timerInterval = setInterval(() => {
-            if (sessionStartTime) {
-                const elapsed = new Date() - sessionStartTime;
-                const hours = Math.floor(elapsed / 3600000);
-                const minutes = Math.floor((elapsed % 3600000) / 60000);
-                const seconds = Math.floor((elapsed % 60000) / 1000);
+            if (sessionStartTime && !isPaused) {
+                const currentElapsed = new Date() - sessionStartTime;
+                const totalElapsed = accumulatedTime + currentElapsed;
+                const hours = Math.floor(totalElapsed / 3600000);
+                const minutes = Math.floor((totalElapsed % 3600000) / 60000);
+                const seconds = Math.floor((totalElapsed % 60000) / 1000);
                 
                 const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 const timerElement = document.getElementById('timerDisplay');
@@ -2482,7 +2501,28 @@
             timerInterval = null;
         }
         sessionStartTime = null;
+        accumulatedTime = 0;
+        isPaused = false;
         document.getElementById('sessionTimer').style.display = 'none';
+    }
+    
+    // セッションタイマーを一時停止する関数
+    function pauseSessionTimer() {
+        if (sessionStartTime && !isPaused) {
+            accumulatedTime += new Date() - sessionStartTime;
+            isPaused = true;
+            sessionStartTime = null;
+            console.log('⏸️ セッションタイマーが一時停止されました');
+        }
+    }
+    
+    // セッションタイマーを再開する関数
+    function resumeSessionTimer() {
+        if (isPaused) {
+            sessionStartTime = new Date();
+            isPaused = false;
+            console.log('▶️ セッションタイマーが再開されました');
+        }
     }
     
     function resetExperiment() {
