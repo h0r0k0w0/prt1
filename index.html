@@ -1782,20 +1782,29 @@
     // 参加者の過去のログを確認する関数
     async function checkPreviousLogs(participantId, selectedDay) {
         const participantLogs = experimentLogs.filter(log => 
-            log.participant_id === participantId && log.day !== selectedDay
+            log.participant_id === participantId
         );
         
         if (participantLogs.length > 0) {
-            // 過去のログがある場合は確認ダイアログを表示
-            const previousDays = [...new Set(participantLogs.map(log => log.day))].sort();
-            const daysList = previousDays.map(day => `${day}日目`).join('、');
+            // 同じ日のログがあるかチェック
+            const sameDayLogs = participantLogs.filter(log => log.day === selectedDay);
+            const otherDayLogs = participantLogs.filter(log => log.day !== selectedDay);
             
-            const confirmed = confirm(
-                `参加者ID「${participantId}」の過去の実験記録が見つかりました。\n` +
-                `過去の参加日: ${daysList}\n\n` +
-                `過去の会話ログを確認しますか？\n` +
-                `「OK」で過去ログ表示、「キャンセル」で実験を続行します。`
-            );
+            let confirmMessage = `参加者ID「${participantId}」の過去の実験記録が見つかりました。\n`;
+            
+            if (sameDayLogs.length > 0) {
+                confirmMessage += `⚠️ ${selectedDay}日目に既に回答済みです！\n`;
+            }
+            
+            if (otherDayLogs.length > 0) {
+                const previousDays = [...new Set(otherDayLogs.map(log => log.day))].sort();
+                const daysList = previousDays.map(day => `${day}日目`).join('、');
+                confirmMessage += `その他の参加日: ${daysList}\n`;
+            }
+            
+            confirmMessage += `\n過去の会話ログを確認しますか？\n「OK」で過去ログ表示、「キャンセル」で実験を続行します。`;
+            
+            const confirmed = confirm(confirmMessage);
             
             if (confirmed) {
                 showPreviousLogsModal(participantLogs);
@@ -2146,41 +2155,69 @@
       const userIdStr = String(userId);
       console.log('📋 セッション初期化処理開始:', userIdStr);
       
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('user_id', userIdStr)
-        .single();
-    
-      if (error && error.code === 'PGRST116') { // Not Found
-        const { error: insertError } = await supabase
+      try {
+        const { data, error } = await supabase
           .from('user_sessions')
-          .insert([{ user_id: userIdStr, start_date: new Date().toISOString() }]);
-    
-        if (insertError) {
-          console.error('❌ セッション初期登録エラー:', insertError);
-        } else {
-          console.log('✅ セッション初期登録完了');
-          // セッション一覧を更新
-          await loadUserSessionsUI();
+          .select('*')
+          .eq('user_id', userIdStr)
+          .single();
+      
+        if (error && error.code === 'PGRST116') { // Not Found
+          try {
+            const { error: insertError } = await supabase
+              .from('user_sessions')
+              .insert([{ user_id: userIdStr, start_date: new Date().toISOString() }]);
+        
+            if (insertError) {
+              if (insertError.code === '42501') {
+                console.warn('⚠️ Supabase RLSポリシー違反: ユーザーセッション登録が制限されています');
+                console.log('✅ セッション管理をローカルで継続します');
+                return;
+              }
+              console.error('❌ セッション初期登録エラー:', insertError);
+            } else {
+              console.log('✅ セッション初期登録完了');
+              // セッション一覧を更新
+              await loadUserSessionsUI();
+            }
+          } catch (insertErr) {
+            console.warn('⚠️ セッション登録に問題がありますが、実験は継続できます');
+          }
+        } else if (data) {
+          // 既存セッションの最終更新時刻を更新
+          try {
+            const { error: updateError } = await supabase
+              .from('user_sessions')
+              .update({ updated_at: new Date().toISOString() })
+              .eq('user_id', userIdStr);
+              
+            if (updateError) {
+              if (updateError.code === '42501') {
+                console.warn('⚠️ Supabase RLSポリシー違反: ユーザーセッション更新が制限されています');
+                console.log('✅ セッション管理をローカルで継続します');
+                return;
+              }
+              console.error('❌ セッション更新エラー:', updateError);
+            } else {
+              console.log('✅ セッション更新完了');
+              // セッション一覧を更新
+              await loadUserSessionsUI();
+            }
+          } catch (updateErr) {
+            console.warn('⚠️ セッション更新に問題がありますが、実験は継続できます');
+          }
+          console.log('📅 既存のセッション開始日:', data.start_date);
+        } else if (error) {
+          if (error.code === '42501') {
+            console.warn('⚠️ Supabase RLSポリシー違反: ユーザーセッションアクセスが制限されています');
+            console.log('✅ セッション管理をローカルで継続します');
+            return;
+          }
+          console.error('❌ セッション情報取得エラー:', error);
         }
-      } else if (data) {
-        // 既存セッションの最終更新時刻を更新
-        const { error: updateError } = await supabase
-          .from('user_sessions')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('user_id', userIdStr);
-          
-        if (updateError) {
-          console.error('❌ セッション更新エラー:', updateError);
-        } else {
-          console.log('✅ セッション更新完了');
-          // セッション一覧を更新
-          await loadUserSessionsUI();
-        }
-        console.log('📅 既存のセッション開始日:', data.start_date);
-      } else {
-        console.error('❌ セッション情報取得エラー:', error);
+      } catch (generalError) {
+        console.error('❌ セッション初期化の全般的エラー:', generalError);
+        console.log('✅ 実験は継続できます');
       }
     }
 
@@ -2244,11 +2281,15 @@
     
     // セッションタイマーを開始する関数
     function startSessionTimer() {
+        console.log('🕐 セッションタイマー開始要求:', adminConfig.showSessionTimer);
+        
         // 管理者設定でタイマー表示が有効な場合のみ表示
         if (adminConfig.showSessionTimer) {
             document.getElementById('sessionTimer').style.display = 'block';
+            console.log('✅ セッションタイマーを表示します');
         } else {
             document.getElementById('sessionTimer').style.display = 'none';
+            console.log('⚠️ セッションタイマーは無効に設定されています');
             return; // タイマー表示が無効な場合は処理を終了
         }
         
@@ -2268,9 +2309,16 @@
                 const seconds = Math.floor((elapsed % 60000) / 1000);
                 
                 const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                document.getElementById('timerDisplay').textContent = timeString;
+                const timerElement = document.getElementById('timerDisplay');
+                if (timerElement) {
+                    timerElement.textContent = timeString;
+                } else {
+                    console.error('❌ timerDisplay要素が見つかりません');
+                }
             }
         }, 1000);
+        
+        console.log('✅ セッションタイマーが開始されました');
     }
     
     // セッションタイマーを停止する関数
@@ -2964,9 +3012,14 @@
                 });
             
             if (error) {
-                // survey_resultsテーブルが存在しない場合（42P01エラー）はローカルストレージにフォールバック
+                // survey_resultsテーブルが存在しない場合（42P01エラー）またはRLS違反（42501エラー）はローカルストレージにフォールバック
                 if (error.code === '42P01') {
                     console.warn('⚠️ survey_resultsテーブルが存在しません。ローカルストレージに保存します。');
+                } else if (error.code === '42501') {
+                    console.warn('⚠️ Supabase RLSポリシー違反です。ローカルストレージに保存します。');
+                }
+                
+                if (error.code === '42P01' || error.code === '42501') {
                     const results = JSON.parse(localStorage.getItem('mentalizeSurveyResults') || '[]');
                     const newResult = {
                         id: Date.now(),
@@ -2979,7 +3032,7 @@
                     results.unshift(newResult);
                     localStorage.setItem('mentalizeSurveyResults', JSON.stringify(results));
                     surveyResults = results;
-                    console.log('✅ アンケート結果ローカル保存完了');
+                    console.log('✅ アンケート結果ローカル保存完了（フォールバック）');
                     return;
                 }
                 throw error;
