@@ -1,9 +1,8 @@
 {
   "version": 2,
-  "public": true,
   "functions": {
     "api/*.js": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs20.x"
     }
   },
   "routes": [
@@ -31,6 +30,10 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
         }
       ]
     }
