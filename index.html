@@ -568,6 +568,12 @@
 
                 <div class="admin-config">
                     <h3>👥 セッション管理</h3>
+                    <div class="form-group">
+                        <label for="minimumSessionTime">最低セッション時間（分）</label>
+                        <input type="number" id="minimumSessionTime" min="1" max="60" value="5" placeholder="最低実験時間を分で入力">
+                        <small style="color: #6c757d;">この時間に達するまで分析提出・対話終了が無効になります</small>
+                    </div>
+                    <button id="saveSessionConfigBtn" class="btn" style="margin-bottom: 20px;">セッション設定を保存</button>
                     <button id="showUserSessionsBtn" class="btn">ユーザーセッション一覧を表示</button>
                     <div id="userSessionsSection" style="display: none; margin-top: 20px;">
                         <h4>📋 ユーザーセッション一覧</h4>
@@ -770,10 +776,10 @@
 
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
-                <button id="backToModeBtn" class="back-btn">← モード選択に戻る</button>
+                <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
                 <div class="participant-interface">
                     <div class="participant-header">
-                        <h2>🎯 メンタライズ訓練実験</h2>
+                        <h2 id="participantScreenTitle">📅 日付選択メニュー</h2>
                         <p>他者の心を理解する力を一緒に向上させましょう</p>
                     </div>
 
@@ -813,7 +819,7 @@
                             <div id="scenarioDisplay" class="scenario-card" style="display: none;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                                     <h3 id="currentScenarioTitle" style="margin: 0;"></h3>
-                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 戻る</button>
+                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 日付選択メニューに戻る</button>
                                 </div>
                                 <p id="currentScenarioContent"></p>
                             </div>
@@ -822,7 +828,7 @@
                             <div id="selfMentalize" style="display: none;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                                     <h3 style="margin: 0;">あなたの分析</h3>
-                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 戻る</button>
+                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 日付選択メニューに戻る</button>
                                 </div>
                                 <div class="form-group">
                                     <label for="userAnalysis">登場人物の気持ちや考えを分析してください</label>
@@ -835,7 +841,7 @@
                             <div id="agentChat" style="display: none;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                                     <h3 style="margin: 0;">エージェントとの対話</h3>
-                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 戻る</button>
+                                    <button onclick="goBackToExperimentSetup()" class="btn" style="background: #6c757d; font-size: 12px; padding: 6px 12px;">◀ 日付選択メニューに戻る</button>
                                 </div>
                                 <div class="chat-container">
                                     <div class="chat-messages" id="chatMessages"></div>
@@ -879,6 +885,7 @@
         temperature: 0.7,
         sessionTimeout: 60,
         showSessionTimer: true,
+        minimumSessionTime: 300, // 最低セッション時間（秒）- デフォルト5分
         systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。'
     };
     
@@ -1484,6 +1491,34 @@
         alert('プロンプト設定が保存されました！');
     }
 
+    async function saveSessionConfig() {
+        const minimumTimeMinutes = parseInt(document.getElementById('minimumSessionTime').value);
+        adminConfig.minimumSessionTime = minimumTimeMinutes * 60; // 分を秒に変換
+        await saveAdminSettings();
+        alert('セッション設定が保存されました！');
+    }
+
+    // 最低セッション時間が経過したかチェック
+    function hasMinimumTimeElapsed() {
+        if (!sessionStartTime || !adminConfig.minimumSessionTime) {
+            return true; // タイマーが無効か、最低時間が設定されていない場合は許可
+        }
+        
+        const elapsed = (new Date() - sessionStartTime) / 1000; // 経過時間を秒で計算
+        return elapsed >= adminConfig.minimumSessionTime;
+    }
+
+    // 残り時間を取得（秒）
+    function getRemainingTime() {
+        if (!sessionStartTime || !adminConfig.minimumSessionTime) {
+            return 0;
+        }
+        
+        const elapsed = (new Date() - sessionStartTime) / 1000;
+        const remaining = adminConfig.minimumSessionTime - elapsed;
+        return Math.max(0, Math.ceil(remaining));
+    }
+
     // 管理者設定UIに読み込み
     function loadAdminConfigUI() {
         const apiProviderSelect = document.getElementById('apiProvider');
@@ -1518,6 +1553,9 @@
         
         const systemPromptInput = document.getElementById('systemPrompt');
         if (systemPromptInput) systemPromptInput.value = adminConfig.systemPrompt || '';
+
+        const minimumSessionTimeInput = document.getElementById('minimumSessionTime');
+        if (minimumSessionTimeInput) minimumSessionTimeInput.value = Math.floor((adminConfig.minimumSessionTime || 300) / 60); // 秒を分に変換
     }
     
     // APIプロバイダーUIの更新
@@ -1885,9 +1923,11 @@
         
         logsHtml += `
             <div style="text-align: center; margin-top: 20px;">
-                <button onclick="closePreviousLogsModal()" class="btn" style="margin-right: 10px; background: #6c757d;">日付選択に戻る</button>
-                <button onclick="closePreviousLogsModal(); proceedWithExperiment();" class="btn" style="background: #28a745; margin-right: 10px;">このまま実験開始</button>
-                <button onclick="closePreviousLogsModal(); showParticipantScreen('participantStart');" class="btn" style="background: #007bff;">参加者メニューに戻る</button>
+                <button onclick="closePreviousLogsModal()" class="btn" style="margin-right: 10px; background: #6c757d;">前の画面に戻る</button>
+                <button onclick="closePreviousLogsModal(); proceedWithExperiment();" class="btn" style="background: #28a745; margin-right: 10px;">見ずに実験スタート</button>
+                <div style="margin-top: 10px;">
+                    <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">↑ 会話ログは上記に表示されています</p>
+                </div>
             </div>
         `;
         
@@ -1943,6 +1983,9 @@
         document.getElementById('participantSetup').style.display = 'none';
         document.getElementById('experimentContent').style.display = 'block';
         
+        // 実験実行中はヘッダーを非表示にする
+        document.querySelector('.participant-header').style.display = 'none';
+        
         // セッションタイマーを開始
         startSessionTimer();
         
@@ -1972,6 +2015,21 @@
         const analysis = document.getElementById('userAnalysis').value;
         if (!analysis.trim()) {
             alert('分析を入力してください');
+            return;
+        }
+
+        // 最低セッション時間のチェック
+        if (!hasMinimumTimeElapsed()) {
+            const remainingSeconds = getRemainingTime();
+            const remainingMinutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            alert(`最低セッション時間に達していません。\nあと${remainingMinutes}分${seconds}秒お待ちください。`);
+            return;
+        }
+
+        // 確認ダイアログを表示
+        const confirmSubmit = confirm('分析を提出しますか？\n提出すると本日の実験が終了します。');
+        if (!confirmSubmit) {
             return;
         }
 
@@ -2268,6 +2326,21 @@
 
 
     async function finishChat() {
+        // 最低セッション時間のチェック
+        if (!hasMinimumTimeElapsed()) {
+            const remainingSeconds = getRemainingTime();
+            const remainingMinutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            alert(`最低セッション時間に達していません。\nあと${remainingMinutes}分${seconds}秒お待ちください。`);
+            return;
+        }
+
+        // 確認ダイアログを表示
+        const confirmFinish = confirm('対話を終了しますか？\n終了すると本日の実験が終了します。');
+        if (!confirmFinish) {
+            return;
+        }
+
         await saveExperimentLog({
             participantId,
             day: currentDay,
@@ -2350,6 +2423,10 @@
         
         document.getElementById('experimentContent').style.display = 'none';
         document.getElementById('participantSetup').style.display = 'block';
+        
+        // ヘッダーを再表示
+        document.querySelector('.participant-header').style.display = 'block';
+        
         document.getElementById('userAnalysis').value = '';
         document.getElementById('chatMessages').innerHTML = '';
         document.getElementById('progressFill').style.width = '0%';
@@ -2503,6 +2580,7 @@
         document.getElementById('changePasswordBtn').addEventListener('click', changeAdminPassword);
         document.getElementById('saveConfigBtn').addEventListener('click', saveAdminConfig);
         document.getElementById('savePromptBtn').addEventListener('click', savePromptConfig);
+        document.getElementById('saveSessionConfigBtn').addEventListener('click', saveSessionConfig);
         
         // シナリオ管理
         document.getElementById('addScenarioBtn').addEventListener('click', addScenario);
