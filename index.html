@@ -819,7 +819,10 @@
                                     <option value="7">7日目（自力メンタライズ）</option>
                                 </select>
                             </div>
-                            <button id="startExperimentBtn" class="btn">実験開始</button>
+                            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                                <button id="backToModeSelectBtn" class="back-btn" style="background: #6c757d; border-color: #6c757d;">← 前の画面に戻る</button>
+                                <button id="startExperimentBtn" class="btn">実験開始</button>
+                            </div>
                         </div>
 
                         <!-- 実験実行中の画面 -->
@@ -2040,6 +2043,63 @@
         }
     };
 
+    // シナリオランダム化機能（参加者IDベースで決定的）
+    function hashString(str) {
+        let hash = 0;
+        if (str.length === 0) return hash;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 32bit整数に変換
+        }
+        return Math.abs(hash);
+    }
+
+    function shuffleArrayDeterministic(array, seed) {
+        const result = [...array];
+        let currentIndex = result.length;
+        let temporaryValue, randomIndex;
+
+        // seedを基にした疑似乱数生成器
+        function seededRandom() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+
+        while (0 !== currentIndex) {
+            randomIndex = Math.floor(seededRandom() * currentIndex);
+            currentIndex -= 1;
+
+            temporaryValue = result[currentIndex];
+            result[currentIndex] = result[randomIndex];
+            result[randomIndex] = temporaryValue;
+        }
+
+        return result;
+    }
+
+    function getDeterministicScenarioIndex(participantId, dayNumber) {
+        if (scenarios.length === 0) return 0;
+        
+        // 参加者IDをハッシュ化してシードを生成
+        const seed = hashString(participantId);
+        
+        // シナリオのインデックス配列を作成
+        const scenarioIndices = Array.from({length: scenarios.length}, (_, i) => i);
+        
+        // 決定的にシャッフル
+        const shuffledIndices = shuffleArrayDeterministic(scenarioIndices, seed);
+        
+        // 7日間で重複しないように選択
+        if (scenarios.length >= 7) {
+            // 7個以上のシナリオがある場合は、最初の7個を使用
+            return shuffledIndices[(dayNumber - 1) % 7];
+        } else {
+            // 7個未満の場合は、利用可能なシナリオから循環的に選択
+            return shuffledIndices[(dayNumber - 1) % scenarios.length];
+        }
+    }
+
     // 実験機能
     window.startExperiment = async function startExperiment() {
         participantId = document.getElementById('participantId').value;
@@ -2088,7 +2148,8 @@
         // セッションタイマーを開始
         startSessionTimer();
         
-        currentScenarioIndex = Math.floor(Math.random() * scenarios.length);
+        // 参加者IDとday番号に基づいて決定的にシナリオを選択
+        currentScenarioIndex = getDeterministicScenarioIndex(participantId, currentDay);
         displayScenario();
     }
 
@@ -2766,6 +2827,9 @@
         
         // 実験イベント
         document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
+        document.getElementById('backToModeSelectBtn').addEventListener('click', () => {
+            showMode('none');
+        });
         document.getElementById('submitAnalysisBtn').addEventListener('click', submitAnalysis);
         document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
         document.getElementById('finishChatBtn').addEventListener('click', finishChat);
