@@ -535,6 +535,17 @@
                                 <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
                                 <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                             </select>
+                            <div style="margin-top: 10px;">
+                                <label>
+                                    <input type="checkbox" id="useCustomModel"> カスタムモデルを使用
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group" id="customModelGroup" style="display: none;">
+                            <label for="customModelName">カスタムモデル名</label>
+                            <input type="text" id="customModelName" placeholder="例: gpt-4-turbo, claude-4-sonnet">
+                            <button type="button" id="validateModelBtn" class="btn" style="margin-top: 5px; background: #17a2b8; color: white; padding: 5px 10px; font-size: 12px;">モデルを検証</button>
+                            <div id="modelValidationResult" style="margin-top: 5px; font-size: 12px;"></div>
                         </div>
                         <div class="form-group">
                           <label for="maxTokens">最大トークン数</label>
@@ -874,7 +885,7 @@
                             <div id="experimentComplete" style="display: none; text-align: center;">
                                 <h3>🎉 実験完了</h3>
                                 <p>本日の実験が完了しました。ご参加いただき、ありがとうございました。</p>
-                                <button id="resetExperimentBtn" class="btn">新しい実験を開始</button>
+                                <button id="resetExperimentBtn" class="btn">実験を終了してメニューに戻る</button>
                             </div>
                         </div>
                     </div>
@@ -1464,7 +1475,17 @@
         adminConfig.apiProvider = document.getElementById('apiProvider').value;
         adminConfig.apiKey = document.getElementById('adminApiKey').value;
         adminConfig.customApiUrl = document.getElementById('customApiUrl').value;
-        adminConfig.model = document.getElementById('modelSelect').value;
+        
+        // カスタムモデルが選択されている場合はカスタムモデル名を使用
+        const useCustomModel = document.getElementById('useCustomModel').checked;
+        if (useCustomModel) {
+            adminConfig.model = document.getElementById('customModelName').value;
+            adminConfig.useCustomModel = true;
+        } else {
+            adminConfig.model = document.getElementById('modelSelect').value;
+            adminConfig.useCustomModel = false;
+        }
+        
         adminConfig.maxTokens = Number(document.getElementById('maxTokens').value);
         adminConfig.temperature = Number(document.getElementById('temperature').value);
         adminConfig.sessionTimeout = Number(document.getElementById('sessionTimeout').value);
@@ -1473,6 +1494,85 @@
         
         document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
         setTimeout(() => document.getElementById('configStatus').innerHTML = '', 3000);
+    }
+
+    // カスタムモデル入力フィールドの表示/非表示
+    function toggleCustomModelInput() {
+        const useCustomModel = document.getElementById('useCustomModel').checked;
+        const customModelGroup = document.getElementById('customModelGroup');
+        
+        if (useCustomModel) {
+            customModelGroup.style.display = 'block';
+        } else {
+            customModelGroup.style.display = 'none';
+        }
+    }
+
+    // モデル検証機能
+    async function validateModel() {
+        const modelName = document.getElementById('customModelName').value.trim();
+        const resultDiv = document.getElementById('modelValidationResult');
+        
+        if (!modelName) {
+            resultDiv.innerHTML = '<span style="color: #dc3545;">⚠️ モデル名を入力してください</span>';
+            return;
+        }
+        
+        resultDiv.innerHTML = '<span style="color: #6c757d;">🔄 検証中...</span>';
+        
+        try {
+            const testMessage = 'こんにちは';
+            let apiUrl, headers, requestBody;
+            
+            // API設定を取得
+            if (adminConfig.apiProvider === 'openai') {
+                apiUrl = 'https://api.openai.com/v1/chat/completions';
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminConfig.apiKey}`
+                };
+                requestBody = {
+                    model: modelName,
+                    messages: [{ role: 'user', content: testMessage }],
+                    max_tokens: 10
+                };
+            } else if (adminConfig.apiProvider === 'claude') {
+                apiUrl = 'https://api.anthropic.com/v1/messages';
+                headers = {
+                    'Content-Type': 'application/json',
+                    'x-api-key': adminConfig.apiKey,
+                    'anthropic-version': '2023-06-01'
+                };
+                requestBody = {
+                    model: modelName,
+                    max_tokens: 10,
+                    messages: [{ role: 'user', content: testMessage }]
+                };
+            } else {
+                resultDiv.innerHTML = '<span style="color: #dc3545;">⚠️ カスタムAPIプロバイダーではモデル検証がサポートされていません</span>';
+                return;
+            }
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (response.ok) {
+                resultDiv.innerHTML = '<span style="color: #28a745;">✅ モデルが有効です</span>';
+            } else {
+                const errorData = await response.json();
+                let errorMsg = 'モデルが見つからないか、無効です';
+                if (errorData.error?.message) {
+                    errorMsg += `: ${errorData.error.message}`;
+                }
+                resultDiv.innerHTML = `<span style="color: #dc3545;">❌ ${errorMsg}</span>`;
+            }
+        } catch (error) {
+            console.error('Model validation error:', error);
+            resultDiv.innerHTML = '<span style="color: #dc3545;">❌ 検証中にエラーが発生しました</span>';
+        }
     }
 
 
@@ -1568,9 +1668,22 @@
         if (customUrlInput) customUrlInput.value = adminConfig.customApiUrl || '';
 
         const modelSelect = document.getElementById('modelSelect');
+        const useCustomModelCheckbox = document.getElementById('useCustomModel');
+        const customModelNameInput = document.getElementById('customModelName');
+        
         if (modelSelect) {
-            modelSelect.value = adminConfig.model || 'gpt-3.5-turbo';
             updateModelOptions();
+            
+            // カスタムモデルが使用されている場合
+            if (adminConfig.useCustomModel && adminConfig.model) {
+                useCustomModelCheckbox.checked = true;
+                customModelNameInput.value = adminConfig.model;
+                toggleCustomModelInput();
+            } else {
+                useCustomModelCheckbox.checked = false;
+                modelSelect.value = adminConfig.model || 'gpt-3.5-turbo';
+                toggleCustomModelInput();
+            }
         }
 
         const maxTokensInput = document.getElementById('maxTokens');
@@ -1617,7 +1730,10 @@
                     { value: 'gpt-3.5-turbo', text: 'GPT-3.5 Turbo' },
                     { value: 'gpt-4', text: 'GPT-4' },
                     { value: 'gpt-4o', text: 'GPT-4o' },
-                    { value: 'gpt-4o-mini', text: 'GPT-4o Mini' }
+                    { value: 'gpt-4o-mini', text: 'GPT-4o Mini' },
+                    { value: 'gpt-4-turbo-preview', text: 'GPT-4 Turbo Preview' },
+                    { value: 'o1-preview', text: 'O1 Preview' },
+                    { value: 'o1-mini', text: 'O1 Mini' }
                 ];
                 openaiModels.forEach(model => {
                     const option = document.createElement('option');
@@ -1630,7 +1746,8 @@
                     { value: 'claude-3-5-sonnet-20241022', text: 'Claude 3.5 Sonnet' },
                     { value: 'claude-3-sonnet-20240229', text: 'Claude 3 Sonnet' },
                     { value: 'claude-3-opus-20240229', text: 'Claude 3 Opus' },
-                    { value: 'claude-3-haiku-20240307', text: 'Claude 3 Haiku' }
+                    { value: 'claude-3-haiku-20240307', text: 'Claude 3 Haiku' },
+                    { value: 'claude-4-sonnet', text: 'Claude 4 Sonnet' }
                 ];
                 claudeModels.forEach(model => {
                     const option = document.createElement('option');
@@ -2231,8 +2348,17 @@
         addMessage('user', message);
         input.value = '';
         
-        const response = await generateAIResponse(message);
-        addMessage('ai', response);
+        // AIが考えている旨を表示
+        const loadingMessageId = addLoadingMessage();
+        
+        try {
+            const response = await generateAIResponse(message);
+            removeLoadingMessage(loadingMessageId);
+            addMessage('ai', response);
+        } catch (error) {
+            removeLoadingMessage(loadingMessageId);
+            addMessage('ai', 'AIからの応答を取得できませんでした。もう一度お試しください。');
+        }
     }
 
     function getChatHistory() {
@@ -2251,6 +2377,33 @@
         messageDiv.textContent = text;
         messages.appendChild(messageDiv);
         messages.scrollTop = messages.scrollHeight;
+    }
+
+    // AI応答待ちのローディングメッセージを追加
+    function addLoadingMessage() {
+        const messages = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        const loadingId = 'loading-' + Date.now();
+        messageDiv.id = loadingId;
+        messageDiv.className = 'message ai loading';
+        messageDiv.innerHTML = '🤔 考えています...';
+        
+        // CSS animations for the loading indicator
+        messageDiv.style.opacity = '0.7';
+        messageDiv.style.fontStyle = 'italic';
+        
+        messages.appendChild(messageDiv);
+        messages.scrollTop = messages.scrollHeight;
+        
+        return loadingId;
+    }
+
+    // ローディングメッセージを削除
+    function removeLoadingMessage(loadingId) {
+        const loadingMessage = document.getElementById(loadingId);
+        if (loadingMessage) {
+            loadingMessage.remove();
+        }
     }
 
     async function generateAIResponse(userMessage) {
@@ -2276,6 +2429,10 @@
         
         if (adminConfig.apiKey) {
             try {
+                // デバッグ用: 使用中のモデルをログ出力
+                const requestStartTime = performance.now();
+                console.log(`🤖 AI Request - Provider: ${adminConfig.apiProvider}, Model: ${adminConfig.model}, Custom: ${adminConfig.useCustomModel || false}`);
+                
                 let apiUrl, headers, requestBody;
                 
                 if (adminConfig.apiProvider === 'openai') {
@@ -2340,6 +2497,11 @@
 
                 if (response.ok) {
                     const data = await response.json();
+                    
+                    // デバッグ用: レスポンス時間をログ出力
+                    const requestEndTime = performance.now();
+                    const responseTime = Math.round(requestEndTime - requestStartTime);
+                    console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
                     
                     if (adminConfig.apiProvider === 'claude') {
                         return data.content[0].text;
@@ -2816,6 +2978,10 @@
         document.getElementById('saveConfigBtn').addEventListener('click', saveAdminConfig);
         document.getElementById('savePromptBtn').addEventListener('click', savePromptConfig);
         document.getElementById('saveSessionConfigBtn').addEventListener('click', saveSessionConfig);
+        
+        // カスタムモデル関連のイベントリスナー
+        document.getElementById('useCustomModel').addEventListener('change', toggleCustomModelInput);
+        document.getElementById('validateModelBtn').addEventListener('click', validateModel);
         
         // シナリオ管理
         document.getElementById('addScenarioBtn').addEventListener('click', addScenario);
