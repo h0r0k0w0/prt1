@@ -513,6 +513,7 @@
                             <select id="apiProvider">
                                 <option value="openai">OpenAI</option>
                                 <option value="claude">Claude (Anthropic)</option>
+                                <option value="gemini">Google Gemini</option>
                                 <option value="custom">カスタムURL</option>
                             </select>
                         </div>
@@ -535,17 +536,12 @@
                                 <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
                                 <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                             </select>
-                            <div style="margin-top: 10px;">
-                                <label>
-                                    <input type="checkbox" id="useCustomModel"> カスタムモデルを使用
-                                </label>
-                            </div>
+                            <button type="button" id="validateModelBtn" class="btn" style="margin-top: 5px; background: #17a2b8; color: white; padding: 5px 10px; font-size: 12px;">✅ モデルを検証</button>
+                            <div id="modelValidationResult" style="margin-top: 5px; font-size: 12px;"></div>
                         </div>
                         <div class="form-group" id="customModelGroup" style="display: none;">
                             <label for="customModelName">カスタムモデル名</label>
-                            <input type="text" id="customModelName" placeholder="例: gpt-4-turbo, claude-4-sonnet">
-                            <button type="button" id="validateModelBtn" class="btn" style="margin-top: 5px; background: #17a2b8; color: white; padding: 5px 10px; font-size: 12px;">モデルを検証</button>
-                            <div id="modelValidationResult" style="margin-top: 5px; font-size: 12px;"></div>
+                            <input type="text" id="customModelName" placeholder="例: gpt-4-turbo, claude-4-sonnet, gemini-pro">
                         </div>
                         <div class="form-group">
                           <label for="maxTokens">最大トークン数</label>
@@ -576,6 +572,15 @@
                         <textarea id="systemPrompt" style="height: 150px;"></textarea>
                     </div>
                     <button id="savePromptBtn" class="btn">プロンプトを保存</button>
+                </div>
+
+                <div class="admin-config">
+                    <h3>📝 管理者メモ</h3>
+                    <div class="form-group">
+                        <label for="adminMemo">管理者用メモ（カスタムURL、実験設定等）</label>
+                        <textarea id="adminMemo" style="height: 100px;" placeholder="カスタムURLの設定方法、実験の注意事項、その他メモ..."></textarea>
+                    </div>
+                    <button id="saveMemoBtn" class="btn">メモを保存</button>
                 </div>
 
                 <div class="admin-config">
@@ -1476,13 +1481,15 @@
         adminConfig.apiKey = document.getElementById('adminApiKey').value;
         adminConfig.customApiUrl = document.getElementById('customApiUrl').value;
         
-        // カスタムモデルが選択されている場合はカスタムモデル名を使用
-        const useCustomModel = document.getElementById('useCustomModel').checked;
-        if (useCustomModel) {
-            adminConfig.model = document.getElementById('customModelName').value;
+        // モデル選択の処理
+        const selectedModel = document.getElementById('modelSelect').value;
+        if (selectedModel === 'custom-model') {
+            // カスタムモデルが選択されている場合
+            adminConfig.model = document.getElementById('customModelName').value || 'custom-model';
             adminConfig.useCustomModel = true;
         } else {
-            adminConfig.model = document.getElementById('modelSelect').value;
+            // 既定モデルが選択されている場合
+            adminConfig.model = selectedModel;
             adminConfig.useCustomModel = false;
         }
         
@@ -1496,9 +1503,16 @@
         setTimeout(() => document.getElementById('configStatus').innerHTML = '', 3000);
     }
 
+    // 管理者メモ保存
+    async function saveMemo() {
+        adminConfig.adminMemo = document.getElementById('adminMemo').value;
+        await saveAdminSettings();
+        alert('メモが保存されました！');
+    }
+    
     // カスタムモデル入力フィールドの表示/非表示
     function toggleCustomModelInput() {
-        const useCustomModel = document.getElementById('useCustomModel').checked;
+        const useCustomModel = document.getElementById('useCustomModel')?.checked;
         const customModelGroup = document.getElementById('customModelGroup');
         
         if (useCustomModel) {
@@ -1508,14 +1522,21 @@
         }
     }
 
-    // モデル検証機能
+    // モデル検証機能（すべてのモデルで使用可能）
     async function validateModel() {
-        const modelName = document.getElementById('customModelName').value.trim();
+        const modelSelect = document.getElementById('modelSelect');
+        const customModelNameInput = document.getElementById('customModelName');
         const resultDiv = document.getElementById('modelValidationResult');
         
-        if (!modelName) {
-            resultDiv.innerHTML = '<span style="color: #dc3545;">⚠️ モデル名を入力してください</span>';
-            return;
+        let modelName;
+        if (modelSelect.value === 'custom-model') {
+            modelName = customModelNameInput.value.trim();
+            if (!modelName) {
+                resultDiv.innerHTML = '<span style="color: #dc3545;">⚠️ カスタムモデル名を入力してください</span>';
+                return;
+            }
+        } else {
+            modelName = modelSelect.value;
         }
         
         resultDiv.innerHTML = '<span style="color: #6c757d;">🔄 検証中...</span>';
@@ -1547,6 +1568,20 @@
                     model: modelName,
                     max_tokens: 10,
                     messages: [{ role: 'user', content: testMessage }]
+                };
+            } else if (adminConfig.apiProvider === 'gemini') {
+                // Google Gemini APIの検証
+                apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${adminConfig.apiKey}`;
+                headers = {
+                    'Content-Type': 'application/json'
+                };
+                requestBody = {
+                    contents: [{
+                        parts: [{ text: testMessage }]
+                    }],
+                    generationConfig: {
+                        maxOutputTokens: 10
+                    }
                 };
             } else {
                 resultDiv.innerHTML = '<span style="color: #dc3545;">⚠️ カスタムAPIプロバイダーではモデル検証がサポートされていません</span>';
@@ -1668,22 +1703,21 @@
         if (customUrlInput) customUrlInput.value = adminConfig.customApiUrl || '';
 
         const modelSelect = document.getElementById('modelSelect');
-        const useCustomModelCheckbox = document.getElementById('useCustomModel');
         const customModelNameInput = document.getElementById('customModelName');
         
         if (modelSelect) {
             updateModelOptions();
             
-            // カスタムモデルが使用されている場合
+            // モデル選択の設定
             if (adminConfig.useCustomModel && adminConfig.model) {
-                useCustomModelCheckbox.checked = true;
-                customModelNameInput.value = adminConfig.model;
-                toggleCustomModelInput();
+                // カスタムモデルが使用されている場合
+                modelSelect.value = 'custom-model';
+                if (customModelNameInput) customModelNameInput.value = adminConfig.model;
             } else {
-                useCustomModelCheckbox.checked = false;
+                // 既定モデルが使用されている場合
                 modelSelect.value = adminConfig.model || 'gpt-3.5-turbo';
-                toggleCustomModelInput();
             }
+            updateCustomModelVisibility();
         }
 
         const maxTokensInput = document.getElementById('maxTokens');
@@ -1703,6 +1737,9 @@
 
         const minimumSessionTimeInput = document.getElementById('minimumSessionTime');
         if (minimumSessionTimeInput) minimumSessionTimeInput.value = Math.floor((adminConfig.minimumSessionTime || 300) / 60); // 秒を分に変換
+        
+        const adminMemoInput = document.getElementById('adminMemo');
+        if (adminMemoInput) adminMemoInput.value = adminConfig.adminMemo || '';
     }
     
     // APIプロバイダーUIの更新
@@ -1768,10 +1805,24 @@
                 });
             }
             
+            // カスタムモデル表示制御
+            updateCustomModelVisibility();
+            
             // 保存されたモデルがある場合はそれを選択
             if (adminConfig.model) {
                 modelSelect.value = adminConfig.model;
             }
+        }
+    }
+    
+    // カスタムモデル入力フィールドの表示/非表示制御
+    function updateCustomModelVisibility() {
+        const modelSelect = document.getElementById('modelSelect');
+        const customModelGroup = document.getElementById('customModelGroup');
+        
+        if (modelSelect && customModelGroup) {
+            const isCustomSelected = modelSelect.value === 'custom-model';
+            customModelGroup.style.display = isCustomSelected ? 'block' : 'none';
         }
     }
 
@@ -2468,6 +2519,21 @@
                         system: systemPrompt,
                         messages: [{ role: 'user', content: userContent }]
                     };
+                } else if (adminConfig.apiProvider === 'gemini') {
+                    // Google Gemini API
+                    apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${adminConfig.model}:generateContent?key=${adminConfig.apiKey}`;
+                    headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    requestBody = {
+                        contents: [{
+                            parts: [{ text: `${systemPrompt}\n\n${userContent}` }]
+                        }],
+                        generationConfig: {
+                            maxOutputTokens: adminConfig.maxTokens || 300,
+                            temperature: adminConfig.temperature || 0.7
+                        }
+                    };
                 } else if (adminConfig.apiProvider === 'custom') {
                     if (!adminConfig.customApiUrl) {
                         throw new Error('カスタムAPI URLが設定されていません');
@@ -2505,6 +2571,8 @@
                     
                     if (adminConfig.apiProvider === 'claude') {
                         return data.content[0].text;
+                    } else if (adminConfig.apiProvider === 'gemini') {
+                        return data.candidates[0].content.parts[0].text;
                     } else {
                         return data.choices[0].message.content;
                     }
@@ -2978,10 +3046,13 @@
         document.getElementById('saveConfigBtn').addEventListener('click', saveAdminConfig);
         document.getElementById('savePromptBtn').addEventListener('click', savePromptConfig);
         document.getElementById('saveSessionConfigBtn').addEventListener('click', saveSessionConfig);
+        document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
         
-        // カスタムモデル関連のイベントリスナー
-        document.getElementById('useCustomModel').addEventListener('change', toggleCustomModelInput);
+        // モデル関連イベント
+        document.getElementById('modelSelect').addEventListener('change', updateCustomModelVisibility);
         document.getElementById('validateModelBtn').addEventListener('click', validateModel);
+        
+        // カスタムモデル関連イベント（旧コードから重複していたため削除）
         
         // シナリオ管理
         document.getElementById('addScenarioBtn').addEventListener('click', addScenario);
