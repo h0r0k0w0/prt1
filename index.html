@@ -1769,8 +1769,7 @@
                     { value: 'gpt-4o', text: 'GPT-4o' },
                     { value: 'gpt-4o-mini', text: 'GPT-4o Mini' },
                     { value: 'gpt-4-turbo-preview', text: 'GPT-4 Turbo Preview' },
-                    { value: 'o1-preview', text: 'O1 Preview' },
-                    { value: 'o1-mini', text: 'O1 Mini' }
+                    { value: 'custom-model', text: '🔧 カスタムモデル' }
                 ];
                 openaiModels.forEach(model => {
                     const option = document.createElement('option');
@@ -1784,9 +1783,25 @@
                     { value: 'claude-3-sonnet-20240229', text: 'Claude 3 Sonnet' },
                     { value: 'claude-3-opus-20240229', text: 'Claude 3 Opus' },
                     { value: 'claude-3-haiku-20240307', text: 'Claude 3 Haiku' },
-                    { value: 'claude-4-sonnet', text: 'Claude 4 Sonnet' }
+                    { value: 'claude-4-sonnet', text: 'Claude 4 Sonnet' },
+                    { value: 'custom-model', text: '🔧 カスタムモデル' }
                 ];
                 claudeModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.value;
+                    option.textContent = model.text;
+                    modelSelect.appendChild(option);
+                });
+            } else if (provider === 'gemini') {
+                const geminiModels = [
+                    { value: 'gemini-1.5-pro', text: 'Gemini 1.5 Pro' },
+                    { value: 'gemini-1.5-flash', text: 'Gemini 1.5 Flash' },
+                    { value: 'gemini-1.0-pro', text: 'Gemini 1.0 Pro' },
+                    { value: 'gemini-pro-vision', text: 'Gemini Pro Vision' },
+                    { value: 'gemini-2.0-flash-exp', text: 'Gemini 2.0 Flash (Experimental)' },
+                    { value: 'custom-model', text: '🔧 カスタムモデル' }
+                ];
+                geminiModels.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model.value;
                     option.textContent = model.text;
@@ -1795,7 +1810,7 @@
             } else {
                 // カスタムの場合は基本モデルを表示
                 const basicModels = [
-                    { value: 'custom-model', text: 'カスタムモデル' }
+                    { value: 'custom-model', text: '🔧 カスタムモデル' }
                 ];
                 basicModels.forEach(model => {
                     const option = document.createElement('option');
