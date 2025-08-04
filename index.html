@@ -841,10 +841,22 @@
                         </div>
                         <div class="form-group">
                             <label>削除する範囲</label>
-                            <div>
-                                <label><input type="radio" name="deleteScope" value="logs"> 実験ログのみ</label><br>
-                                <label><input type="radio" name="deleteScope" value="surveys"> アンケート結果のみ</label><br>
-                                <label><input type="radio" name="deleteScope" value="all" checked> 参加者データ全体</label>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #dee2e6;">
+                                <label style="display: block; padding: 8px; margin: 4px 0; background: white; border-radius: 6px; cursor: pointer; border: 2px solid #e9ecef;">
+                                    <input type="radio" name="deleteScope" value="logs" style="margin-right: 10px;"> 
+                                    <strong>🗄️ 実験ログのみ</strong>
+                                    <small style="display: block; color: #6c757d; margin-left: 25px;">チャット履歴、実験データのみを削除</small>
+                                </label>
+                                <label style="display: block; padding: 8px; margin: 4px 0; background: white; border-radius: 6px; cursor: pointer; border: 2px solid #e9ecef;">
+                                    <input type="radio" name="deleteScope" value="surveys" style="margin-right: 10px;"> 
+                                    <strong>📋 アンケート結果のみ</strong>
+                                    <small style="display: block; color: #6c757d; margin-left: 25px;">アンケート回答データのみを削除</small>
+                                </label>
+                                <label style="display: block; padding: 8px; margin: 4px 0; background: #ffebee; border-radius: 6px; cursor: pointer; border: 2px solid #ffcdd2;">
+                                    <input type="radio" name="deleteScope" value="all" checked style="margin-right: 10px;"> 
+                                    <strong>🗑️ 参加者データ全体</strong>
+                                    <small style="display: block; color: #c62828; margin-left: 25px;">参加者の全データを完全削除（危険）</small>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -952,6 +964,7 @@
                             <div id="experimentComplete" style="display: none; text-align: center;">
                                 <h3>🎉 実験完了</h3>
                                 <p>本日の実験が完了しました。ご参加いただき、ありがとうございました。</p>
+                                <button id="completeExperimentBtn" class="btn" style="margin-top: 20px; background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer;">実験を完了してメニューに戻る</button>
                             </div>
                         </div>
                     </div>
@@ -2887,6 +2900,9 @@
         document.getElementById('agentChat').style.display = 'none';
         document.getElementById('experimentComplete').style.display = 'block';
         
+        // セッションタイマーを停止
+        stopSessionTimer();
+        
         // 対話終了後は一時中断・やめるボタンを非表示
         document.getElementById('pauseExperimentBtn').style.display = 'none';
         document.getElementById('quitExperimentBtn').style.display = 'none';
@@ -3150,11 +3166,15 @@
             // 削除されたデータを再読み込み
             await loadExperimentLogs();
             await loadSurveyResults();
+            
+            // 参加者選択肢を更新
+            updateParticipantFilter();
+            
             displayFilteredLogs();
             
             // 管理画面の表示を更新
             if (currentMode === 'admin') {
-                showDataView();
+                showAdminScreen('adminLogs');
             }
             
         } catch (error) {
@@ -3342,6 +3362,9 @@
         document.getElementById('submitAnalysisBtn').addEventListener('click', submitAnalysis);
         document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
         document.getElementById('finishChatBtn').addEventListener('click', finishChat);
+        document.getElementById('completeExperimentBtn').addEventListener('click', function() {
+            selectMode('none');
+        });
         // resetExperimentBtn removed - no longer needed after experiment completion
         
         // キーボードイベント（Enterキーは改行のみ、送信ボタンで送信）
