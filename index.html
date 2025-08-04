@@ -2,6 +2,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -802,7 +803,9 @@
                     <div class="config-grid">
                         <div class="form-group">
                             <label for="deleteParticipantId">削除対象の参加者ID</label>
-                            <input type="text" id="deleteParticipantId" placeholder="例: P001">
+                            <select id="deleteParticipantId">
+                                <option value="">参加者を選択してください</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>削除する範囲</label>
@@ -830,7 +833,12 @@
             <div id="participantStart" class="screen">
                 <!-- 実験制御ボタン（実験実行中のみ表示） -->
                 <div id="experimentControls" style="display: none; text-align: center; margin-bottom: 15px;">
-                    <!-- 対話中の一時停止・やめるボタンは削除 -->
+                    <button id="pauseExperimentBtn" class="btn" style="background: #fbbf24; margin-right: 10px; display: none;">
+                        ⏸️ 一時中断する
+                    </button>
+                    <button id="quitExperimentBtn" class="btn" style="background: #dc3545; display: none;">
+                        ❌ 実験をやめて日付選択に戻る
+                    </button>
                 </div>
                 <div class="participant-interface">
                     <div class="participant-header">
@@ -1964,17 +1972,31 @@
 
     function updateParticipantFilter() {
         const filterSelect = document.getElementById('filterParticipant');
-        if (!filterSelect) return;
+        const deleteSelect = document.getElementById('deleteParticipantId');
         
         const participants = [...new Set(experimentLogs.map(log => log.participant_id))];
-        filterSelect.innerHTML = '<option value="">全ての参加者</option>';
         
-        participants.forEach(participant => {
-            const option = document.createElement('option');
-            option.value = participant;
-            option.textContent = participant;
-            filterSelect.appendChild(option);
-        });
+        // データ閲覧用フィルター
+        if (filterSelect) {
+            filterSelect.innerHTML = '<option value="">全ての参加者</option>';
+            participants.forEach(participant => {
+                const option = document.createElement('option');
+                option.value = participant;
+                option.textContent = participant;
+                filterSelect.appendChild(option);
+            });
+        }
+        
+        // 削除用ドロップダウン
+        if (deleteSelect) {
+            deleteSelect.innerHTML = '<option value="">参加者を選択してください</option>';
+            participants.forEach(participant => {
+                const option = document.createElement('option');
+                option.value = participant;
+                option.textContent = participant;
+                deleteSelect.appendChild(option);
+            });
+        }
     }
 
     function displayFilteredLogs() {
@@ -2345,6 +2367,8 @@
         
         // 実験制御ボタンを表示
         document.getElementById('experimentControls').style.display = 'block';
+        document.getElementById('pauseExperimentBtn').style.display = 'inline-block';
+        document.getElementById('quitExperimentBtn').style.display = 'inline-block';
         
         // 実験実行中はヘッダーを非表示にする
         document.querySelector('.participant-header').style.display = 'none';
@@ -2373,6 +2397,10 @@
             document.getElementById('agentChat').style.display = 'block';
             initializeChat();
         }
+        
+        // 実験中は一時中断・やめるボタンを表示
+        document.getElementById('pauseExperimentBtn').style.display = 'inline-block';
+        document.getElementById('quitExperimentBtn').style.display = 'inline-block';
     }
 
     async function submitAnalysis() {
@@ -2826,6 +2854,10 @@
         document.getElementById('progressFill').style.width = '100%';
         document.getElementById('agentChat').style.display = 'none';
         document.getElementById('experimentComplete').style.display = 'block';
+        
+        // 対話終了後は一時中断・やめるボタンを非表示
+        document.getElementById('pauseExperimentBtn').style.display = 'none';
+        document.getElementById('quitExperimentBtn').style.display = 'none';
     }
 
     // セッションタイマー関連の変数
@@ -2917,6 +2949,8 @@
         
         // 実験制御ボタンを非表示
         document.getElementById('experimentControls').style.display = 'none';
+        document.getElementById('pauseExperimentBtn').style.display = 'none';
+        document.getElementById('quitExperimentBtn').style.display = 'none';
         
         // ヘッダーを再表示
         document.querySelector('.participant-header').style.display = 'block';
@@ -2953,6 +2987,8 @@
         
         // 実験制御ボタンを非表示
         document.getElementById('experimentControls').style.display = 'none';
+        document.getElementById('pauseExperimentBtn').style.display = 'none';
+        document.getElementById('quitExperimentBtn').style.display = 'none';
         
         // ヘッダーを再表示
         document.querySelector('.participant-header').style.display = 'block';
@@ -2983,21 +3019,34 @@
         const deleteScope = document.querySelector('input[name="deleteScope"]:checked').value;
         
         if (!participantId) {
-            alert('参加者IDを入力してください。');
+            alert('削除する参加者を選択してください。');
             return;
         }
+        
+        // 削除対象の詳細情報を取得
+        const logsCount = experimentLogs.filter(log => log.participant_id === participantId).length;
+        const surveysCount = surveyResults ? surveyResults.filter(result => result.participant_id === participantId).length : 0;
         
         // 確認ダイアログ
         const scopeText = deleteScope === 'logs' ? '実験ログ' : 
                          deleteScope === 'surveys' ? 'アンケート結果' : 
                          '全データ（実験ログ・アンケート結果・参加者情報）';
         
-        const confirmed = confirm(
-            `⚠️ 危険な操作です！\n\n` +
+        let confirmMessage = `⚠️ 危険な操作です！\n\n` +
             `参加者ID: ${participantId}\n` +
-            `削除範囲: ${scopeText}\n\n` +
-            `この操作は取り消せません。本当に削除しますか？`
-        );
+            `削除範囲: ${scopeText}\n\n`;
+        
+        // 削除される具体的なデータ数を表示
+        if (deleteScope === 'logs' || deleteScope === 'all') {
+            confirmMessage += `実験ログ: ${logsCount}件\n`;
+        }
+        if (deleteScope === 'surveys' || deleteScope === 'all') {
+            confirmMessage += `アンケート結果: ${surveysCount}件\n`;
+        }
+        
+        confirmMessage += `\nこの操作は取り消せません。本当に削除しますか？`;
+        
+        const confirmed = confirm(confirmMessage);
         
         if (!confirmed) return;
         
@@ -3053,7 +3102,7 @@
             
             alert(`✅ 削除完了\n\n参加者ID: ${participantId}\n削除されたデータ: ${deletedItems.join('、')}`);
             
-            // 入力フィールドをクリア
+            // 選択フィールドをリセット
             document.getElementById('deleteParticipantId').value = '';
             
             // ログ一覧を再読み込み
@@ -3229,6 +3278,13 @@
         
         // データ削除
         document.getElementById('deleteDataBtn').addEventListener('click', deleteParticipantData);
+        
+        // 実験制御ボタン
+        document.getElementById('pauseExperimentBtn').addEventListener('click', function() {
+            switchMode('none');
+        });
+        
+        document.getElementById('quitExperimentBtn').addEventListener('click', quitExperiment);
         
         // 実験イベント
         document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
