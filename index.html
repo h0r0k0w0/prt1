@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -333,12 +334,15 @@
             border-top: 1px solid #e9ecef;
         }
 
-        .chat-input input {
+        .chat-input textarea {
             flex: 1;
             padding: 12px;
             border: 2px solid #e9ecef;
-            border-radius: 25px;
+            border-radius: 12px;
             font-size: 16px;
+            resize: vertical;
+            min-height: 60px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .chat-input button {
@@ -790,6 +794,31 @@
                     </div>
                     <button id="exportDataBtn" class="btn">📁 データをCSV出力</button>
                 </div>
+                
+                <!-- 履歴削除機能 -->
+                <div class="admin-config" style="margin-top: 30px; border-top: 2px solid #dc3545;">
+                    <h3 style="color: #dc3545;">🗑️ データ削除（危険な操作）</h3>
+                    <div class="config-grid">
+                        <div class="form-group">
+                            <label for="deleteParticipantId">削除対象の参加者ID</label>
+                            <input type="text" id="deleteParticipantId" placeholder="例: P001">
+                        </div>
+                        <div class="form-group">
+                            <label>削除する範囲</label>
+                            <div>
+                                <label><input type="radio" name="deleteScope" value="logs"> 実験ログのみ</label><br>
+                                <label><input type="radio" name="deleteScope" value="surveys"> アンケート結果のみ</label><br>
+                                <label><input type="radio" name="deleteScope" value="all" checked> 参加者データ全体</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="deleteDataBtn" class="btn" style="background: #dc3545; margin-top: 15px;">
+                        ⚠️ データを削除する
+                    </button>
+                    <p style="color: #dc3545; font-size: 12px; margin-top: 10px;">
+                        ⚠️ この操作は取り消せません。実行前に必ずバックアップを取ってください。
+                    </p>
+                </div>
 
                 <div id="experimentLogsList">
                     <div style="text-align: center; padding: 20px; color: #6c757d;">実験データを読み込み中...</div>
@@ -800,20 +829,7 @@
             <div id="participantStart" class="screen">
                 <!-- 実験制御ボタン（実験実行中のみ表示） -->
                 <div id="experimentControls" style="display: none; text-align: center; margin-bottom: 15px;">
-                    <div style="display: flex; gap: 10px; justify-content: center; align-items: flex-start;">
-                        <div style="text-align: center;">
-                            <button id="backToModeBtn" class="back-btn">⏸️ 一時中断する</button>
-                            <div style="margin-top: 5px; color: #6c757d; font-size: 12px;">
-                                （実験開始を再度押すと途中から再開できます）
-                            </div>
-                        </div>
-                        <div style="text-align: center;">
-                            <button id="quitExperimentBtn" class="back-btn" style="background: #dc3545; border-color: #dc3545;">🚪 実験をやめて日付選択に戻る</button>
-                            <div style="margin-top: 5px; color: #6c757d; font-size: 12px;">
-                                （実験データは保存されずリセットされます）
-                            </div>
-                        </div>
-                    </div>
+                    <!-- 対話中の一時停止・やめるボタンは削除 -->
                 </div>
                 <div class="participant-interface">
                     <div class="participant-header">
@@ -884,7 +900,7 @@
                                 <div class="chat-container">
                                     <div class="chat-messages" id="chatMessages"></div>
                                     <div class="chat-input">
-                                        <input type="text" id="chatInput" placeholder="メッセージを入力...">
+                                        <textarea id="chatInput" placeholder="メッセージを入力...（Enterで改行、送信ボタンで送信）" rows="3"></textarea>
                                         <button id="sendMessageBtn">送信</button>
                                     </div>
                                 </div>
@@ -2960,6 +2976,95 @@
         console.log('🚪 実験が完全に終了され、日付選択画面に戻りました');
     }
     
+    // 参加者データを削除する関数
+    async function deleteParticipantData() {
+        const participantId = document.getElementById('deleteParticipantId').value.trim();
+        const deleteScope = document.querySelector('input[name="deleteScope"]:checked').value;
+        
+        if (!participantId) {
+            alert('参加者IDを入力してください。');
+            return;
+        }
+        
+        // 確認ダイアログ
+        const scopeText = deleteScope === 'logs' ? '実験ログ' : 
+                         deleteScope === 'surveys' ? 'アンケート結果' : 
+                         '全データ（実験ログ・アンケート結果・参加者情報）';
+        
+        const confirmed = confirm(
+            `⚠️ 危険な操作です！\n\n` +
+            `参加者ID: ${participantId}\n` +
+            `削除範囲: ${scopeText}\n\n` +
+            `この操作は取り消せません。本当に削除しますか？`
+        );
+        
+        if (!confirmed) return;
+        
+        try {
+            if (!supabase) {
+                alert('Supabaseに接続されていません。データ削除はSupabase接続時のみ利用可能です。');
+                return;
+            }
+            
+            let deletedItems = [];
+            
+            if (deleteScope === 'logs' || deleteScope === 'all') {
+                // 実験ログを削除
+                const { error: logsError } = await supabase
+                    .from('experiment_logs')
+                    .delete()
+                    .eq('participant_id', participantId);
+                
+                if (logsError) throw logsError;
+                deletedItems.push('実験ログ');
+            }
+            
+            if (deleteScope === 'surveys' || deleteScope === 'all') {
+                // アンケート結果を削除
+                const { error: surveysError } = await supabase
+                    .from('survey_results')
+                    .delete()
+                    .eq('participant_id', participantId);
+                
+                if (surveysError) throw surveysError;
+                deletedItems.push('アンケート結果');
+            }
+            
+            if (deleteScope === 'all') {
+                // ユーザーセッションを削除
+                const { error: sessionsError } = await supabase
+                    .from('user_sessions')
+                    .delete()
+                    .eq('user_id', participantId);
+                
+                if (sessionsError) throw sessionsError;
+                deletedItems.push('ユーザーセッション');
+                
+                // 最後に参加者情報を削除
+                const { error: participantsError } = await supabase
+                    .from('participants')
+                    .delete()
+                    .eq('id', participantId);
+                
+                if (participantsError) throw participantsError;
+                deletedItems.push('参加者情報');
+            }
+            
+            alert(`✅ 削除完了\n\n参加者ID: ${participantId}\n削除されたデータ: ${deletedItems.join('、')}`);
+            
+            // 入力フィールドをクリア
+            document.getElementById('deleteParticipantId').value = '';
+            
+            // ログ一覧を再読み込み
+            await loadExperimentLogs();
+            displayFilteredLogs();
+            
+        } catch (error) {
+            console.error('データ削除エラー:', error);
+            alert(`❌ データ削除に失敗しました\n\nエラー: ${error.message}`);
+        }
+    }
+    
     // 実験セットアップ画面に戻る関数
     window.goBackToExperimentSetup = function() {
         const confirmed = confirm(
@@ -3122,6 +3227,9 @@
         document.getElementById('filterParticipant').addEventListener('change', displayFilteredLogs);
         document.getElementById('filterDay').addEventListener('change', displayFilteredLogs);
         
+        // データ削除
+        document.getElementById('deleteDataBtn').addEventListener('click', deleteParticipantData);
+        
         // 実験イベント
         document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
         document.getElementById('backToModeSelectBtn').addEventListener('click', () => {
@@ -3132,9 +3240,10 @@
         document.getElementById('finishChatBtn').addEventListener('click', finishChat);
         // resetExperimentBtn removed - no longer needed after experiment completion
         
-        // キーボードイベント
+        // キーボードイベント（Enterキーは改行のみ、送信ボタンで送信）
         document.getElementById('chatInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') sendMessage();
+            // Enterキーでの送信を無効化し、改行機能のみ提供
+            // Shift+Enterは自然に改行として動作
         });
         
         document.getElementById('adminPassword').addEventListener('keypress', function(e) {
