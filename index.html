@@ -30,7 +30,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f7fa;
             min-height: 100vh;
             padding: 20px;
         }
@@ -39,13 +39,13 @@
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: #2563eb;
             color: white;
             padding: 30px;
             text-align: center;
@@ -54,7 +54,7 @@
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-weight: 600;
         }
 
         .mode-selector {
@@ -72,26 +72,30 @@
         }
 
         .mode-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #374151;
             color: white;
             border: none;
-            padding: 20px 40px;
-            border-radius: 15px;
+            padding: 16px 32px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 18px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             min-width: 200px;
         }
 
         .mode-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+            background: #4b5563;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
 
         .mode-btn.participant {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            background: #059669;
+        }
+        
+        .mode-btn.participant:hover {
+            background: #047857;
         }
 
         .nav {
@@ -113,25 +117,25 @@
         }
 
         .nav-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #6b7280;
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         .nav-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            background: #9ca3af;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
 
         .nav-btn.active {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            background: #dc2626;
         }
 
         .content {
@@ -890,7 +894,6 @@
                             <div id="experimentComplete" style="display: none; text-align: center;">
                                 <h3>🎉 実験完了</h3>
                                 <p>本日の実験が完了しました。ご参加いただき、ありがとうございました。</p>
-                                <button id="resetExperimentBtn" class="btn">実験を終了してメニューに戻る</button>
                             </div>
                         </div>
                     </div>
@@ -2491,6 +2494,8 @@
             systemPrompt += '\n\n分析時の着目点:\n' + currentScenario.analysisPoints;
         }
         
+        // 会話履歴を取得して文脈を保持
+        const chatHistory = getChatHistory();
         const userContent = `シナリオ: ${currentScenario.content}\n\nユーザーの発言: ${userMessage}`;
         
         if (adminConfig.apiKey) {
@@ -2511,12 +2516,24 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
+                    
+                    // 会話履歴を含むメッセージを構築
+                    const messages = [{ role: 'system', content: systemPrompt }];
+                    
+                    // 過去の会話履歴を追加（現在のメッセージを除く）
+                    chatHistory.slice(0, -1).forEach(msg => {
+                        messages.push({
+                            role: msg.sender === 'user' ? 'user' : 'assistant',
+                            content: msg.content
+                        });
+                    });
+                    
+                    // 現在のユーザーメッセージを追加
+                    messages.push({ role: 'user', content: userContent });
+                    
                     requestBody = {
                         model: adminConfig.model,
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userContent }
-                        ],
+                        messages: messages,
                         max_tokens: adminConfig.maxTokens || 300,
                         temperature: adminConfig.temperature || 0.7
                     };
@@ -2527,12 +2544,27 @@
                         'x-api-key': adminConfig.apiKey,
                         'anthropic-version': '2023-06-01'
                     };
+                    
+                    // 会話履歴を含むメッセージを構築（Claudeはシステムプロンプトが別）
+                    const messages = [];
+                    
+                    // 過去の会話履歴を追加（現在のメッセージを除く）
+                    chatHistory.slice(0, -1).forEach(msg => {
+                        messages.push({
+                            role: msg.sender === 'user' ? 'user' : 'assistant',
+                            content: msg.content
+                        });
+                    });
+                    
+                    // 現在のユーザーメッセージを追加
+                    messages.push({ role: 'user', content: userContent });
+                    
                     requestBody = {
                         model: adminConfig.model,
                         max_tokens: adminConfig.maxTokens || 300,
                         temperature: adminConfig.temperature || 0.7,
                         system: systemPrompt,
-                        messages: [{ role: 'user', content: userContent }]
+                        messages: messages
                     };
                 } else if (adminConfig.apiProvider === 'gemini') {
                     // Google Gemini API
@@ -2559,12 +2591,24 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
+                    
+                    // 会話履歴を含むメッセージを構築
+                    const messages = [{ role: 'system', content: systemPrompt }];
+                    
+                    // 過去の会話履歴を追加（現在のメッセージを除く）
+                    chatHistory.slice(0, -1).forEach(msg => {
+                        messages.push({
+                            role: msg.sender === 'user' ? 'user' : 'assistant',
+                            content: msg.content
+                        });
+                    });
+                    
+                    // 現在のユーザーメッセージを追加
+                    messages.push({ role: 'user', content: userContent });
+                    
                     requestBody = {
                         model: adminConfig.model,
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userContent }
-                        ],
+                        messages: messages,
                         max_tokens: adminConfig.maxTokens || 300,
                         temperature: adminConfig.temperature || 0.7
                     };
@@ -3085,7 +3129,7 @@
         document.getElementById('submitAnalysisBtn').addEventListener('click', submitAnalysis);
         document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
         document.getElementById('finishChatBtn').addEventListener('click', finishChat);
-        document.getElementById('resetExperimentBtn').addEventListener('click', resetExperiment);
+        // resetExperimentBtn removed - no longer needed after experiment completion
         
         // キーボードイベント
         document.getElementById('chatInput').addEventListener('keypress', function(e) {
