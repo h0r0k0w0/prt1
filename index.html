@@ -2011,16 +2011,45 @@
     }
 
     // ログ管理
-    function updateLogsList() {
-        updateParticipantFilter();
+    async function updateLogsList() {
+        await updateParticipantFilter();
         displayFilteredLogs();
     }
 
-    function updateParticipantFilter() {
+    async function updateParticipantFilter() {
         const filterSelect = document.getElementById('filterParticipant');
         const deleteSelect = document.getElementById('deleteParticipantId');
         
-        const participants = [...new Set(experimentLogs.map(log => log.participant_id))];
+        // 複数のソースから参加者IDを収集
+        const participantSources = [];
+        
+        // 実験ログから参加者IDを取得
+        if (experimentLogs && experimentLogs.length > 0) {
+            participantSources.push(...experimentLogs.map(log => log.participant_id));
+        }
+        
+        // アンケート結果から参加者IDを取得
+        if (surveyResults && surveyResults.length > 0) {
+            participantSources.push(...surveyResults.map(result => result.participant_id));
+        }
+        
+        // Supabaseから全参加者を取得（最も確実な方法）
+        if (supabase) {
+            try {
+                const { data: participantsData, error } = await supabase
+                    .from('participants')
+                    .select('id');
+                    
+                if (!error && participantsData) {
+                    participantSources.push(...participantsData.map(p => p.id));
+                }
+            } catch (error) {
+                console.warn('参加者データ取得警告:', error);
+            }
+        }
+        
+        // 重複を除去してソート
+        const participants = [...new Set(participantSources)].filter(Boolean).sort();
         
         // データ閲覧用フィルター
         if (filterSelect) {
@@ -3169,9 +3198,15 @@
             await loadSurveyResults();
             
             // 参加者選択肢を更新
-            updateParticipantFilter();
+            await updateParticipantFilter();
             
             displayFilteredLogs();
+            
+            // アンケート結果表示も更新
+            updateParticipantSelect();
+            if (document.getElementById('surveyResults')) {
+                displaySurveyResults();
+            }
             
             // 管理画面の表示を更新
             if (currentMode === 'admin') {
