@@ -3,6 +3,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -270,6 +271,22 @@
             margin: 20px 0;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 100px;
+            max-height: 60vh;
+            overflow-y: auto;
+            resize: vertical;
+            position: relative;
+        }
+        
+        .scenario-card::after {
+            content: '⋮⋮⋮';
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            color: #adb5bd;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0.6;
         }
 
         .scenario-card h3 {
@@ -288,9 +305,24 @@
             border: 2px solid #e9ecef;
             border-radius: 15px;
             height: 400px;
+            min-height: 200px;
+            max-height: 80vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            resize: vertical;
+            position: relative;
+        }
+        
+        .chat-container::after {
+            content: '⋮⋮⋮';
+            position: absolute;
+            bottom: 2px;
+            right: 6px;
+            color: #adb5bd;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0.6;
         }
 
         .chat-messages {
@@ -833,7 +865,7 @@
             <div id="participantStart" class="screen">
                 <!-- 実験制御ボタン（実験実行中のみ表示） -->
                 <div id="experimentControls" style="display: none; text-align: center; margin-bottom: 15px;">
-                    <button id="pauseExperimentBtn" class="btn" style="background: #fbbf24; margin-right: 10px; display: none;">
+                    <button id="pauseExperimentBtn" class="btn" style="background: #fbbf24; margin-right: 10px; display: none;" title="実験を一時中断します。「実験開始」ボタンから再開できます。">
                         ⏸️ 一時中断する
                     </button>
                     <button id="quitExperimentBtn" class="btn" style="background: #dc3545; display: none;">
@@ -867,7 +899,7 @@
                             </div>
                             <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
                                 <button id="backToModeSelectBtn" class="back-btn" style="background: #6c757d; border-color: #6c757d;">← 前の画面に戻る</button>
-                                <button id="startExperimentBtn" class="btn">実験開始</button>
+                                <button id="startExperimentBtn" class="btn" title="実験を開始します。一時中断後はここから再開できます。">実験開始</button>
                             </div>
                         </div>
 
@@ -3025,7 +3057,17 @@
         
         // 削除対象の詳細情報を取得
         const logsCount = experimentLogs.filter(log => log.participant_id === participantId).length;
-        const surveysCount = surveyResults ? surveyResults.filter(result => result.participant_id === participantId).length : 0;
+        // アンケート結果データを再取得して最新データを確保
+        let surveysCount = 0;
+        if (supabase) {
+            const { data: latestSurveys } = await supabase
+                .from('survey_results')
+                .select('*')
+                .eq('participant_id', participantId);
+            surveysCount = latestSurveys ? latestSurveys.length : 0;
+        } else {
+            surveysCount = surveyResults ? surveyResults.filter(result => result.participant_id === participantId).length : 0;
+        }
         
         // 確認ダイアログ
         const scopeText = deleteScope === 'logs' ? '実験ログ' : 
@@ -3105,9 +3147,15 @@
             // 選択フィールドをリセット
             document.getElementById('deleteParticipantId').value = '';
             
-            // ログ一覧を再読み込み
+            // 削除されたデータを再読み込み
             await loadExperimentLogs();
+            await loadSurveyResults();
             displayFilteredLogs();
+            
+            // 管理画面の表示を更新
+            if (currentMode === 'admin') {
+                showDataView();
+            }
             
         } catch (error) {
             console.error('データ削除エラー:', error);
@@ -3281,7 +3329,7 @@
         
         // 実験制御ボタン
         document.getElementById('pauseExperimentBtn').addEventListener('click', function() {
-            switchMode('none');
+            selectMode('none');
         });
         
         document.getElementById('quitExperimentBtn').addEventListener('click', quitExperiment);
