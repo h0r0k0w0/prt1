@@ -3128,8 +3128,7 @@
         // イベントリスナー設定
         document.getElementById('participantBtn').addEventListener('click', () => selectMode('participant'));
         document.getElementById('adminAccessBtn').addEventListener('click', attemptAdminAccess);
-        document.getElementById('backToModeBtn').addEventListener('click', () => selectMode('none'));
-        document.getElementById('quitExperimentBtn').addEventListener('click', quitExperiment);
+        document.getElementById('backToModeSelectBtn').addEventListener('click', () => selectMode('none'));
         // APIプロバイダー変更イベント
         document.getElementById('apiProvider').addEventListener('change', updateApiProviderUI);
         
