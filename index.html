@@ -3154,8 +3154,18 @@
                     .delete()
                     .eq('participant_id', participantId);
                 
-                if (logsError) throw logsError;
-                deletedItems.push('実験ログ');
+                if (logsError) {
+                    // RLS違反やテーブル不存在の場合のエラーハンドリング
+                    if (logsError.code === '42501') {
+                        console.warn('⚠️ Supabase RLSポリシーにより実験ログの削除が制限されています');
+                        alert('⚠️ Supabaseの設定により、実験ログの削除は制限されています。\n' +
+                              'データベース管理者にRLS (Row Level Security) ポリシーの確認を依頼してください。');
+                    } else {
+                        throw logsError;
+                    }
+                } else {
+                    deletedItems.push('実験ログ');
+                }
             }
             
             if (deleteScope === 'surveys' || deleteScope === 'all') {
@@ -3165,8 +3175,25 @@
                     .delete()
                     .eq('participant_id', participantId);
                 
-                if (surveysError) throw surveysError;
-                deletedItems.push('アンケート結果');
+                if (surveysError) {
+                    // RLS (Row Level Security) ポリシー違反またはテーブル不存在エラーの処理
+                    if (surveysError.code === '42501') {
+                        console.warn('⚠️ Supabase RLSポリシーによりアンケート結果の削除が制限されています');
+                        alert('⚠️ Supabaseの設定により、アンケート結果の削除は制限されています。\n' +
+                              'データベース管理者にRLS (Row Level Security) ポリシーの確認を依頼してください。\n\n' +
+                              'エラーコード: ' + surveysError.code + '\n' +
+                              'メッセージ: ' + surveysError.message);
+                        // RLS制限の場合は処理を継続（他のデータは削除可能）
+                    } else if (surveysError.code === '42P01') {
+                        console.warn('⚠️ survey_resultsテーブルが存在しません');
+                        alert('⚠️ survey_resultsテーブルが存在しないため、アンケート結果の削除をスキップしました。');
+                    } else {
+                        // その他のエラーは例外として処理
+                        throw surveysError;
+                    }
+                } else {
+                    deletedItems.push('アンケート結果');
+                }
             }
             
             if (deleteScope === 'all') {
@@ -3176,8 +3203,16 @@
                     .delete()
                     .eq('user_id', participantId);
                 
-                if (sessionsError) throw sessionsError;
-                deletedItems.push('ユーザーセッション');
+                if (sessionsError) {
+                    if (sessionsError.code === '42501') {
+                        console.warn('⚠️ Supabase RLSポリシーによりユーザーセッションの削除が制限されています');
+                        alert('⚠️ ユーザーセッションの削除は制限されています。RLSポリシーを確認してください。');
+                    } else {
+                        throw sessionsError;
+                    }
+                } else {
+                    deletedItems.push('ユーザーセッション');
+                }
                 
                 // 最後に参加者情報を削除
                 const { error: participantsError } = await supabase
@@ -3185,11 +3220,24 @@
                     .delete()
                     .eq('id', participantId);
                 
-                if (participantsError) throw participantsError;
-                deletedItems.push('参加者情報');
+                if (participantsError) {
+                    if (participantsError.code === '42501') {
+                        console.warn('⚠️ Supabase RLSポリシーにより参加者情報の削除が制限されています');
+                        alert('⚠️ 参加者情報の削除は制限されています。RLSポリシーを確認してください。');
+                    } else {
+                        throw participantsError;
+                    }
+                } else {
+                    deletedItems.push('参加者情報');
+                }
             }
             
-            alert(`✅ 削除完了\n\n参加者ID: ${participantId}\n削除されたデータ: ${deletedItems.join('、')}`);
+            // 削除結果の表示
+            if (deletedItems.length > 0) {
+                alert(`✅ 削除完了\n\n参加者ID: ${participantId}\n削除されたデータ: ${deletedItems.join('、')}`);
+            } else {
+                alert(`⚠️ 削除処理完了\n\n参加者ID: ${participantId}\nすべてのデータがRLSポリシーにより削除制限されています。\nSupabaseの設定を確認してください。`);
+            }
             
             // 選択フィールドをリセット
             document.getElementById('deleteParticipantId').value = '';

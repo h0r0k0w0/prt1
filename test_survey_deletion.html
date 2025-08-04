@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Survey Deletion Test</title>
+</head>
+<body>
+    <script>
+    // Test script to diagnose survey deletion issues
+    console.log('Testing survey deletion functionality...');
+    
+    // Mock Supabase client for testing
+    const mockSupabase = {
+        from: (table) => ({
+            delete: () => ({
+                eq: (column, value) => {
+                    console.log(`DELETE FROM ${table} WHERE ${column} = '${value}'`);
+                    
+                    // Simulate different error scenarios
+                    if (table === 'survey_results') {
+                        // Simulate RLS policy violation
+                        return { 
+                            error: { 
+                                code: '42501', 
+                                message: 'RLS policy violation for survey_results table' 
+                            } 
+                        };
+                    }
+                    
+                    return { data: [], error: null };
+                }
+            })
+        })
+    };
+    
+    // Test deletion function
+    async function testSurveyDeletion() {
+        const participantId = 'test_participant';
+        
+        try {
+            const { error: surveysError } = await mockSupabase
+                .from('survey_results')
+                .delete()
+                .eq('participant_id', participantId);
+            
+            if (surveysError) {
+                console.error('Survey deletion error:', surveysError);
+                if (surveysError.code === '42501') {
+                    console.log('❌ RLS policy is blocking survey deletion');
+                    console.log('Solution: Need to update RLS policies in Supabase dashboard');
+                }
+                return false;
+            }
+            
+            console.log('✅ Survey deletion successful');
+            return true;
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            return false;
+        }
+    }
+    
+    testSurveyDeletion();
+    </script>
+</body>
+</html>
