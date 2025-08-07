@@ -449,7 +449,7 @@
 
         @media (max-width: 768px) {
             .content {
-                padding: 20px;
+                padding: 15px;
             }
             
             .mode-buttons {
@@ -460,6 +460,103 @@
             .mode-btn {
                 width: 100%;
                 max-width: 300px;
+            }
+            
+            /* チャット画面の改善 */
+            .chat-container {
+                min-height: 300px;
+                max-height: 60vh;
+            }
+            
+            .chat-messages {
+                min-height: 250px;
+                max-height: 50vh;
+                padding: 10px;
+            }
+            
+            .chat-input {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px 10px;
+            }
+            
+            .chat-input textarea {
+                width: 100% !important;
+                min-height: 60px;
+                max-height: 120px;
+                font-size: 16px;
+                padding: 12px;
+                border-radius: 8px;
+            }
+            
+            .chat-input button {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+                max-width: none;
+            }
+            
+            /* メッセージの改善 */
+            .message {
+                max-width: 90%;
+                font-size: 14px;
+                padding: 10px 12px;
+                margin-bottom: 8px;
+                line-height: 1.4;
+            }
+            
+            /* 自力分析画面の改善 */
+            #userAnalysis {
+                width: 100% !important;
+                min-height: 150px;
+                font-size: 16px;
+                padding: 12px;
+                border-radius: 8px;
+                line-height: 1.4;
+            }
+            
+            /* シナリオ表示の改善 */
+            .scenario-card {
+                padding: 15px;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            
+            /* ボタンの調整 */
+            .btn {
+                font-size: 16px;
+                padding: 12px 20px;
+                min-height: 44px;
+            }
+            
+            /* フォーム要素の改善 */
+            .form-group {
+                margin-bottom: 15px;
+            }
+            
+            .form-group label {
+                font-size: 14px;
+                margin-bottom: 8px;
+                display: block;
+            }
+            
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px;
+                padding: 12px;
+                border-radius: 8px;
+            }
+            
+            /* タイマー表示の調整 */
+            #sessionTimer {
+                font-size: 14px;
+                padding: 8px;
+            }
+            
+            /* プログレスバーの調整 */
+            .progress-bar {
+                margin: 15px 0;
             }
         }
     </style>
@@ -3587,7 +3684,7 @@
                 document.body.removeChild(overlay);
                 // 日付選択メニューに戻る
                 selectMode('participant');
-                resolve();
+                // resolve()を呼ばない - アンケートが必須なので実験を続行させない
             });
         });
     }
