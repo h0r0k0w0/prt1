@@ -550,47 +550,82 @@
             }
         }
         
-        /* コンパクト表示モード */
+        /* スマホ画面表示モード（旧コンパクト表示） */
         .compact-mode {
-            padding: 5px !important;
+            padding: 2px !important;
             margin: 0 !important;
             max-width: 100% !important;
+            width: 100vw !important;
             border-radius: 0 !important;
             box-shadow: none !important;
+            box-sizing: border-box !important;
         }
         
         .compact-mode .header {
-            padding: 10px !important;
-            font-size: 0.8em;
+            padding: 8px !important;
+            font-size: 0.9em;
+            margin: 0 !important;
         }
         
         .compact-mode .header h1 {
-            font-size: 1.5em !important;
+            font-size: 1.4em !important;
             margin-bottom: 5px !important;
         }
         
         .compact-mode .participant-interface {
-            padding: 5px !important;
+            padding: 2px !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
         
         .compact-mode #experimentContent {
-            padding: 8px !important;
+            padding: 5px !important;
+            margin: 0 !important;
         }
         
         .compact-mode .chat-container {
             border: 1px solid #e9ecef !important;
-            border-radius: 8px !important;
-            margin: 5px 0 !important;
+            border-radius: 6px !important;
+            margin: 3px 0 !important;
+            padding: 5px !important;
         }
         
         .compact-mode .scenario-card {
-            padding: 10px !important;
-            margin: 5px 0 !important;
+            padding: 8px !important;
+            margin: 3px 0 !important;
+            border-radius: 6px !important;
+        }
+        
+        .compact-mode .chat-input {
+            padding: 5px !important;
+        }
+        
+        .compact-mode .content {
+            padding: 8px !important;
         }
         
         body.compact-body {
-            padding: 5px !important;
+            padding: 2px !important;
+            margin: 0 !important;
             background: white;
+            overflow-x: hidden !important;
+            }
+            
+            /* 編集モード用スタイル */
+            .admin-config.editing-mode {
+                background: #e8f4fd !important;
+                border-color: #007bff !important;
+                box-shadow: 0 0 15px rgba(0, 123, 255, 0.2) !important;
+            }
+            
+            .admin-config.editing-mode h3 {
+                color: #007bff !important;
+            }
+            
+            .admin-config.editing-mode h3:before {
+                content: "✏️ 編集中 - ";
             }
             
             /* タイマー表示の調整 */
@@ -1040,7 +1075,7 @@
                 <!-- 実験制御ボタン（実験実行中のみ表示） -->
                 <div id="experimentControls" style="display: none; text-align: center; margin-bottom: 15px;">
                     <button id="toggleCompactBtn" class="btn" style="background: #17a2b8; margin-right: 10px;" title="横方向のスペースを最大化します">
-                        📱 コンパクト表示
+                        📱 スマホ画面表示
                     </button>
                     <button id="pauseExperimentBtn" class="btn" style="background: #fbbf24; margin-right: 10px; display: none;" title="実験を一時中断します。「実験開始」ボタンから再開できます。">
                         ⏸️ 一時中断する
@@ -2143,6 +2178,10 @@
         document.getElementById('addScenarioBtn').textContent = 'シナリオを更新';
         document.getElementById('cancelEditBtn').style.display = 'inline-block';
         
+        // 編集モードの視覚的フィードバック追加
+        const formContainer = document.getElementById('addScenarioBtn').closest('.admin-config');
+        formContainer.classList.add('editing-mode');
+        
         // フォーム位置までスクロール
         document.getElementById('scenarioTitle').scrollIntoView({ behavior: 'smooth' });
     }
@@ -2160,6 +2199,15 @@
         document.getElementById('scenarioPromptQuestions').value = '';
         document.getElementById('scenarioHiddenContext').value = '';
         document.getElementById('scenarioAnalysisPoints').value = '';
+        
+        // 編集モードをリセット
+        editingScenarioIndex = -1;
+        document.getElementById('addScenarioBtn').textContent = 'シナリオを追加';
+        document.getElementById('cancelEditBtn').style.display = 'none';
+        
+        // 編集モードの視覚的フィードバック削除
+        const formContainer = document.getElementById('addScenarioBtn').closest('.admin-config');
+        formContainer.classList.remove('editing-mode');
     }
 
     function updateScenarioList() {
@@ -2226,18 +2274,18 @@
         const participantAssignments = {};
         
         experimentLogs.forEach(log => {
-            if (!participantAssignments[log.participantId]) {
-                participantAssignments[log.participantId] = {
-                    participantId: log.participantId,
+            if (!participantAssignments[log.participant_id]) {
+                participantAssignments[log.participant_id] = {
+                    participantId: log.participant_id,
                     days: {}
                 };
             }
             
-            participantAssignments[log.participantId].days[log.day] = {
-                scenario: log.scenarioTitle || '不明',
-                scenarioIndex: log.scenarioIndex,
+            participantAssignments[log.participant_id].days[log.day] = {
+                scenario: log.scenario_title || '不明',
+                scenarioIndex: log.scenario_index,
                 timestamp: log.timestamp,
-                completed: log.sessionEnd !== null
+                completed: log.session_end !== null
             };
         });
         
@@ -3343,7 +3391,7 @@
         });
     }
     
-    // コンパクト表示モードの切り替え
+    // スマホ画面表示モードの切り替え
     function toggleCompactMode() {
         const body = document.body;
         const container = document.querySelector('.container');
@@ -3353,10 +3401,10 @@
             // 通常表示に戻す
             body.classList.remove('compact-body');
             container.classList.remove('compact-mode');
-            toggleBtn.innerHTML = '📱 コンパクト表示';
+            toggleBtn.innerHTML = '📱 スマホ画面表示';
             toggleBtn.title = '横方向のスペースを最大化します';
         } else {
-            // コンパクト表示にする
+            // スマホ画面表示にする
             body.classList.add('compact-body');
             container.classList.add('compact-mode');
             toggleBtn.innerHTML = '🖥️ 通常表示';
