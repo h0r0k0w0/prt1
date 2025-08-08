@@ -3155,6 +3155,7 @@ const _fallback = (typeof data === 'string') ? data : '';
 const _out = (_content || _fallback || '').toString().trim();
 if (!_out) { throw new Error('Empty response from AI'); }
 return _out;
+                }
                 } else {
                     const errorData = await response.text();
                     console.error(`APIエラー (${response.status}):`, errorData);
@@ -4545,4 +4546,5 @@ return _out;
     </script>
 </body>
 </html>
+
 
