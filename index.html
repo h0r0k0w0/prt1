@@ -3098,7 +3098,7 @@
                         ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
                             ? { max_completion_tokens: adminConfig.maxTokens || 300 }
                             : { max_tokens: adminConfig.maxTokens || 300 }),
-                        temperature: adminConfig.temperature || 0.7
+                        // temperature omitted for gpt-5
                     };
                 }
                 
@@ -3122,15 +3122,39 @@
                     } else if (adminConfig.apiProvider === 'gemini') {
                         return data.candidates[0].content.parts[0].text;
                     } else {
-                        const _choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
+
+const _choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
 const _msg = _choice && _choice.message ? _choice.message : null;
-const _content = _msg && typeof _msg.content === 'string' ? _msg.content
-               : (_choice && typeof _choice.text === 'string' ? _choice.text : null);
-const _fallback = (typeof data === 'string') ? data : null;
+
+function normalizeContent(c) {
+  if (!c) return '';
+  if (typeof c === 'string') return c;
+  if (Array.isArray(c)) {
+    return c.map(part => {
+      if (typeof part === 'string') return part;
+      if (part && typeof part.text === 'string') return part.text;
+      if (part && typeof part.content === 'string') return part.content;
+      if (part && part.type === 'text' && part.text && typeof part.text.value === 'string') return part.text.value;
+      return '';
+    }).join('\n');
+  }
+  if (typeof c.text === 'string') return c.text;
+  if (c && c.type === 'text' && c.text && typeof c.text.value === 'string') return c.text.value;
+  return '';
+}
+
+let _content = normalizeContent(_msg && _msg.content);
+if (!_content && _choice && typeof _choice.text === 'string') {
+  _content = _choice.text;
+}
+if (!_content && _msg && Array.isArray(_msg.tool_calls) && _msg.tool_calls.length > 0) {
+  _content = '(ツール呼び出しのみの応答)';
+}
+
+const _fallback = (typeof data === 'string') ? data : '';
 const _out = (_content || _fallback || '').toString().trim();
 if (!_out) { throw new Error('Empty response from AI'); }
 return _out;
-                    }
                 } else {
                     const errorData = await response.text();
                     console.error(`APIエラー (${response.status}):`, errorData);
