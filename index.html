@@ -1822,7 +1822,7 @@
                 requestBody = {
                     model: modelName,
                     messages: [{ role: 'user', content: testMessage }],
-                    ...(modelName && modelName.startsWith('gpt-5') ? { max_completion_tokens: 10 } : { max_tokens: 10 })
+                    ...(modelName && modelName.startsWith('gpt-5') ? { max_completion_tokens: 32 } : { max_tokens: 10 })
                 };
             } else if (adminConfig.apiProvider === 'claude') {
                 apiUrl = 'https://api.anthropic.com/v1/messages';
@@ -3010,7 +3010,7 @@
                       requestBody = {
                         model: adminConfig.model,
                         messages: messages,
-                        max_completion_tokens: (adminConfig.maxTokens || 300)
+                        max_completion_tokens: (adminConfig.maxTokens || 512)
                       };
                     } else {
                       
@@ -3111,7 +3111,8 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    // デバッグ用: レスポンス時間をログ出力
+                    console.log('OpenAI raw response:', data);
+// デバッグ用: レスポンス時間をログ出力
                     const requestEndTime = performance.now();
                     const responseTime = Math.round(requestEndTime - requestStartTime);
                     console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
