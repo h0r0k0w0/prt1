@@ -2886,7 +2886,7 @@
         try {
             const response = await generateAIResponse(message);
             removeLoadingMessage(loadingMessageId);
-            addMessage('ai', response);
+            addMessage('ai', (response && response.trim()) ? response : '（応答が空でした）');
         } catch (error) {
             removeLoadingMessage(loadingMessageId);
             addMessage('ai', 'AIからの応答を取得できませんでした。もう一度お試しください。');
@@ -3121,7 +3121,14 @@
                     } else if (adminConfig.apiProvider === 'gemini') {
                         return data.candidates[0].content.parts[0].text;
                     } else {
-                        return data.choices[0].message.content;
+                        const _choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
+const _msg = _choice && _choice.message ? _choice.message : null;
+const _content = _msg && typeof _msg.content === 'string' ? _msg.content
+               : (_choice && typeof _choice.text === 'string' ? _choice.text : null);
+const _fallback = (typeof data === 'string') ? data : null;
+const _out = (_content || _fallback || '').toString().trim();
+if (!_out) { throw new Error('Empty response from AI'); }
+return _out;
                     }
                 } else {
                     const errorData = await response.text();
