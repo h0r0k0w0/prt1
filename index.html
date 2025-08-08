@@ -3116,6 +3116,44 @@
                     const requestEndTime = performance.now();
                     const responseTime = Math.round(requestEndTime - requestStartTime);
                     console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
+// --- Robust extraction for OpenAI chat.completions ---
+const choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
+const msg = choice && choice.message ? choice.message : null;
+const raw = msg ? msg.content : null;
+
+function normalize(c) {
+  if (!c) return '';
+  if (typeof c === 'string') return c;
+  if (Array.isArray(c)) {
+    return c.map(p => {
+      if (typeof p === 'string') return p;
+      if (p && typeof p.text === 'string') return p.text;
+      if (p && typeof p.content === 'string') return p.content;
+      if (p && p.type === 'text' && p.text && typeof p.text.value === 'string') return p.text.value;
+      if (p && p.type === 'output_text' && typeof p.text === 'string') return p.text;
+      return '';
+    }).join('\n');
+  }
+  if (typeof c.text === 'string') return c.text;
+  if (c && c.type === 'text' && c.text && typeof c.text.value === 'string') return c.text.value;
+  if (c && c.type === 'output_text' && typeof c.text === 'string') return c.text;
+  return '';
+}
+
+let textOut = normalize(raw);
+if (!textOut && choice && typeof choice.text === 'string') {
+  textOut = choice.text;
+}
+if (!textOut && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+  textOut = '(ツール呼び出しのみの応答)';
+}
+textOut = (textOut || '').toString().trim();
+if (!textOut) {
+  console.warn('OpenAI content normalization produced empty output. Full data:', data);
+  textOut = '(応答テキストが空でした)';
+}
+return textOut;
+// --- end extraction ---
                     
                     if (adminConfig.apiProvider === 'claude') {
                         return data.content[0].text;
@@ -3155,7 +3193,6 @@ const _fallback = (typeof data === 'string') ? data : '';
 const _out = (_content || _fallback || '').toString().trim();
 if (!_out) { throw new Error('Empty response from AI'); }
 return _out;
-                }
                 } else {
                     const errorData = await response.text();
                     console.error(`APIエラー (${response.status}):`, errorData);
@@ -4546,5 +4583,4 @@ return _out;
     </script>
 </body>
 </html>
-
 
