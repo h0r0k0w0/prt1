@@ -1,13 +1,5 @@
 
 
-
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -3000,16 +2992,37 @@
                     });
                     
                     // 現在のユーザーメッセージを追加
-                    messages.push({ role: 'user', content: userContent });
+                    // messages.push({ role: 'user', content: userContent });
                     
-                    requestBody = {
+                    // requestBody = {
+                    //     model: adminConfig.model,
+                    //     messages: messages,
+                    //     ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
+                    //         ? { max_completion_tokens: adminConfig.maxTokens || 300 }
+                    //         : { max_tokens: adminConfig.maxTokens || 300 }),
+                    //     temperature: adminConfig.temperature || 0.7
+                    // };
+                  // 現在のユーザーメッセージを追加
+                    messages.push({ role: 'user', content: userContent });
+                  
+                    if (adminConfig && typeof adminConfig.model === 'string' && adminConfig.model.indexOf('gpt-5') === 0) {
+                      // GPT-5 系：max_tokensは不可、temperatureも送らない（=デフォルト1）
+                      requestBody = {
                         model: adminConfig.model,
                         messages: messages,
-                        ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
-                            ? { max_completion_tokens: adminConfig.maxTokens || 300 }
-                            : { max_tokens: adminConfig.maxTokens || 300 }),
-                        temperature: adminConfig.temperature || 0.7
-                    };
+                        max_completion_tokens: (adminConfig.maxTokens || 300)
+                      };
+                    } else {
+                      
+                      requestBody = {
+                        model: adminConfig.model,
+                        messages: messages,
+                        max_tokens: (adminConfig.maxTokens || 300),
+                        temperature: (adminConfig.temperature || 0.7)
+                      };
+                    }
+                   //
+
                 } else if (adminConfig.apiProvider === 'claude') {
                     apiUrl = 'https://api.anthropic.com/v1/messages';
                     headers = {
@@ -4500,3 +4513,4 @@
     </script>
 </body>
 </html>
+
