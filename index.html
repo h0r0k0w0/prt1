@@ -7,6 +7,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -547,6 +548,50 @@
                 padding: 12px;
                 border-radius: 8px;
             }
+        }
+        
+        /* コンパクト表示モード */
+        .compact-mode {
+            padding: 5px !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+        
+        .compact-mode .header {
+            padding: 10px !important;
+            font-size: 0.8em;
+        }
+        
+        .compact-mode .header h1 {
+            font-size: 1.5em !important;
+            margin-bottom: 5px !important;
+        }
+        
+        .compact-mode .participant-interface {
+            padding: 5px !important;
+        }
+        
+        .compact-mode #experimentContent {
+            padding: 8px !important;
+        }
+        
+        .compact-mode .chat-container {
+            border: 1px solid #e9ecef !important;
+            border-radius: 8px !important;
+            margin: 5px 0 !important;
+        }
+        
+        .compact-mode .scenario-card {
+            padding: 10px !important;
+            margin: 5px 0 !important;
+        }
+        
+        body.compact-body {
+            padding: 5px !important;
+            background: white;
+            }
             
             /* タイマー表示の調整 */
             #sessionTimer {
@@ -609,6 +654,7 @@
             <div class="nav-buttons">
                 <button id="adminConfigNav" class="nav-btn active">🔧 システム設定</button>
                 <button id="adminScenariosNav" class="nav-btn">📝 シナリオ管理</button>
+                <button id="adminAssignmentsNav" class="nav-btn">📊 割り当て状況</button>
                 <button id="adminLogsNav" class="nav-btn">📋 データ閲覧</button>
                 <button id="adminSurveysNav" class="nav-btn">アンケート</button>
 
@@ -788,10 +834,26 @@
                         <small style="color: #6c757d;">AIが分析する際に重点的に考慮すべきポイントを指定できます</small>
                     </div>
                     <button id="addScenarioBtn" class="btn">シナリオを追加</button>
+                    <button id="cancelEditBtn" class="btn" style="background: #6c757d; display: none; margin-left: 10px;">編集をキャンセル</button>
                 </div>
 
                 <div id="scenarioList">
                     <div style="text-align: center; padding: 20px; color: #6c757d;">シナリオを読み込み中...</div>
+                </div>
+            </div>
+
+            <div id="adminAssignments" class="screen">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button id="adminLogoutBtn3" class="back-btn">← ログアウト</button>
+                    <h2>📊 シナリオ割り当て状況</h2>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <p style="margin-bottom: 20px; color: #6c757d;">参加者ごとのシナリオ割り当て状況と進行状況を確認できます。</p>
+                    
+                    <div id="assignmentsList">
+                        <div style="text-align: center; padding: 20px; color: #6c757d;">割り当て情報を読み込み中...</div>
+                    </div>
                 </div>
             </div>
 
@@ -977,6 +1039,9 @@
             <div id="participantStart" class="screen">
                 <!-- 実験制御ボタン（実験実行中のみ表示） -->
                 <div id="experimentControls" style="display: none; text-align: center; margin-bottom: 15px;">
+                    <button id="toggleCompactBtn" class="btn" style="background: #17a2b8; margin-right: 10px;" title="横方向のスペースを最大化します">
+                        📱 コンパクト表示
+                    </button>
                     <button id="pauseExperimentBtn" class="btn" style="background: #fbbf24; margin-right: 10px; display: none;" title="実験を一時中断します。「実験開始」ボタンから再開できます。">
                         ⏸️ 一時中断する
                     </button>
@@ -1100,6 +1165,7 @@
     let currentDay = 1;
     let participantId = '';
     let isEditingMode = false;  // アンケート編集モードかどうかを追跡
+    let editingScenarioIndex = -1;  // 編集中のシナリオインデックス
 
     // デフォルトシナリオ
     const defaultScenarios = [
@@ -2039,7 +2105,7 @@
         }
         
         const promptQuestions = promptQuestionsText ? promptQuestionsText.split('\n').filter(q => q.trim()) : [];
-        const newScenario = {
+        const scenario = {
             title,
             content,
             promptQuestions,
@@ -2047,18 +2113,53 @@
             analysisPoints: analysisPoints || ''
         };
         
-        scenarios.push(newScenario);
+        if (editingScenarioIndex >= 0) {
+            // 編集モード
+            scenarios[editingScenarioIndex] = scenario;
+            alert('シナリオが更新されました！');
+        } else {
+            // 追加モード
+            scenarios.push(scenario);
+            alert('シナリオが追加されました！');
+        }
+        
         await saveScenarios();
         updateScenarioList();
+        clearScenarioForm();
+    }
+    
+    function editScenario(index) {
+        const scenario = scenarios[index];
         
-        // 入力フィールドをクリア
+        // フォームに既存のデータを入力
+        document.getElementById('scenarioTitle').value = scenario.title;
+        document.getElementById('scenarioContent').value = scenario.content;
+        document.getElementById('scenarioPromptQuestions').value = scenario.promptQuestions.join('\n');
+        document.getElementById('scenarioHiddenContext').value = scenario.hiddenContext || '';
+        document.getElementById('scenarioAnalysisPoints').value = scenario.analysisPoints || '';
+        
+        // 編集モードに切り替え
+        editingScenarioIndex = index;
+        document.getElementById('addScenarioBtn').textContent = 'シナリオを更新';
+        document.getElementById('cancelEditBtn').style.display = 'inline-block';
+        
+        // フォーム位置までスクロール
+        document.getElementById('scenarioTitle').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function cancelScenarioEdit() {
+        clearScenarioForm();
+        editingScenarioIndex = -1;
+        document.getElementById('addScenarioBtn').textContent = 'シナリオを追加';
+        document.getElementById('cancelEditBtn').style.display = 'none';
+    }
+    
+    function clearScenarioForm() {
         document.getElementById('scenarioTitle').value = '';
         document.getElementById('scenarioContent').value = '';
         document.getElementById('scenarioPromptQuestions').value = '';
         document.getElementById('scenarioHiddenContext').value = '';
         document.getElementById('scenarioAnalysisPoints').value = '';
-        
-        alert('シナリオが追加されました！');
     }
 
     function updateScenarioList() {
@@ -2089,10 +2190,17 @@
                 <h4 style="margin-bottom: 10px; color: #495057;">${scenario.title}</h4>
                 <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.slice(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
                 ${additionalInfo}
+                <button class="btn editBtn" data-index="${index}" style="background: #007bff; font-size: 14px; padding: 8px 16px; margin-right: 10px;">編集</button>
                 <button class="btn deleteBtn" data-index="${index}"  style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
             `;
             list.appendChild(item);
         });
+        list.querySelectorAll('.editBtn').forEach(btn => {
+          btn.addEventListener('click', e => {
+            editScenario(Number(e.currentTarget.dataset.index));
+          });
+        });
+        
         list.querySelectorAll('.deleteBtn').forEach(btn => {
           btn.addEventListener('click', e => {
             deleteScenario(Number(e.currentTarget.dataset.index));
@@ -2107,6 +2215,100 @@
         await saveScenarios();
         updateScenarioList();
         alert('シナリオを削除しました');
+    }
+    
+    // 割り当て状況表示
+    function updateAssignmentsList() {
+        const assignmentsList = document.getElementById('assignmentsList');
+        if (!assignmentsList) return;
+        
+        // 実験ログから参加者とシナリオ使用状況を分析
+        const participantAssignments = {};
+        
+        experimentLogs.forEach(log => {
+            if (!participantAssignments[log.participantId]) {
+                participantAssignments[log.participantId] = {
+                    participantId: log.participantId,
+                    days: {}
+                };
+            }
+            
+            participantAssignments[log.participantId].days[log.day] = {
+                scenario: log.scenarioTitle || '不明',
+                scenarioIndex: log.scenarioIndex,
+                timestamp: log.timestamp,
+                completed: log.sessionEnd !== null
+            };
+        });
+        
+        if (Object.keys(participantAssignments).length === 0) {
+            assignmentsList.innerHTML = '<p style="color: #6c757d; text-align: center;">まだ実験データがありません</p>';
+            return;
+        }
+        
+        let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
+        html += '<thead><tr style="background: #f8f9fa;">';
+        html += '<th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">参加者ID</th>';
+        
+        for (let day = 1; day <= 7; day++) {
+            html += `<th style="padding: 10px; text-align: center; border: 1px solid #dee2e6;">${day}日目</th>`;
+        }
+        
+        html += '</tr></thead><tbody>';
+        
+        Object.keys(participantAssignments).sort().forEach(participantId => {
+            const participant = participantAssignments[participantId];
+            html += `<tr><td style="padding: 10px; border: 1px solid #dee2e6; font-weight: bold;">${participantId}</td>`;
+            
+            for (let day = 1; day <= 7; day++) {
+                const dayData = participant.days[day];
+                let cellContent = '<span style="color: #6c757d;">未実施</span>';
+                let cellStyle = 'padding: 8px; border: 1px solid #dee2e6; text-align: center; font-size: 12px;';
+                
+                if (dayData) {
+                    const scenarioName = dayData.scenario.length > 15 ? 
+                        dayData.scenario.substring(0, 15) + '...' : 
+                        dayData.scenario;
+                    
+                    if (dayData.completed) {
+                        cellContent = `<div style="color: #28a745;">✓ ${scenarioName}</div>`;
+                        cellContent += `<small style="color: #6c757d;">${new Date(dayData.timestamp).toLocaleDateString()}</small>`;
+                        cellStyle += ' background: #d4edda;';
+                    } else {
+                        cellContent = `<div style="color: #ffc107;">⏳ ${scenarioName}</div>`;
+                        cellContent += `<small style="color: #6c757d;">実施中</small>`;
+                        cellStyle += ' background: #fff3cd;';
+                    }
+                }
+                
+                html += `<td style="${cellStyle}">${cellContent}</td>`;
+            }
+            
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        
+        // 統計情報を追加
+        const totalParticipants = Object.keys(participantAssignments).length;
+        let totalSessions = 0;
+        let completedSessions = 0;
+        
+        Object.values(participantAssignments).forEach(participant => {
+            Object.values(participant.days).forEach(day => {
+                totalSessions++;
+                if (day.completed) completedSessions++;
+            });
+        });
+        
+        html += '<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">';
+        html += '<h4 style="margin: 0 0 10px 0;">統計情報</h4>';
+        html += `<p style="margin: 5px 0;">参加者数: <strong>${totalParticipants}名</strong></p>`;
+        html += `<p style="margin: 5px 0;">総セッション数: <strong>${totalSessions}セッション</strong></p>`;
+        html += `<p style="margin: 5px 0;">完了セッション数: <strong>${completedSessions}セッション</strong> (${totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0}%)</p>`;
+        html += '</div>';
+        
+        assignmentsList.innerHTML = html;
     }
 
     // ログ管理
@@ -3141,6 +3343,27 @@
         });
     }
     
+    // コンパクト表示モードの切り替え
+    function toggleCompactMode() {
+        const body = document.body;
+        const container = document.querySelector('.container');
+        const toggleBtn = document.getElementById('toggleCompactBtn');
+        
+        if (body.classList.contains('compact-body')) {
+            // 通常表示に戻す
+            body.classList.remove('compact-body');
+            container.classList.remove('compact-mode');
+            toggleBtn.innerHTML = '📱 コンパクト表示';
+            toggleBtn.title = '横方向のスペースを最大化します';
+        } else {
+            // コンパクト表示にする
+            body.classList.add('compact-body');
+            container.classList.add('compact-mode');
+            toggleBtn.innerHTML = '🖥️ 通常表示';
+            toggleBtn.title = '通常の表示に戻します';
+        }
+    }
+    
     // 実験を完全に終了して日付選択に戻る関数
     function quitExperiment() {
         const confirmed = confirm(
@@ -3500,6 +3723,13 @@
             document.getElementById('adminScenariosNav').classList.add('active');
         });
         
+        document.getElementById('adminAssignmentsNav').addEventListener('click', () => {
+            showAdminScreen('adminAssignments');
+            updateAssignmentsList();
+            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('adminAssignmentsNav').classList.add('active');
+        });
+        
         document.getElementById('adminLogsNav').addEventListener('click', () => {
             showAdminScreen('adminLogs');
             document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -3521,6 +3751,7 @@
         
         // シナリオ管理
         document.getElementById('addScenarioBtn').addEventListener('click', addScenario);
+        document.getElementById('cancelEditBtn').addEventListener('click', cancelScenarioEdit);
         
         // データ出力
         document.getElementById('exportDataBtn').addEventListener('click', exportData);
@@ -3531,6 +3762,7 @@
         document.getElementById('deleteDataBtn').addEventListener('click', deleteParticipantData);
         
         // 実験制御ボタン
+        document.getElementById('toggleCompactBtn').addEventListener('click', toggleCompactMode);
         document.getElementById('pauseExperimentBtn').addEventListener('click', function() {
             selectMode('none');
         });
