@@ -1830,7 +1830,7 @@
                 requestBody = {
                     model: modelName,
                     messages: [{ role: 'user', content: testMessage }],
-                    max_tokens: 10
+                    ...(modelName && modelName.startsWith('gpt-5') ? { max_completion_tokens: 10 } : { max_tokens: 10 })
                 };
             } else if (adminConfig.apiProvider === 'claude') {
                 apiUrl = 'https://api.anthropic.com/v1/messages';
@@ -2039,6 +2039,7 @@
             
             if (provider === 'openai') {
                 const openaiModels = [
+                    { value: 'gpt-5', text: 'GPT-5' },
                     { value: 'gpt-3.5-turbo', text: 'GPT-3.5 Turbo' },
                     { value: 'gpt-4', text: 'GPT-4' },
                     { value: 'gpt-4o', text: 'GPT-4o' },
@@ -3004,7 +3005,9 @@
                     requestBody = {
                         model: adminConfig.model,
                         messages: messages,
-                        max_tokens: adminConfig.maxTokens || 300,
+                        ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
+                            ? { max_completion_tokens: adminConfig.maxTokens || 300 }
+                            : { max_tokens: adminConfig.maxTokens || 300 }),
                         temperature: adminConfig.temperature || 0.7
                     };
                 } else if (adminConfig.apiProvider === 'claude') {
@@ -3079,7 +3082,9 @@
                     requestBody = {
                         model: adminConfig.model,
                         messages: messages,
-                        max_tokens: adminConfig.maxTokens || 300,
+                        ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
+                            ? { max_completion_tokens: adminConfig.maxTokens || 300 }
+                            : { max_tokens: adminConfig.maxTokens || 300 }),
                         temperature: adminConfig.temperature || 0.7
                     };
                 }
