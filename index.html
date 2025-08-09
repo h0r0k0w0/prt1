@@ -1166,6 +1166,31 @@
     </div>
 
     <script type="module">
+// ---- Robust text extractor for various OpenAI content shapes ----
+function extractTextDeep(v) {
+  if (typeof v === 'string') return v;
+  if (v == null) return '';
+  if (Array.isArray(v)) {
+    return v.map(extractTextDeep).filter(Boolean).join('\n').trim();
+  }
+  if (typeof v.text === 'string') return v.text;
+  if (v.text && typeof v.text.value === 'string') return v.text.value;
+  if (v.text && typeof v.text.content === 'string') return v.text.content;
+  if (typeof v.content === 'string') return v.content;
+  if (Array.isArray(v.content)) return extractTextDeep(v.content);
+  for (const key of ['value','message','data']) {
+    const t = v[key];
+    if (typeof t === 'string') return t;
+    if (Array.isArray(t)) return extractTextDeep(t);
+    if (t && typeof t === 'object') {
+      const s = extractTextDeep(t);
+      if (s) return s;
+    }
+  }
+  return '';
+}
+// -----------------------------------------------------------------
+
     // グローバル変数
     let currentMode = 'none';
     let isAdminAuthenticated = false;
@@ -3007,11 +3032,23 @@
                   
                     if (adminConfig && typeof adminConfig.model === 'string' && adminConfig.model.indexOf('gpt-5') === 0) {
                       // GPT-5 系：max_tokensは不可、temperatureも送らない（=デフォルト1）
-                      requestBody = {
-                        model: adminConfig.model,
-                        messages: messages,
-                        max_completion_tokens: (adminConfig.maxTokens || 512)
-                      };
+                      // Build request body per model family (GPT-5 vs legacy)
+if (typeof adminConfig.model === 'string' && adminConfig.model.indexOf('gpt-5') === 0) {
+  requestBody = {
+    model: adminConfig.model,
+    messages: messages,
+    max_completion_tokens: (adminConfig.maxTokens || 512)
+    // NOTE: GPT-5: do not send temperature/top_p; defaults are enforced.
+  };
+} else {
+  requestBody = {
+    model: adminConfig.model,
+    messages: messages,
+    max_tokens: (adminConfig.maxTokens || 300),
+    temperature: (adminConfig.temperature || 0.7)
+  };
+}
+
                     } else {
                       
                       requestBody = {
@@ -3111,7 +3148,32 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    console.log('OpenAI raw response:', data);
+                    // ---- Normalize OpenAI chat.completions to plain text ----
+let aiText = '';
+try {
+  const choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
+  const msg = choice && choice.message ? choice.message : null;
+  if (msg && ('content' in msg)) {
+    aiText = extractTextDeep(msg.content);
+  }
+  if (!aiText && choice && typeof choice.text === 'string') {
+    aiText = choice.text;
+  }
+  if (!aiText && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+    aiText = '(ツール呼び出しのみの応答)';
+  }
+  aiText = (aiText || '').toString().trim();
+  if (!aiText) {
+    console.warn('OpenAI content normalization produced empty output. Full data:', data);
+    aiText = '(応答テキストが空でした)';
+  }
+} catch (e) {
+  console.warn('OpenAI content parse error:', e);
+  aiText = '(応答テキスト解析エラー)';
+}
+return aiText;
+// ---------------------------------------------------------
+console.log('OpenAI raw response:', data);
 // デバッグ用: レスポンス時間をログ出力
                     const requestEndTime = performance.now();
                     const responseTime = Math.round(requestEndTime - requestStartTime);
