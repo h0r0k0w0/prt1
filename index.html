@@ -1178,7 +1178,8 @@ function extractTextDeep(v) {
   if (v.text && typeof v.text.content === 'string') return v.text.content;
   if (typeof v.content === 'string') return v.content;
   if (Array.isArray(v.content)) return extractTextDeep(v.content);
-  for (const key of ['value','message','data']) {
+  if (typeof v.output_text === 'string') return v.output_text;
+  for (const key of ['value','message','data','output_text']) {
     const t = v[key];
     if (typeof t === 'string') return t;
     if (Array.isArray(t)) return extractTextDeep(t);
@@ -3037,8 +3038,10 @@ if (typeof adminConfig.model === 'string' && adminConfig.model.indexOf('gpt-5') 
   requestBody = {
     model: adminConfig.model,
     messages: messages,
-    max_completion_tokens: (adminConfig.maxTokens || 512)
-    // NOTE: GPT-5: do not send temperature/top_p; defaults are enforced.
+    // Force plain text output for GPT-5
+    response_format: { type: 'text' },
+    max_completion_tokens: (adminConfig.maxTokens || 1024)
+    // NOTE: Do not send temperature/top_p for GPT-5
   };
 } else {
   requestBody = {
@@ -3153,7 +3156,15 @@ let aiText = '';
 try {
   const choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
   const msg = choice && choice.message ? choice.message : null;
-  if (msg && ('content' in msg)) {
+
+  if (!aiText && choice && typeof choice.output_text === 'string') {
+    aiText = choice.output_text;
+  }
+  if (!aiText && msg && typeof msg.output_text === 'string') {
+    aiText = msg.output_text;
+  }
+
+  if (!aiText && msg && ('content' in msg)) {
     aiText = extractTextDeep(msg.content);
   }
   if (!aiText && choice && typeof choice.text === 'string') {
