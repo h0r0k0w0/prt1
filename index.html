@@ -2189,9 +2189,7 @@ function extractTextDeep(v) {
         document.getElementById('scenarioTitle').value = scenario.title;
         document.getElementById('scenarioContent').value = scenario.content;
         var __src = (scenario && scenario.promptQuestions);
-        var __pq = Array.isArray(__src) ? __src : (typeof __src === 'string' ? __src.split(/
-?
-/) : []);
+        var __pq = Array.isArray(__src) ? __src : (typeof __src === 'string' ? __src.split(/\r?\n/) : []);
         __pq = __pq.filter(function(q){ return q && q.trim(); });
         document.getElementById('scenarioPromptQuestions').value = __pq.join('
 ');
@@ -4967,5 +4965,6 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 
 </body>
 </html>
+
 
 
