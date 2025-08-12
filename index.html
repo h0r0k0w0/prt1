@@ -4655,6 +4655,235 @@ return _out;
     window.showSurvey = showSurvey;
     window.saveSurveyResult = saveSurveyResult;
     </script>
+
+<!-- === Compact & Admin Overrides (injected) === -->
+<style>
+/* コンパクト時、横枠・影・余白・角丸をすべて剥がす */
+body.compact-body .header,
+body.compact-body #modeSelector,
+body.compact-body #participantNav,
+body.compact-body #adminNav { display:none !important; }
+
+body.compact-body .container,
+body.compact-body .participant-interface,
+body.compact-body .experiment-card,
+body.compact-body .experiment-card .content,
+body.compact-body .card,
+body.compact-body [class*="card"],
+body.compact-body .section,
+body.compact-body .section .card,
+body.compact-body .panel,
+body.compact-body .wrapper {
+  width:100vw !important; max-width:100vw !important;
+  padding:0 !important; margin:0 !important;
+  border:none !important; box-shadow:none !important; border-radius:0 !important;
+}
+
+#experimentControls { position:sticky; top:0; z-index:100; background:#fff; border-bottom:1px solid #eee; padding:8px 10px; }
+body.compact-body #experimentContent { height:100dvh; display:flex; flex-direction:column; }
+body.compact-body #scenarioDisplay,
+body.compact-body #selfMentalize,
+body.compact-body #agentChat { margin:0 !important; padding:10px !important; border:none !important; }
+
+body.compact-body .chat-container { flex:1 1 auto; display:flex; flex-direction:column; gap:8px; border:none !important; margin:0 !important; }
+body.compact-body .chat-messages { flex:1 1 auto; min-height:0; max-height:none !important; overflow-y:auto; }
+body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important; }
+
+/* 管理: 編集モードの視覚シグナル */
+.admin-config.editing-mode { outline:3px dashed #ffb703; border-radius:12px; position:relative; }
+.admin-config.editing-mode::before { content:'✏️ シナリオ編集中'; position:absolute; top:-12px; left:12px;
+  background:#fffbec; color:#8a6d3b; border:1px solid #ffe8a3; border-radius:8px; padding:2px 8px; font-size:12px; }
+</style>
+
+<script>
+// ===== Compact helpers =====
+(function(){
+  function adjustCompactHeights() {
+    if (!document.body.classList.contains('compact-body')) return;
+    const content = document.getElementById('experimentContent');
+    const messages = document.getElementById('chatMessages');
+    const input = document.querySelector('.chat-input');
+    const controls = document.getElementById('experimentControls');
+    if (!content || !messages || !input) return;
+    const vh = window.innerHeight;
+    const controlsH = (controls && controls.offsetHeight) || 0;
+    const inputH = input.offsetHeight || 0;
+    const usable = vh - controlsH - inputH - 16;
+    messages.style.maxHeight = usable + 'px';
+  }
+  window.addEventListener('resize', adjustCompactHeights);
+
+  window.exitCompactMode = window.exitCompactMode || function exitCompactMode(){
+    const body = document.body;
+    const container = document.querySelector('.container');
+    if (!body.classList.contains('compact-body')) return;
+    body.classList.remove('compact-body');
+    if (container) container.classList.remove('compact-mode');
+    const toggleBtn = document.getElementById('toggleCompactBtn');
+    if (toggleBtn) { toggleBtn.innerHTML = '📱 スマホ画面表示'; toggleBtn.title = '横方向のスペースを最大化します'; }
+  };
+
+  // toggle ボタン押下後に高さ調整（既存実装の後で動く）
+  document.addEventListener('click', function(e){
+    if (e.target && e.target.id === 'toggleCompactBtn') {
+      setTimeout(adjustCompactHeights, 0);
+    }
+  }, true);
+
+  // Quit / Back / 完了 時は確実に通常表示へ
+  ['quitExperimentBtn','backToModeSelectBtn','completeExperimentBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', function(){ try{ exitCompactMode(); }catch(e){} }, true);
+    }
+  });
+
+  // Pause → Resume で compact を復帰
+  var wasCompactBeforePause = false;
+  const pauseBtn = document.getElementById('pauseExperimentBtn');
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', function(){ wasCompactBeforePause = document.body.classList.contains('compact-body'); }, true);
+  }
+  if (window.resumeSessionTimer) {
+    const origResume = window.resumeSessionTimer;
+    window.resumeSessionTimer = function(){
+      const r = origResume.apply(this, arguments);
+      if (wasCompactBeforePause && !document.body.classList.contains('compact-body')) {
+        const btn = document.getElementById('toggleCompactBtn');
+        if (btn) btn.click(); else try{ window.toggleCompactMode && window.toggleCompactMode(); }catch(_){}
+      }
+      setTimeout(adjustCompactHeights, 0);
+      return r;
+    };
+  } else {
+    const startBtn = document.getElementById('startExperimentBtn');
+    if (startBtn) {
+      startBtn.addEventListener('click', function(){
+        setTimeout(function(){
+          if (wasCompactBeforePause && !document.body.classList.contains('compact-body')) {
+            const btn = document.getElementById('toggleCompactBtn');
+            if (btn) btn.click();
+          }
+          adjustCompactHeights();
+        }, 0);
+      }, true);
+    }
+  }
+
+  // ===== Admin: シナリオ活性/不活性 + 重複対策 =====
+  // updateScenarioList の上書き
+  if (typeof window.updateScenarioList === 'function') {
+    const escapeHtml = window.escapeHtml || (s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])));
+    window.updateScenarioList = function(){
+      const list = document.getElementById('scenarioList');
+      if (!list) return;
+      list.innerHTML='';
+      if (!Array.isArray(window.scenarios) || window.scenarios.length===0){
+        list.innerHTML = '<p style="color:#6c757d; text-align: center;">シナリオがありません</p>';
+        return;
+      }
+      window.scenarios.forEach((scenario, index) => {
+        const item = document.createElement('div');
+        item.style.cssText='background:white;border:2px solid #dee2e6;border-radius:15px;padding:20px;margin-bottom:15px;';
+        const isInactive = (scenario && scenario.isActive===false);
+        const badge = isInactive
+          ? '<span style="font-size:12px;padding:2px 6px;border-radius:9999px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;">不活性（作り置き）</span>'
+          : '<span style="font-size:12px;padding:2px 6px;border-radius:9999px;background:#e7f5ff;color:#0b5ed7;border:1px solid #bee3fe;">活性（割り当て対象）</span>';
+        const title = escapeHtml((scenario && scenario.title) ? scenario.title : '(無題)');
+        const content = escapeHtml((scenario && scenario.content) ? scenario.content : '');
+        item.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div>
+              <h4 style="margin:0 0 6px;">${title}</h4>
+              ${badge}
+            </div>
+            <div>
+              <button class="btn toggleActiveBtn" data-index="${index}" style="margin-right:8px;">${isInactive ? '活性化' : '不活性化'}</button>
+              <button class="btn editBtn" data-index="${index}" style="margin-right:8px;">編集</button>
+              <button class="btn deleteBtn" data-index="${index}" style="background:#dc3545;">削除</button>
+            </div>
+          </div>
+          <div style="margin-top:10px;color:#495057;white-space:pre-wrap;">${content.slice(0,200)}${content.length>200?'...':''}</div>`;
+        list.appendChild(item);
+      });
+      list.querySelectorAll('.editBtn').forEach(btn => {
+        btn.addEventListener('click', e => { window.editScenario(Number(e.currentTarget.dataset.index)); });
+      });
+      list.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', e => { window.deleteScenario(Number(e.currentTarget.dataset.index)); });
+      });
+      list.querySelectorAll('.toggleActiveBtn').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          const i = Number(e.currentTarget.dataset.index);
+          window.scenarios[i].isActive = window.scenarios[i].isActive===false ? true : false;
+          await window.saveScenarios();
+          window.updateScenarioList();
+        });
+      });
+    };
+  }
+
+  // addScenario の上書き（isActive 追加 + 重複タイトル対策 + 編集モード視覚フィードバック）
+  if (typeof window.addScenario === 'function') {
+    const originalClear = window.clearScenarioForm || function(){};
+    window.addScenario = async function(){
+      const title = document.getElementById('scenarioTitle').value;
+      const content = document.getElementById('scenarioContent').value;
+      const promptQuestionsText = document.getElementById('scenarioPromptQuestions').value;
+      const hiddenContext = document.getElementById('scenarioHiddenContext').value;
+      const analysisPoints = document.getElementById('scenarioAnalysisPoints').value;
+      if (!title || !content) { alert('タイトルと内容を入力してください'); return; }
+      const promptQuestions = promptQuestionsText ? promptQuestionsText.split('\n').filter(q => q.trim()) : [];
+      const scenario = { title, content, promptQuestions, hiddenContext: hiddenContext||'', analysisPoints: analysisPoints||'', isActive: true };
+
+      const dupIndex = (window.scenarios||[]).findIndex((s,i)=> i!==window.editingScenarioIndex && (s.title||'').trim()===title.trim());
+      if (dupIndex>=0 && window.editingScenarioIndex<0) {
+        const overwrite = confirm('同じタイトルのシナリオがあります。上書きしますか？');
+        if (!overwrite) return;
+        window.editingScenarioIndex = dupIndex;
+      }
+
+      if (window.editingScenarioIndex >= 0) {
+        window.scenarios[window.editingScenarioIndex] = scenario;
+        alert('シナリオが更新されました！');
+      } else {
+        window.scenarios.push(scenario);
+        alert('シナリオが追加されました！');
+      }
+      await window.saveScenarios();
+      window.updateScenarioList();
+      originalClear();
+      const formContainer = document.getElementById('addScenarioBtn').closest('.admin-config');
+      if (formContainer) formContainer.classList.remove('editing-mode');
+      window.editingScenarioIndex = -1;
+      document.getElementById('addScenarioBtn').textContent = 'シナリオを追加';
+      const cancelBtn = document.getElementById('cancelEditBtn'); if (cancelBtn) cancelBtn.style.display='none';
+    };
+    // 編集モードの視覚シグナル：editScenario 側は既存コードで class を付けている前提
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function(){
+        const formContainer = document.getElementById('addScenarioBtn').closest('.admin-config');
+        if (formContainer) formContainer.classList.remove('editing-mode');
+      });
+    }
+  }
+
+  // getDeterministicScenarioIndex の上書き（活性のみ対象）
+  if (typeof window.getDeterministicScenarioIndex === 'function') {
+    window.getDeterministicScenarioIndex = function(participantId, dayNumber){
+      const actives = (window.scenarios||[]).map((s,i)=> (s && s.isActive===false) ? null : i).filter(i=>i!==null);
+      if (actives.length===0) return 0;
+      const seed = window.hashString(participantId);
+      const shuffled = window.shuffleArrayDeterministic(actives, seed);
+      if (shuffled.length>=7) return shuffled[(dayNumber-1)%7];
+      return shuffled[(dayNumber-1)%shuffled.length];
+    };
+  }
+})();
+</script>
+<!-- === /Overrides === -->
+
 </body>
 </html>
 
