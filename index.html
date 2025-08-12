@@ -4655,15 +4655,12 @@ return _out;
     window.showSurvey = showSurvey;
     window.saveSurveyResult = saveSurveyResult;
     </script>
-
 <!-- === Compact & Admin Overrides (injected) === -->
 <style>
-/* コンパクト時、横枠・影・余白・角丸をすべて剥がす */
 body.compact-body .header,
 body.compact-body #modeSelector,
 body.compact-body #participantNav,
 body.compact-body #adminNav { display:none !important; }
-
 body.compact-body .container,
 body.compact-body .participant-interface,
 body.compact-body .experiment-card,
@@ -4678,25 +4675,19 @@ body.compact-body .wrapper {
   padding:0 !important; margin:0 !important;
   border:none !important; box-shadow:none !important; border-radius:0 !important;
 }
-
 #experimentControls { position:sticky; top:0; z-index:100; background:#fff; border-bottom:1px solid #eee; padding:8px 10px; }
-body.compact-body #experimentContent { height:100dvh; display:flex; flex-direction:column; }
+body.compact-body #experimentContent { height:100dvh; display:flex; flex-direction:column; padding:0 12px; box-sizing:border-box; }
 body.compact-body #scenarioDisplay,
 body.compact-body #selfMentalize,
 body.compact-body #agentChat { margin:0 !important; padding:10px !important; border:none !important; }
-
 body.compact-body .chat-container { flex:1 1 auto; display:flex; flex-direction:column; gap:8px; border:none !important; margin:0 !important; }
 body.compact-body .chat-messages { flex:1 1 auto; min-height:0; max-height:none !important; overflow-y:auto; }
 body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important; }
-
-/* 管理: 編集モードの視覚シグナル */
 .admin-config.editing-mode { outline:3px dashed #ffb703; border-radius:12px; position:relative; }
 .admin-config.editing-mode::before { content:'✏️ シナリオ編集中'; position:absolute; top:-12px; left:12px;
   background:#fffbec; color:#8a6d3b; border:1px solid #ffe8a3; border-radius:8px; padding:2px 8px; font-size:12px; }
 </style>
-
 <script>
-// ===== Compact helpers =====
 (function(){
   function adjustCompactHeights() {
     if (!document.body.classList.contains('compact-body')) return;
@@ -4723,22 +4714,17 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
     if (toggleBtn) { toggleBtn.innerHTML = '📱 スマホ画面表示'; toggleBtn.title = '横方向のスペースを最大化します'; }
   };
 
-  // toggle ボタン押下後に高さ調整（既存実装の後で動く）
   document.addEventListener('click', function(e){
     if (e.target && e.target.id === 'toggleCompactBtn') {
       setTimeout(adjustCompactHeights, 0);
     }
   }, true);
 
-  // Quit / Back / 完了 時は確実に通常表示へ
   ['quitExperimentBtn','backToModeSelectBtn','completeExperimentBtn'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('click', function(){ try{ exitCompactMode(); }catch(e){} }, true);
-    }
+    if (el) { el.addEventListener('click', function(){ try{ exitCompactMode(); }catch(e){} }, true); }
   });
 
-  // Pause → Resume で compact を復帰
   var wasCompactBeforePause = false;
   const pauseBtn = document.getElementById('pauseExperimentBtn');
   if (pauseBtn) {
@@ -4770,8 +4756,6 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
     }
   }
 
-  // ===== Admin: シナリオ活性/不活性 + 重複対策 =====
-  // updateScenarioList の上書き
   if (typeof window.updateScenarioList === 'function') {
     const escapeHtml = window.escapeHtml || (s => (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])));
     window.updateScenarioList = function(){
@@ -4823,7 +4807,6 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
     };
   }
 
-  // addScenario の上書き（isActive 追加 + 重複タイトル対策 + 編集モード視覚フィードバック）
   if (typeof window.addScenario === 'function') {
     const originalClear = window.clearScenarioForm || function(){};
     window.addScenario = async function(){
@@ -4835,14 +4818,12 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
       if (!title || !content) { alert('タイトルと内容を入力してください'); return; }
       const promptQuestions = promptQuestionsText ? promptQuestionsText.split('\n').filter(q => q.trim()) : [];
       const scenario = { title, content, promptQuestions, hiddenContext: hiddenContext||'', analysisPoints: analysisPoints||'', isActive: true };
-
-      const dupIndex = (window.scenarios||[]).findIndex((s,i)=> i!==window.editingScenarioIndex && (s.title||'').trim()===title.trim());
+      const dupIndex = (window.scenarios||[]).findIndex((s,i)=> i!==window.editingScenarioIndex && (s.title||'').trim() === title.trim());
       if (dupIndex>=0 && window.editingScenarioIndex<0) {
         const overwrite = confirm('同じタイトルのシナリオがあります。上書きしますか？');
         if (!overwrite) return;
         window.editingScenarioIndex = dupIndex;
       }
-
       if (window.editingScenarioIndex >= 0) {
         window.scenarios[window.editingScenarioIndex] = scenario;
         alert('シナリオが更新されました！');
@@ -4859,7 +4840,6 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
       document.getElementById('addScenarioBtn').textContent = 'シナリオを追加';
       const cancelBtn = document.getElementById('cancelEditBtn'); if (cancelBtn) cancelBtn.style.display='none';
     };
-    // 編集モードの視覚シグナル：editScenario 側は既存コードで class を付けている前提
     const cancelBtn = document.getElementById('cancelEditBtn');
     if (cancelBtn) {
       cancelBtn.addEventListener('click', function(){
@@ -4869,7 +4849,6 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
     }
   }
 
-  // getDeterministicScenarioIndex の上書き（活性のみ対象）
   if (typeof window.getDeterministicScenarioIndex === 'function') {
     window.getDeterministicScenarioIndex = function(participantId, dayNumber){
       const actives = (window.scenarios||[]).map((s,i)=> (s && s.isActive===false) ? null : i).filter(i=>i!==null);
@@ -4883,6 +4862,56 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 })();
 </script>
 <!-- === /Overrides === -->
+
+<script>
+(function(){
+  function sanitizeScenarios(){
+    if (!Array.isArray(window.scenarios)) return;
+    window.scenarios = window.scenarios.map(s=>{
+      const pq = Array.isArray(s && s.promptQuestions)
+        ? s.promptQuestions
+        : (typeof (s && s.promptQuestions) === 'string'
+            ? (s.promptQuestions||'').split('\n').filter(q=>q.trim())
+            : []);
+      const ia = (s && s.isActive===false) ? false : true;
+      return Object.assign({}, s, { promptQuestions: pq, isActive: ia });
+    });
+  }
+  try { sanitizeScenarios(); } catch(e){ console.warn('scenario sanitize failed', e); }
+
+  if (typeof window.editScenario === 'function') {
+    const origEdit = window.editScenario;
+    window.editScenario = function(index){
+      try {
+        if (Array.isArray(window.scenarios)) {
+          const s = window.scenarios[index] || {};
+          if (!Array.isArray(s.promptQuestions)) {
+            if (typeof s.promptQuestions === 'string') {
+              s.promptQuestions = (s.promptQuestions||'').split('\n').filter(q=>q.trim());
+            } else {
+              s.promptQuestions = [];
+            }
+          }
+          if (typeof s.isActive !== 'boolean') s.isActive = (s && s.isActive===false) ? false : true;
+          window.scenarios[index] = s;
+        }
+      } catch(e){ console.warn('editScenario pre-fix error', e); }
+      const r = origEdit.apply(this, arguments);
+      const formContainer = document.getElementById('addScenarioBtn')?.closest('.admin-config');
+      if (formContainer) formContainer.classList.add('editing-mode');
+      const cancelBtn = document.getElementById('cancelEditBtn');
+      if (cancelBtn) cancelBtn.style.display = 'inline-block';
+      const addBtn = document.getElementById('addScenarioBtn');
+      if (addBtn) addBtn.textContent = 'シナリオを更新';
+      return r;
+    };
+  }
+
+  if (typeof window.updateScenarioList === 'function') {
+    try { window.updateScenarioList(); } catch(e){ console.warn('updateScenarioList rerender failed', e); }
+  }
+})();
+</script>
 
 </body>
 </html>
