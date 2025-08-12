@@ -262,7 +262,7 @@
 
         .scenario-card {
             background: #f8f9fa;
-            border-left: 4px solid #667eea;
+            border: 1px solid #e9ecef; /* 左右対称に */
             padding: 25px;
             margin: 20px 0;
             border-radius: 10px;
@@ -573,7 +573,7 @@
         }
         
         .compact-mode #experimentContent {
-            padding: 5px !important;
+            padding: 0 12px !important; /* 左右ガター */
             margin: 0 !important;
         }
         
@@ -2160,11 +2160,12 @@ function extractTextDeep(v) {
         
         const promptQuestions = promptQuestionsText ? promptQuestionsText.split('\n').filter(q => q.trim()) : [];
         const scenario = {
-            title,
+title,
             content,
             promptQuestions,
             hiddenContext: hiddenContext || '',
-            analysisPoints: analysisPoints || ''
+            analysisPoints: analysisPoints || '',
+            isActive: true
         };
         
         if (editingScenarioIndex >= 0) {
@@ -2188,7 +2189,12 @@ function extractTextDeep(v) {
         // フォームに既存のデータを入力
         document.getElementById('scenarioTitle').value = scenario.title;
         document.getElementById('scenarioContent').value = scenario.content;
-        document.getElementById('scenarioPromptQuestions').value = scenario.promptQuestions.join('\n');
+        const __pq = Array.isArray(scenario.promptQuestions)
+            ? scenario.promptQuestions
+            : (typeof scenario.promptQuestions === 'string' ? (scenario.promptQuestions||'').split('
+').filter(q=>q.trim()) : []);
+        document.getElementById('scenarioPromptQuestions').value = __pq.join('
+');
         document.getElementById('scenarioHiddenContext').value = scenario.hiddenContext || '';
         document.getElementById('scenarioAnalysisPoints').value = scenario.analysisPoints || '';
         
@@ -2230,15 +2236,76 @@ function extractTextDeep(v) {
     }
 
     function updateScenarioList() {
-        const list = document.getElementById('scenarioList');
-        if (!list) return;
-        
-        list.innerHTML = '';
-        
-        if (scenarios.length === 0) {
-            list.innerHTML = '<p style="color: #6c757d; text-align: center;">シナリオがありません</p>';
-            return;
+
+    const list = document.getElementById('scenarioList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!Array.isArray(scenarios) || scenarios.length === 0) {
+        list.innerHTML = '<p style="color:#6c757d; text-align:center;">シナリオがありません</p>';
+        return;
+    }
+
+    scenarios.forEach((scenario, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'background:white; border:2px solid #dee2e6; border-radius:15px; padding:20px; margin-bottom:15px;';
+
+        const isInactive = (scenario && scenario.isActive === false);
+        const badge = isInactive
+          ? '<span style="font-size:12px; padding:2px 6px; border-radius:9999px; background:#f8d7da; color:#842029; border:1px solid #f5c2c7;">不活性（作り置き）</span>'
+          : '<span style="font-size:12px; padding:2px 6px; border-radius:9999px; background:#e7f5ff; color:#0b5ed7; border:1px solid #bee3fe;">活性（割り当て対象）</span>';
+
+        const title = (scenario && scenario.title) ? scenario.title : '(無題)';
+        const content = (scenario && scenario.content) ? scenario.content : '';
+
+        // 追加情報
+        let additionalInfo = '';
+        if (scenario.hiddenContext && scenario.hiddenContext.trim()) {
+          additionalInfo += `<div style="margin-top:10px; padding:10px; background:#f8f9fa; border-radius:5px;"><strong>隠れたコンテキスト:</strong> ${scenario.hiddenContext.slice(0,100)}${scenario.hiddenContext.length>100?'...':''}</div>`;
         }
+        if (scenario.analysisPoints && scenario.analysisPoints.trim()) {
+          additionalInfo += `<div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:5px;"><strong>分析ポイント:</strong> ${scenario.analysisPoints.slice(0,100)}${scenario.analysisPoints.length>100?'...':''}</div>`;
+        }
+
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div>
+              <h4 style="margin:0 0 6px;">${title}</h4>
+              ${badge}
+            </div>
+            <div>
+              <button class="btn toggleActiveBtn" data-index="${index}" style="margin-right:8px; font-size:14px; padding:8px 16px;">${isInactive ? '活性化' : '不活性化'}</button>
+              <button class="btn editBtn" data-index="${index}" style="margin-right:8px; background:#007bff; font-size:14px; padding:8px 16px;">編集</button>
+              <button class="btn deleteBtn" data-index="${index}" style="background:#dc3545; font-size:14px; padding:8px 16px;">削除</button>
+            </div>
+          </div>
+          <p style="margin-top:10px; color:#495057; line-height:1.5;">${content.slice(0,200)}${content.length>200?'...':''}</p>
+          ${additionalInfo}
+        `;
+
+        list.appendChild(item);
+    });
+
+    list.querySelectorAll('.editBtn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        editScenario(Number(e.currentTarget.dataset.index));
+      });
+    });
+    list.querySelectorAll('.deleteBtn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        deleteScenario(Number(e.currentTarget.dataset.index));
+      });
+    });
+    list.querySelectorAll('.toggleActiveBtn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        const i = Number(e.currentTarget.dataset.index);
+        scenarios[i].isActive = scenarios[i].isActive === false ? true : false;
+        await saveScenarios();
+        updateScenarioList();
+      });
+    });
+
+}
         
         scenarios.forEach((scenario, index) => {
             const item = document.createElement('div');
