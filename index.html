@@ -547,10 +547,11 @@
             padding: 2px !important;
             margin: 0 !important;
             max-width: 100% !important;
-            width: 100vw !important;
+            width: 100% !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             box-sizing: border-box !important;
+            overflow: visible !important;
         }
         
         .compact-mode .header {
@@ -573,7 +574,8 @@
         }
         
         .compact-mode #experimentContent {
-            padding: 0 12px !important;
+            padding-left:  max(12px, env(safe-area-inset-left)) !important;
+            padding-right: max(12px, env(safe-area-inset-right)) !important;
             margin: 0 !important;
         }
         
@@ -4935,5 +4937,6 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 
 </body>
 </html>
+
 
 
