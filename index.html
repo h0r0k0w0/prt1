@@ -732,7 +732,7 @@
                     <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
                         <div class="form-group">
                             <label for="adminPassword" style="font-size: 14px;">管理者パスワード</label>
-                            <input type="password" id="adminPassword" placeholder="パスワードを入力" style="margin-bottom: 15px;">
+                            <input type="password" id="adminPassword" placeholder="パスワードを入力" style="margin-bottom: 15px;" autocomplete="new-password" data-lpignore="true">
                         </div>
                         <button id="adminAccessBtn" class="btn" style="width: 100%; font-size: 14px; padding: 10px;">
                             🔧 管理者モードにアクセス
@@ -778,11 +778,11 @@
                     <div class="config-grid">
                         <div class="form-group">
                             <label for="newAdminPassword">管理者パスワードを変更</label>
-                            <input type="password" id="newAdminPassword" placeholder="新しいパスワード">
+                            <input type="password" id="newAdminPassword" placeholder="新しいパスワード" autocomplete="new-password" data-lpignore="true">
                         </div>
                         <div class="form-group">
                             <label for="confirmAdminPassword">パスワード確認</label>
-                            <input type="password" id="confirmAdminPassword" placeholder="パスワードを再入力">
+                            <input type="password" id="confirmAdminPassword" placeholder="パスワードを再入力" autocomplete="new-password" data-lpignore="true">
                         </div>
                     </div>
                     <button id="changePasswordBtn" class="btn" style="background: #dc3545;">パスワードを変更</button>
@@ -802,7 +802,7 @@
                         </div>
                         <div class="form-group">
                             <label for="adminApiKey">API キー</label>
-                            <input type="password" id="adminApiKey" placeholder="APIキーを入力...">
+                            <input type="password" id="adminApiKey" placeholder="APIキーを入力..." autocomplete="new-password" data-lpignore="true">
                         </div>
                         <div class="form-group" id="customUrlGroup" style="display: none;">
                             <label for="customApiUrl">カスタムAPI URL</label>
@@ -4996,6 +4996,7 @@ body.compact-body .wrapper {
 
 </body>
 </html>
+
 
 
 
