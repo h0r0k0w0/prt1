@@ -611,7 +611,57 @@
             margin: 0 !important;
             background: white;
             overflow-x: hidden !important;
-            }
+        }
+                /* === Compactモードの横はみ出し・左右非対称の最小パッチ === */
+        
+        /* ビューポート外へ出さない（最後の砦） */
+        html, body { overflow-x: hidden !important; }
+        
+        /* 100vw を無効化（親の幅に合わせる） */
+        .compact-mode,
+        body.compact-body .container {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* ノッチ・ホームバーを考慮した左右ガターを常に確保 */
+        .compact-mode,
+        .compact-mode #experimentContent,
+        .compact-mode #experimentControls {
+          padding-left:  max(12px, env(safe-area-inset-left)) !important;
+          padding-right: max(12px, env(safe-area-inset-right)) !important;
+        }
+        
+        /* Bootstrap系の負マージンを殺す（左右非対称の主犯） */
+        .compact-mode .row {
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }
+        .compact-mode [class*="col-"] {
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+        
+        /* 中身のカード類も左右の余白を揃える */
+        .compact-mode .experiment-card,
+        .compact-mode .scenario-card,
+        .compact-mode .chat-container {
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* 横幅を計算でギリギリ使っている要素は100%に固定 */
+        .compact-mode .progress,
+        .compact-mode .progress-bar {
+          width: 100% !important;
+        }
+
+            
             
             /* 編集モード用スタイル */
             .admin-config.editing-mode {
@@ -4943,6 +4993,7 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 
 </body>
 </html>
+
 
 
 
