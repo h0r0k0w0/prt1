@@ -576,7 +576,11 @@
         .compact-mode #experimentContent {
             padding-left:  max(12px, env(safe-area-inset-left)) !important;
             padding-right: max(12px, env(safe-area-inset-right)) !important;
-            margin: 0 !important;
+            padding-top:   max(12px, env(safe-area-inset-top)) !important;
+            padding-bottom:max(12px, env(safe-area-inset-bottom)) !important;
+            margin: 0 auto !important;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .compact-mode .chat-container {
@@ -4937,6 +4941,7 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 
 </body>
 </html>
+
 
 
 
