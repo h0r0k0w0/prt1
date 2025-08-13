@@ -2165,6 +2165,8 @@ function extractTextDeep(v) {
             promptQuestions,
             hiddenContext: hiddenContext || '',
             analysisPoints: analysisPoints || ''
+        ,
+            isActive: true
         };
         
         if (editingScenarioIndex >= 0) {
@@ -2188,10 +2190,10 @@ function extractTextDeep(v) {
         // フォームに既存のデータを入力
         document.getElementById('scenarioTitle').value = scenario.title;
         document.getElementById('scenarioContent').value = scenario.content;
-        var __src = (scenario && scenario.promptQuestions);
-        var __pq = Array.isArray(__src) ? __src : (typeof __src === 'string' ? __src.split(/\r?\n/) : []);
-        __pq = __pq.filter(function(q){ return q && q.trim(); });
-        document.getElementById('scenarioPromptQuestions').value = __pq.join('\n');
+        var __src = (scenario && scenario.promptQuestions); var __pq = Array.isArray(__src) ? __src : (typeof __src === 'string' ? __src.split(/
+?
+/) : []); __pq = __pq.filter(function(q){return q && q.trim();}); document.getElementById('scenarioPromptQuestions').value = __pq.join('
+');
         document.getElementById('scenarioHiddenContext').value = scenario.hiddenContext || '';
         document.getElementById('scenarioAnalysisPoints').value = scenario.analysisPoints || '';
         
@@ -2258,10 +2260,12 @@ function extractTextDeep(v) {
           additionalInfo += '<div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:5px;"><strong>分析ポイント:</strong> ' +
                             scenario.analysisPoints.slice(0,100) + (scenario.analysisPoints.length>100?'...':'') + '</div>';
         }
+        var escTitle = String(title).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        var escContent = String(content).replace(/&/g,'&amp;').replace(/</g,'&lt;');
         item.innerHTML = ''
            + '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">'
            +   '<div>'
-           +     '<h4 style="margin:0 0 6px;">' + title.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</h4>'
+           +     '<h4 style="margin:0 0 6px;">' + escTitle + '</h4>'
            +     badge
            +   '</div>'
            +   '<div>'
@@ -2270,7 +2274,7 @@ function extractTextDeep(v) {
            +     '<button class="btn deleteBtn" data-index="' + index + '" style="background:#dc3545; font-size:14px; padding:8px 16px;">削除</button>'
            +   '</div>'
            + '</div>'
-           + '<p style="margin-top:10px; color:#495057; line-height:1.5;">' + content.replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,200) + (content.length>200?'...':'') + '</p>'
+           + '<p style="margin-top:10px; color:#495057; line-height:1.5;">' + escContent.slice(0,200) + (escContent.length>200?'...':'') + '</p>'
            + additionalInfo;
         list.appendChild(item);
     });
@@ -2281,11 +2285,11 @@ function extractTextDeep(v) {
       btn.addEventListener('click', function(e){ deleteScenario(Number(e.currentTarget.dataset.index)); });
     });
     list.querySelectorAll('.toggleActiveBtn').forEach(function(btn){
-      btn.addEventListener('click', async function(e){
+      btn.addEventListener('click', function(e){
         var i = Number(e.currentTarget.dataset.index);
         scenarios[i].isActive = (scenarios[i].isActive === false) ? true : false;
-        await saveScenarios();
-        updateScenarioList();
+        // saveScenarios may be async or sync; support both safely
+        try { var r = saveScenarios(); if (r && typeof r.then==='function') { r.then(function(){ updateScenarioList(); }); } else { updateScenarioList(); } } catch(err){ updateScenarioList(); }
       });
     });
 }
@@ -2797,25 +2801,16 @@ function extractTextDeep(v) {
     }
 
     function getDeterministicScenarioIndex(participantId, dayNumber) {
-        if (scenarios.length === 0) return 0;
-        
-        // 参加者IDをハッシュ化してシードを生成
-        const seed = hashString(participantId);
-        
-        // シナリオのインデックス配列を作成
-        const scenarioIndices = Array.from({length: scenarios.length}, (_, i) => i);
-        
-        // 決定的にシャッフル
-        const shuffledIndices = shuffleArrayDeterministic(scenarioIndices, seed);
-        
-        // 7日間で重複しないように選択
-        if (scenarios.length >= 7) {
-            // 7個以上のシナリオがある場合は、最初の7個を使用
-            return shuffledIndices[(dayNumber - 1) % 7];
-        } else {
-            // 7個未満の場合は、利用可能なシナリオから循環的に選択
-            return shuffledIndices[(dayNumber - 1) % scenarios.length];
-        }
+    var activeIndices = (scenarios||[]).map(function(s, i){ return (s && s.isActive===false) ? null : i; }).filter(function(i){ return i!==null; });
+    if (activeIndices.length === 0) return 0;
+    var seed = hashString(participantId);
+    var shuffled = shuffleArrayDeterministic(activeIndices, seed);
+    if (shuffled.length >= 7) {
+        return shuffled[(dayNumber - 1) % 7];
+    } else {
+        return shuffled[(dayNumber - 1) % shuffled.length];
+    }
+}
     }
 
     // 実験機能
@@ -4964,7 +4959,5 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 
 </body>
 </html>
-
-
 
 
