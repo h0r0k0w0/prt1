@@ -612,45 +612,28 @@
             background: white;
            
         }
-                /* === Compactモードの横はみ出し・左右非対称の最小パッチ === */
-        
-        
-        
-        /* 100vw を無効化（親の幅に合わせる） */
-        .compact-mode,
-        body.compact-body .container {
+        /* === コンパクト時：シナリオとチャットの横幅＆左右ガターを完全統一 === */
+        .compact-mode .scenario-card,
+        .compact-mode .chat-container,
+        .compact-mode .chat-messages,
+        .compact-mode .chat-input {
           width: 100% !important;
           max-width: 100% !important;
-          margin: 0 auto !important;
+          margin: 0 !important;
+          padding-left:  max(12px, env(safe-area-inset-left)) !important;
+          padding-right: max(12px, env(safe-area-inset-right)) !important;
           box-sizing: border-box !important;
         }
         
-        /* ノッチ・ホームバーを考慮した左右ガターを常に確保 */
-        .compact-mode,
-        .compact-mode #experimentContent,
-        .compact-mode #experimentControls {
-          padding-left:  max(12px, env(safe-area-inset-left)) !important;
-          padding-right: max(12px, env(safe-area-inset-right)) !important;
-        }
-        
-        /* Bootstrap系の負マージンを殺す（左右非対称の主犯） */
-        .compact-mode .row {
-          margin-left: 0 !important;
-          margin-right: 0 !important;
-        }
-        .compact-mode [class*="col-"] {
-          padding-left: 12pt !important;
-          padding-right: 12pt !important;
-        }
-        
-        /* 中身のカード類も左右の余白を揃える */
-        .compact-mode .experiment-card,
-        .compact-mode .scenario-card,
-        .compact-mode .chat-container,
-        .compact-mode .progress,
-        .compact-mode .progress-bar {
+        /* 入力欄と送信ボタンも100%に揃える */
+        .compact-mode .chat-input textarea,
+        .compact-mode .chat-input button {
+          width: 100% !important;
           max-width: 100% !important;
+          box-sizing: border-box !important;
         }
+
+
         
   
             
@@ -4776,13 +4759,7 @@ body.compact-body .wrapper {
   border:none !important; box-shadow:none !important; border-radius:0 !important;
 }
 #experimentControls { position:relative; z-index:100; background:#fff; border-bottom:1px solid #eee; padding:8px 10px; }
-body.compact-body #experimentContent { height:100dvh; display:flex; flex-direction:column; padding:0 12px; box-sizing:border-box; }
-body.compact-body #scenarioDisplay,
-body.compact-body #selfMentalize,
-body.compact-body #agentChat { margin:0 !important; padding:10px !important; border:none !important; }
-body.compact-body .chat-container { flex:1 1 auto; display:flex; flex-direction:column; gap:8px; border:none !important; margin:0 !important; }
-body.compact-body .chat-messages { flex:1 1 auto; min-height:0; max-height:none !important; overflow-y:auto; }
-body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important; }
+
 .admin-config.editing-mode { outline:3px dashed #ffb703; border-radius:12px; position:relative; }
 .admin-config.editing-mode::before { content:'✏️ シナリオ編集中'; position:absolute; top:-12px; left:12px;
   background:#fffbec; color:#8a6d3b; border:1px solid #ffe8a3; border-radius:8px; padding:2px 8px; font-size:12px; }
@@ -5015,6 +4992,7 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 
 </body>
 </html>
+
 
 
 
