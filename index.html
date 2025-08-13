@@ -630,7 +630,7 @@
             .progress-bar {
                 margin: 15px 0;
             }
-        }
+        
     </style>
 </head>
 
@@ -2190,10 +2190,7 @@ function extractTextDeep(v) {
         // フォームに既存のデータを入力
         document.getElementById('scenarioTitle').value = scenario.title;
         document.getElementById('scenarioContent').value = scenario.content;
-        var __src = (scenario && scenario.promptQuestions); var __pq = Array.isArray(__src) ? __src : (typeof __src === 'string' ? __src.split(/
-?
-/) : []); __pq = __pq.filter(function(q){return q && q.trim();}); document.getElementById('scenarioPromptQuestions').value = __pq.join('
-');
+        var __src = (scenario && scenario.promptQuestions); var __pq = Array.isArray(__src) ? __src : (typeof __src === 'string' ? __src.split(/\r?\n/) : []); __pq = __pq.filter(function(q){ return q && q.trim(); }); document.getElementById('scenarioPromptQuestions').value = __pq.join('\n');
         document.getElementById('scenarioHiddenContext').value = scenario.hiddenContext || '';
         document.getElementById('scenarioAnalysisPoints').value = scenario.analysisPoints || '';
         
@@ -2235,98 +2232,77 @@ function extractTextDeep(v) {
     }
 
     function updateScenarioList() {
-    var list = document.getElementById('scenarioList');
-    if (!list) return;
-    list.innerHTML = '';
-    if (!Array.isArray(scenarios) || scenarios.length === 0) {
-        list.innerHTML = '<p style="color:#6c757d; text-align:center;">シナリオがありません</p>';
-        return;
-    }
-    scenarios.forEach(function(scenario, index){
-        var item = document.createElement('div');
-        item.style.cssText = 'background:white; border:2px solid #dee2e6; border-radius:15px; padding:20px; margin-bottom:15px;';
-        var isInactive = (scenario && scenario.isActive === false);
-        var badge = isInactive
+        var list = document.getElementById('scenarioList');
+        if (!list) return;
+        list.innerHTML = '';
+
+        if (!Array.isArray(scenarios) || scenarios.length === 0) {
+            list.innerHTML = '<p style="color:#6c757d; text-align:center;">シナリオがありません</p>';
+            return;
+        }
+
+        scenarios.forEach(function(scenario, index){
+            var item = document.createElement('div');
+            item.style.cssText = 'background:white; border:2px solid #dee2e6; border-radius:15px; padding:20px; margin-bottom:15px;';
+
+            var isInactive = (scenario && scenario.isActive === false);
+            var badge = isInactive
             ? '<span style="font-size:12px; padding:2px 6px; border-radius:9999px; background:#f8d7da; color:#842029; border:1px solid #f5c2c7;">不活性（作り置き）</span>'
             : '<span style="font-size:12px; padding:2px 6px; border-radius:9999px; background:#e7f5ff; color:#0b5ed7; border:1px solid #bee3fe;">活性（割り当て対象）</span>';
-        var title = (scenario && scenario.title) ? scenario.title : '(無題)';
-        var content = (scenario && scenario.content) ? scenario.content : '';
-        var additionalInfo = '';
-        if (scenario.hiddenContext && scenario.hiddenContext.trim()) {
-          additionalInfo += '<div style="margin-top:10px; padding:10px; background:#f8f9fa; border-radius:5px;"><strong>隠れたコンテキスト:</strong> ' +
-                            scenario.hiddenContext.slice(0,100) + (scenario.hiddenContext.length>100?'...':'') + '</div>';
-        }
-        if (scenario.analysisPoints && scenario.analysisPoints.trim()) {
-          additionalInfo += '<div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:5px;"><strong>分析ポイント:</strong> ' +
-                            scenario.analysisPoints.slice(0,100) + (scenario.analysisPoints.length>100?'...':'') + '</div>';
-        }
-        var escTitle = String(title).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-        var escContent = String(content).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-        item.innerHTML = ''
-           + '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">'
-           +   '<div>'
-           +     '<h4 style="margin:0 0 6px;">' + escTitle + '</h4>'
-           +     badge
-           +   '</div>'
-           +   '<div>'
-           +     '<button class="btn toggleActiveBtn" data-index="' + index + '" style="margin-right:8px; font-size:14px; padding:8px 16px;">' + (isInactive ? '活性化' : '不活性化') + '</button>'
-           +     '<button class="btn editBtn" data-index="' + index + '" style="margin-right:8px; background:#007bff; font-size:14px; padding:8px 16px;">編集</button>'
-           +     '<button class="btn deleteBtn" data-index="' + index + '" style="background:#dc3545; font-size:14px; padding:8px 16px;">削除</button>'
-           +   '</div>'
-           + '</div>'
-           + '<p style="margin-top:10px; color:#495057; line-height:1.5;">' + escContent.slice(0,200) + (escContent.length>200?'...':'') + '</p>'
-           + additionalInfo;
-        list.appendChild(item);
-    });
-    list.querySelectorAll('.editBtn').forEach(function(btn){
-      btn.addEventListener('click', function(e){ editScenario(Number(e.currentTarget.dataset.index)); });
-    });
-    list.querySelectorAll('.deleteBtn').forEach(function(btn){
-      btn.addEventListener('click', function(e){ deleteScenario(Number(e.currentTarget.dataset.index)); });
-    });
-    list.querySelectorAll('.toggleActiveBtn').forEach(function(btn){
-      btn.addEventListener('click', function(e){
-        var i = Number(e.currentTarget.dataset.index);
-        scenarios[i].isActive = (scenarios[i].isActive === false) ? true : false;
-        // saveScenarios may be async or sync; support both safely
-        try { var r = saveScenarios(); if (r && typeof r.then==='function') { r.then(function(){ updateScenarioList(); }); } else { updateScenarioList(); } } catch(err){ updateScenarioList(); }
-      });
-    });
-}
-        scenarios.forEach((scenario, index) => {
-            const item = document.createElement('div');
-            item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
-            
-            // 隠れたコンテキストや分析ポイントの表示
-            let additionalInfo = '';
-            if (scenario.hiddenContext && scenario.hiddenContext.trim()) {
-                additionalInfo += `<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;"><strong>隠れたコンテキスト:</strong> ${scenario.hiddenContext.slice(0, 100)}${scenario.hiddenContext.length > 100 ? '...' : ''}</div>`;
-            }
-            if (scenario.analysisPoints && scenario.analysisPoints.trim()) {
-                additionalInfo += `<div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 5px;"><strong>分析ポイント:</strong> ${scenario.analysisPoints.slice(0, 100)}${scenario.analysisPoints.length > 100 ? '...' : ''}</div>`;
-            }
-            
-            item.innerHTML = `
-                <h4 style="margin-bottom: 10px; color: #495057;">${scenario.title}</h4>
-                <p style="margin-bottom: 15px; color: #6c757d; line-height: 1.5;">${scenario.content.slice(0, 200)}${scenario.content.length > 200 ? '...' : ''}</p>
-                ${additionalInfo}
-                <button class="btn editBtn" data-index="${index}" style="background: #007bff; font-size: 14px; padding: 8px 16px; margin-right: 10px;">編集</button>
-                <button class="btn deleteBtn" data-index="${index}"  style="background: #dc3545; font-size: 14px; padding: 8px 16px;">削除</button>
-            `;
+
+            var title = (scenario && scenario.title) ? scenario.title : '(無題)';
+            var content = (scenario && scenario.content) ? scenario.content : '';
+            var escTitle = String(title).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+            var escContent = String(content).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+            var html = '';
+            html += '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">';
+            html +=   '<div>';
+            html +=     '<h4 style="margin:0 0 6px;">' + escTitle + '</h4>';
+            html +=     badge;
+            html +=   '</div>';
+            html +=   '<div>';
+            html +=     '<button class="btn toggleActiveBtn" data-index="' + index + '" style="margin-right:8px; font-size:14px; padding:8px 16px;">' + (isInactive ? '活性化' : '不活性化') + '</button>';
+            html +=     '<button class="btn editBtn" data-index="' + index + '" style="margin-right:8px; background:#007bff; font-size:14px; padding:8px 16px;">編集</button>';
+            html +=     '<button class="btn deleteBtn" data-index="' + index + '" style="background:#dc3545; font-size:14px; padding:8px 16px;">削除</button>';
+            html +=   '</div>';
+            html += '</div>';
+            html += '<p style="margin-top:10px; color:#495057; line-height:1.5;">' + escContent.slice(0,200) + (escContent.length>200?'...':'') + '</p>';
+
+            item.innerHTML = html;
             list.appendChild(item);
         });
-        list.querySelectorAll('.editBtn').forEach(btn => {
-          btn.addEventListener('click', e => {
-            editScenario(Number(e.currentTarget.dataset.index));
-          });
+
+        list.querySelectorAll('.editBtn').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                editScenario(Number(e.currentTarget.dataset.index));
+            });
         });
-        
-        list.querySelectorAll('.deleteBtn').forEach(btn => {
-          btn.addEventListener('click', e => {
-            deleteScenario(Number(e.currentTarget.dataset.index));
-          });
+
+        list.querySelectorAll('.deleteBtn').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                deleteScenario(Number(e.currentTarget.dataset.index));
+            });
+        });
+
+        list.querySelectorAll('.toggleActiveBtn').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                var i = Number(e.currentTarget.dataset.index);
+                scenarios[i].isActive = (scenarios[i].isActive === false) ? true : false;
+                try {
+                    var r = saveScenarios();
+                    if (r && typeof r.then === 'function') {
+                        r.then(function(){ updateScenarioList(); });
+                    } else {
+                        updateScenarioList();
+                    }
+                } catch(_) {
+                    updateScenarioList();
+                }
+            });
         });
     }
+
 
     async function deleteScenario(index) {
         if (!confirm('このシナリオを削除しますか？')) return;
@@ -2811,7 +2787,7 @@ function extractTextDeep(v) {
         return shuffled[(dayNumber - 1) % shuffled.length];
     }
 }
-    }
+    
 
     // 実験機能
     window.startExperiment = async function startExperiment() {
