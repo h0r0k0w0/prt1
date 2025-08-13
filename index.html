@@ -623,8 +623,6 @@
           width: 100% !important;
           max-width: 100% !important;
           margin: 0 auto !important;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
           box-sizing: border-box !important;
         }
         
@@ -642,25 +640,25 @@
           margin-right: 0 !important;
         }
         .compact-mode [class*="col-"] {
-          padding-left: 0 !important;
-          padding-right: 0 !important;
+          padding-left: 12pt !important;
+          padding-right: 12pt !important;
         }
         
         /* 中身のカード類も左右の余白を揃える */
         .compact-mode .experiment-card,
         .compact-mode .scenario-card,
-        .compact-mode .chat-container {
-          margin-left: 0 !important;
-          margin-right: 0 !important;
-          box-sizing: border-box !important;
+        .compact-mode .chat-container,
+        .compact-mode .progress,
+        .compact-mode .progress-bar {
+          max-width: 100% !important;
         }
         
         /* 横幅を計算でギリギリ使っている要素は100%に固定 */
-        .compact-mode .progress,
+/*         .compact-mode .progress,
         .compact-mode .progress-bar {
           width: 100% !important;
         }
-
+ */
             
             
             /* 編集モード用スタイル */
@@ -683,11 +681,11 @@
                 font-size: 14px;
                 padding: 8px;
             }
-            
             /* プログレスバーの調整 */
             .progress-bar {
                 margin: 15px 0;
             }
+
         
     </style>
 </head>
@@ -4993,6 +4991,7 @@ body.compact-body .chat-input { padding:8px 10px !important; gap:8px !important;
 
 </body>
 </html>
+
 
 
 
