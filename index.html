@@ -640,6 +640,12 @@
           max-width: 100% !important;
           box-sizing: border-box !important;
         }
+        /* 段落のはみ出し・詰まり防止（念のため） */
+        body.compact-body .scenario-card p {
+          margin: 0 !important;
+          overflow-wrap: anywhere !important;
+          word-break: break-word !important;
+        }
 
 
         
@@ -4778,12 +4784,7 @@ body.compact-body .wrapper {
 
 
 
-/* 段落のはみ出し・詰まり防止（念のため） */
-/* body.compact-body .scenario-card p {
-  margin: 0 !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
-} */
+
 
 </style>
 <script>
@@ -5014,6 +5015,7 @@ body.compact-body .wrapper {
 
 </body>
 </html>
+
 
 
 
