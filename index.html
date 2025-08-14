@@ -701,23 +701,7 @@
             .compact-mode .scenario-card {
               padding-inline: 18px !important;
             }
-            /* === 最終パッチ：シナリオ本文が枠ギリギリにならないように === */
-            body.compact-body .scenario-card {
-              /* 左右だけを明示して上書き（inlineより確実） */
-              padding-left: 18px !important;
-              padding-right: 18px !important;
-            
-              /* 角丸外への“にじみ”防止＆幅計算の安定化 */
-              overflow: hidden !important;
-              box-sizing: border-box !important;
-            }
-            
-            /* 段落のはみ出し・詰まり防止（念のため） */
-            body.compact-body .scenario-card p {
-              margin: 0 !important;
-              overflow-wrap: anywhere !important;
-              word-break: break-word !important;
-            }
+
 
         
     </style>
@@ -4789,6 +4773,25 @@ body.compact-body .wrapper {
 .admin-config.editing-mode { outline:3px dashed #ffb703; border-radius:12px; position:relative; }
 .admin-config.editing-mode::before { content:'✏️ シナリオ編集中'; position:absolute; top:-12px; left:12px;
   background:#fffbec; color:#8a6d3b; border:1px solid #ffe8a3; border-radius:8px; padding:2px 8px; font-size:12px; }
+
+/* === 最終パッチ：シナリオ本文が枠ギリギリにならないように === */
+body.compact-body .scenario-card {
+  /* 左右だけを明示して上書き（inlineより確実） */
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+
+  /* 角丸外への“にじみ”防止＆幅計算の安定化 */
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* 段落のはみ出し・詰まり防止（念のため） */
+body.compact-body .scenario-card p {
+  margin: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
 </style>
 <script>
 (function(){
@@ -5018,6 +5021,7 @@ body.compact-body .wrapper {
 
 </body>
 </html>
+
 
 
 
