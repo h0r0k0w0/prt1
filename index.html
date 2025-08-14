@@ -696,6 +696,23 @@
             .compact-mode .scenario-card {
               padding-inline: 18px !important;
             }
+            /* === 最終パッチ：シナリオ本文が枠ギリギリにならないように === */
+            body.compact-body .scenario-card {
+              /* 左右だけを明示して上書き（inlineより確実） */
+              padding-left: 18px !important;
+              padding-right: 18px !important;
+            
+              /* 角丸外への“にじみ”防止＆幅計算の安定化 */
+              overflow: hidden !important;
+              box-sizing: border-box !important;
+            }
+            
+            /* 段落のはみ出し・詰まり防止（念のため） */
+            body.compact-body .scenario-card p {
+              margin: 0 !important;
+              overflow-wrap: anywhere !important;
+              word-break: break-word !important;
+            }
 
         
     </style>
@@ -732,7 +749,7 @@
                     <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
                         <div class="form-group">
                             <label for="adminPassword" style="font-size: 14px;">管理者パスワード</label>
-                            <input type="password" id="adminPassword" placeholder="パスワードを入力" style="margin-bottom: 15px;">
+                            <input type="password" id="adminPassword" placeholder="パスワードを入力" style="margin-bottom: 15px;" autocomplete="new-password" data-lpignore="true">
                         </div>
                         <button id="adminAccessBtn" class="btn" style="width: 100%; font-size: 14px; padding: 10px;">
                             🔧 管理者モードにアクセス
@@ -778,11 +795,11 @@
                     <div class="config-grid">
                         <div class="form-group">
                             <label for="newAdminPassword">管理者パスワードを変更</label>
-                            <input type="password" id="newAdminPassword" placeholder="新しいパスワード">
+                            <input type="password" id="newAdminPassword" placeholder="新しいパスワード" autocomplete="new-password" data-lpignore="true">
                         </div>
                         <div class="form-group">
                             <label for="confirmAdminPassword">パスワード確認</label>
-                            <input type="password" id="confirmAdminPassword" placeholder="パスワードを再入力">
+                            <input type="password" id="confirmAdminPassword" placeholder="パスワードを再入力" autocomplete="new-password" data-lpignore="true">
                         </div>
                     </div>
                     <button id="changePasswordBtn" class="btn" style="background: #dc3545;">パスワードを変更</button>
@@ -802,7 +819,7 @@
                         </div>
                         <div class="form-group">
                             <label for="adminApiKey">API キー</label>
-                            <input type="password" id="adminApiKey" placeholder="APIキーを入力...">
+                            <input type="password" id="adminApiKey" placeholder="APIキーを入力..." autocomplete="new-password" data-lpignore="true">
                         </div>
                         <div class="form-group" id="customUrlGroup" style="display: none;">
                             <label for="customApiUrl">カスタムAPI URL</label>
@@ -4996,6 +5013,8 @@ body.compact-body .wrapper {
 
 </body>
 </html>
+
+
 
 
 
