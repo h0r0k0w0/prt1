@@ -601,9 +601,10 @@
 /*           重要な可能性の一つ、文字の余白、でもボックスサイズも怪しい,消しても変わらんかも、paddigでもかわらん
         もしかしてマージンのmargin 8px 0だったんだけど、これ2px?その後GPTが12とか言い出した0にしたくせに
           下のやつが効いてるで結局正解だったっぽい、GPTから否定されたが。ただ下の消したらスマホ表示自体が役割を成さなくなった
-          従って下の設定の一部が重要だったと推測。*/
+          従って下の設定の一部が重要だったと推測。、ここいじればレイアウト自体は変わる。マージンは多分外枠に対する距離
+          ワイルドカード以外残してもいいかも*/
             width:100% !important; max-width:100% !important;
-            margin: 8px 12px !important;
+            margin: 0px !important;
             
             box-shadow: none !important;
 
@@ -4786,18 +4787,18 @@ return _out;
   padding:0 !important; margin:0 !important;
   border:none !important; box-shadow:none !important; border-radius:0 !important;
 }
-/* .compact-mode .experiment-card, */
-/* .compact-mode .experiment-card .content, */
-/* .compact-mode .card,
-.compact-mode [class*="card"],
+.compact-mode .experiment-card,
+.compact-mode .experiment-card .content,
+.compact-mode .card,
+/* .compact-mode [class*="card"], */
 .compact-mode .section,
 .compact-mode .section .card,
-.compact-mode .panel, */
-/* .compact-mode .wrapper {
+.compact-mode .panel,
+.compact-mode .wrapper {
   width:100% !important; max-width:100% !important;
   padding:0 !important; margin:0 !important;
   border:none !important; box-shadow:none !important; border-radius:0 !important;
-} */
+}
 #experimentControls { position:relative; z-index:100; background:#fff; border-bottom:1px solid #eee; padding:8px 10px; }
 
 .admin-config.editing-mode { outline:3px dashed #ffb703; border-radius:12px; position:relative; }
@@ -5037,6 +5038,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
