@@ -4790,7 +4790,7 @@ return _out;
 .compact-mode .experiment-card,
 .compact-mode .experiment-card .content,
 .compact-mode .card, 
-.compact-mode [class*="card"],
+/* .compact-mode [class*="card"], */
 /* .compact-mode .card:not(.scenario-card), */
 .compact-mode .section,
 .compact-mode .section .card,
@@ -4802,7 +4802,14 @@ return _out;
 }
 
 
-.compact-mode .content { padding:0 !important; }
+/* 必要に応じて追加 */
+.compact-mode .content,
+.compact-mode .wrapper,
+.compact-mode body {
+  padding: 0 !important; 
+  margin: 0 !important;
+  background: white !important;
+}
   
 
   
@@ -5053,6 +5060,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
