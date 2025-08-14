@@ -546,10 +546,16 @@
                 border-radius: 8px;
             }
         }
-        
+
+
+                /* bodyの余白を消して灰色背景を無くす、GEMINIより */
+        body.compact-body {
+            padding: 0 !important;
+            background: white !important; /* 念のため背景も白に */
+        }
         /* スマホ画面表示モード（旧コンパクト表示） */
         .compact-mode {
-            padding: 2px !important;
+            padding: 0px !important;
             margin: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
@@ -3681,13 +3687,13 @@ return _out;
         
         if (container.classList.contains('compact-mode')) {
             // 通常表示に戻す
-            // body.classList.remove('compact-body');
+            body.classList.remove('compact-body');
             container.classList.remove('compact-mode');
             toggleBtn.innerHTML = '📱 スマホ画面表示';
             toggleBtn.title = '横方向のスペースを最大化します';
         } else {
-            // スマホ画面表示にする
-            // body.classList.add('compact-body');
+            // スマホ画面表示にする、ボディに関してGemini案で修正、背景灰色に影響してた可能性あり。
+            body.classList.add('compact-body');
             container.classList.add('compact-mode');
             toggleBtn.innerHTML = '🖥️ 通常表示';
             toggleBtn.title = '通常の表示に戻します';
@@ -5062,6 +5068,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
