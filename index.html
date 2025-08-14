@@ -598,14 +598,16 @@
         .compact-mode .scenario-card {
             border: 1px solid #e9ecef !important;
             padding: 25px !important;
-/*           重要な可能性の一つ、文字の余白、でもボックスサイズも怪しい,消しても変わらんかも */
-            margin: 8px 0 !important;
+/*           重要な可能性の一つ、文字の余白、でもボックスサイズも怪しい,消しても変わらんかも、paddigでもかわらん
+        もしかしてマージンのmargin 8px 0だったんだけど、これ2px?  */
+            margin: 8px 2px !important;
             
             box-shadow: none !important;
 
 /*             box-sizing: border-box !important; */
 
             overflow: hidden !important;
+            
         }
         
         .compact-mode .chat-input {
@@ -632,10 +634,11 @@
           margin: 0 !important;
 
           box-sizing: border-box !important;
+          justify-content: flex-end !important; /* ← この行を追加 */
         }
         
         /* 入力欄と送信ボタンも100%に揃える、しかし酷かったのでclaudeの仰せに合わせて修正 */
-        .compact-mode .chat-input textarea,{
+        .compact-mode .chat-input textarea {
           width: 100% !important;
           max-width: 100% !important;
           box-sizing: border-box !important;
@@ -648,6 +651,8 @@
           min-width: 60px !important;
           flex-shrink: 0 !important;
           box-sizing: border-box !important;
+          margin-left: auto !important; /* ← この行を追加 */
+          
         }
         /* 段落のはみ出し・詰まり防止（念のため）、比べるとない方がきれい、paddingで余白修正しようか */
 /*         body.compact-body .scenario-card p {
@@ -5024,6 +5029,7 @@ body.compact-body .wrapper {
 
 </body>
 </html>
+
 
 
 
