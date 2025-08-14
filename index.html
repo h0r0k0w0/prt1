@@ -4791,7 +4791,7 @@ return _out;
 .compact-mode .experiment-card .content,
 .compact-mode .card,
 /* .compact-mode [class*="card"], */
-.compact-mode .card:not(.scenario-card),
+/* .compact-mode .card:not(.scenario-card), */
 .compact-mode .section,
 .compact-mode .section .card,
 .compact-mode .panel,
@@ -4800,6 +4800,16 @@ return _out;
   padding:0 !important; margin:0 !important;
   border:none !important; box-shadow:none !important; border-radius:0 !important;
 }
+
+.compact-mode #experimentControls {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+  
 #experimentControls { position:relative; z-index:100; background:#fff; border-bottom:1px solid #eee; padding:8px 10px; }
 
 .admin-config.editing-mode { outline:3px dashed #ffb703; border-radius:12px; position:relative; }
@@ -5039,6 +5049,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
