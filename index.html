@@ -602,7 +602,7 @@
         もしかしてマージンのmargin 8px 0だったんだけど、これ2px?その後GPTが12とか言い出した0にしたくせに
           下のやつが効いてるで結局正解だったっぽい、GPTから否定されたが。ただ下の消したらスマホ表示自体が役割を成さなくなった
           従って下の設定の一部が重要だったと推測。、ここいじればレイアウト自体は変わる。マージンは多分外枠に対する距離
-          ワイルドカード以外残してもいいかも*/
+          ワイルドカード以外残してもいいかもっていうかシナリオカードだけ除外*/
             width:100% !important; max-width:100% !important;
             margin: 0px !important;
             
@@ -4791,6 +4791,7 @@ return _out;
 .compact-mode .experiment-card .content,
 .compact-mode .card,
 /* .compact-mode [class*="card"], */
+.compact-mode .card:not(.scenario-card),
 .compact-mode .section,
 .compact-mode .section .card,
 .compact-mode .panel,
@@ -5038,6 +5039,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
