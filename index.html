@@ -597,7 +597,7 @@
         
         .compact-mode .scenario-card {
             border: 1px solid #e9ecef !important;
-            padding: 18px !important;
+            padding: 22px !important;
             margin: 8px 0 !important;
             
             box-shadow: none !important;
@@ -633,14 +633,22 @@
           box-sizing: border-box !important;
         }
         
-        /* 入力欄と送信ボタンも100%に揃える */
-        .compact-mode .chat-input textarea,
-        .compact-mode .chat-input button {
+        /* 入力欄と送信ボタンも100%に揃える、しかし酷かったのでclaudeの仰せに合わせて修正 */
+        .compact-mode .chat-input textarea,{
           width: 100% !important;
           max-width: 100% !important;
           box-sizing: border-box !important;
+          flex: 1 !important;
         }
-        /* 段落のはみ出し・詰まり防止（念のため） */
+
+        .compact-mode .chat-input button {
+          width: auto !important;
+          max-width: 80px !important;
+          min-width: 60px !important;
+          flex-shrink: 0 !important;
+          box-sizing: border-box !important;
+        }
+        /* 段落のはみ出し・詰まり防止（念のため）、比べるとない方がきれい、paddingで余白修正しようか */
 /*         body.compact-body .scenario-card p {
           margin: 0 !important;
           overflow-wrap: anywhere !important;
@@ -5015,6 +5023,7 @@ body.compact-body .wrapper {
 
 </body>
 </html>
+
 
 
 
