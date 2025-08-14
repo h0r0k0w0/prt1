@@ -618,7 +618,7 @@
             padding: 8px !important;
         }
         
-        body.compact-body {
+        .compact-mode {
             padding: 2px !important;
             margin: 0 !important;
             background: white;
@@ -655,7 +655,7 @@
           
         }
         /* 段落のはみ出し・詰まり防止（念のため）、比べるとない方がきれい、paddingで余白修正しようか */
-/*         body.compact-body .scenario-card p {
+/*         .compact-mode .scenario-card p {
           margin: 0 !important;
           overflow-wrap: anywhere !important;
           word-break: break-word !important;
@@ -692,7 +692,7 @@
             }
       /* コンパクト時は container を切らない＆端まで使う */
             .compact-mode .container,
-            body.compact-body .container {
+            .compact-mode .container {
               width: 100% !important;
               max-width: 100% !important;
               margin: 0 !important;
@@ -3674,15 +3674,15 @@ return _out;
         const container = document.querySelector('.container');
         const toggleBtn = document.getElementById('toggleCompactBtn');
         
-        if (body.classList.contains('compact-body')) {
+        if (container.classList.contains('compact-mode')) {
             // 通常表示に戻す
-            body.classList.remove('compact-body');
+            // body.classList.remove('compact-body');
             container.classList.remove('compact-mode');
             toggleBtn.innerHTML = '📱 スマホ画面表示';
             toggleBtn.title = '横方向のスペースを最大化します';
         } else {
             // スマホ画面表示にする
-            body.classList.add('compact-body');
+            // body.classList.add('compact-body');
             container.classList.add('compact-mode');
             toggleBtn.innerHTML = '🖥️ 通常表示';
             toggleBtn.title = '通常の表示に戻します';
@@ -4772,20 +4772,20 @@ return _out;
     </script>
 <!-- === Compact & Admin Overrides (injected) === -->
 <style>
-body.compact-body .header,
-body.compact-body #modeSelector,
-body.compact-body #participantNav,
-body.compact-body #adminNav { display:none !important; }
-body.compact-body .container,
-body.compact-body .participant-interface,
-body.compact-body .experiment-card,
-body.compact-body .experiment-card .content,
-body.compact-body .card,
-body.compact-body [class*="card"],
-body.compact-body .section,
-body.compact-body .section .card,
-body.compact-body .panel,
-body.compact-body .wrapper {
+.compact-mode .header,
+.compact-mode #modeSelector,
+.compact-mode #participantNav,
+.compact-mode #adminNav { display:none !important; }
+.compact-mode .container,
+.compact-mode .participant-interface,
+.compact-mode .experiment-card,
+.compact-mode .experiment-card .content,
+.compact-mode .card,
+.compact-mode [class*="card"],
+.compact-mode .section,
+.compact-mode .section .card,
+.compact-mode .panel,
+.compact-mode .wrapper {
   width:100% !important; max-width:100% !important;
   padding:0 !important; margin:0 !important;
   border:none !important; box-shadow:none !important; border-radius:0 !important;
@@ -4804,7 +4804,7 @@ body.compact-body .wrapper {
 <script>
 (function(){
   function adjustCompactHeights() {
-    if (!document.body.classList.contains('compact-body')) return;
+        if (!document.querySelector('.container')?.classList.contains('compact-mode')) return;
     const content = document.getElementById('experimentContent');
     const messages = document.getElementById('chatMessages');
     const input = document.querySelector('.chat-input');
@@ -4821,9 +4821,9 @@ body.compact-body .wrapper {
   window.exitCompactMode = window.exitCompactMode || function exitCompactMode(){
     const body = document.body;
     const container = document.querySelector('.container');
-    if (!body.classList.contains('compact-body')) return;
-    body.classList.remove('compact-body');
-    if (container) container.classList.remove('compact-mode');
+    if (!container?.classList.contains('compact-mode')) return;
+    container.classList.remove('compact-mode');
+  
     const toggleBtn = document.getElementById('toggleCompactBtn');
     if (toggleBtn) { toggleBtn.innerHTML = '📱 スマホ画面表示'; toggleBtn.title = '横方向のスペースを最大化します'; }
   };
@@ -4842,13 +4842,13 @@ body.compact-body .wrapper {
   var wasCompactBeforePause = false;
   const pauseBtn = document.getElementById('pauseExperimentBtn');
   if (pauseBtn) {
-    pauseBtn.addEventListener('click', function(){ wasCompactBeforePause = document.body.classList.contains('compact-body'); }, true);
+    pauseBtn.addEventListener('click', function(){ wasCompactBeforePause = document.querySelector('.container')?.classList.contains('compact-mode'); }, true);
   }
   if (window.resumeSessionTimer) {
     const origResume = window.resumeSessionTimer;
     window.resumeSessionTimer = function(){
       const r = origResume.apply(this, arguments);
-      if (wasCompactBeforePause && !document.body.classList.contains('compact-body')) {
+      if (wasCompactBeforePause && !document.querySelector('.container')?.classList.contains('compact-mode')) {
         const btn = document.getElementById('toggleCompactBtn');
         if (btn) btn.click(); else try{ window.toggleCompactMode && window.toggleCompactMode(); }catch(_){}
       }
@@ -4860,7 +4860,7 @@ body.compact-body .wrapper {
     if (startBtn) {
       startBtn.addEventListener('click', function(){
         setTimeout(function(){
-          if (wasCompactBeforePause && !document.body.classList.contains('compact-body')) {
+          if (wasCompactBeforePause && !document.querySelector('.container')?.classList.contains('compact-mode')) {
             const btn = document.getElementById('toggleCompactBtn');
             if (btn) btn.click();
           }
@@ -5029,6 +5029,7 @@ body.compact-body .wrapper {
 
 </body>
 </html>
+
 
 
 
