@@ -583,7 +583,8 @@
             padding-right: max(12px, env(safe-area-inset-right)) !important;
             padding-top:   max(12px, env(safe-area-inset-top)) !important;
             padding-bottom:max(12px, env(safe-area-inset-bottom)) !important;
-            margin: 0 auto !important;
+/*             margin: 0 auto !important; */
+            margin: 0  !important;
             max-width: 100%;
             box-sizing: border-box;
         }
@@ -597,7 +598,7 @@
         
         .compact-mode .scenario-card {
             border: 1px solid #e9ecef !important;
-            padding: 10px !important;
+            padding: 5px !important;
 /*           重要な可能性の一つ、文字の余白、でもボックスサイズも怪しい,消しても変わらんかも、paddigでもかわらん
         もしかしてマージンのmargin 8px 0だったんだけど、これ2px?その後GPTが12とか言い出した0にしたくせに
           下のやつが効いてるで結局正解だったっぽい、GPTから否定されたが。ただ下の消したらスマホ表示自体が役割を成さなくなった
@@ -5060,6 +5061,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
