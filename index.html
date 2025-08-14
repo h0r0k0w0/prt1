@@ -737,6 +737,40 @@
 
 
         
+        /* ===== スマホ操作改善：カスタムリサイズハンドルのスタイル ===== */
+
+        /* 標準のリサイズ機能を無効化 */
+        .scenario-card, .chat-container {
+            resize: none; 
+        }
+
+        /* ハンドル（取っ手）のスタイル */
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 18px; /* スマホで押しやすいように高さを確保 */
+            cursor: ns-resize; /* 上下リサイズカーソル */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent; /* タップ時のハイライトを無効化 */
+        }
+
+        /* ハンドルの中央に操作できることを示す点を表示 */
+        .resize-handle::after {
+            content: '•••';
+            color: #adb5bd;
+            font-size: 24px;
+            line-height: 0;
+            letter-spacing: 2px;
+        }
+
+        /* 既存の右下のツマミは不要なので非表示に */
+        .scenario-card::after, .chat-container::after {
+            display: none;
+        }
     </style>
 </head>
 
@@ -841,7 +875,7 @@
                         </div>
                         <div class="form-group">
                             <label for="adminApiKey">API キー</label>
-                            <input type="password" id="adminApiKey" placeholder="APIキーを入力..." autocomplete="new-password" data-lpignore="true">
+                            <input type="password" id="adminApiKey" placeholder="APIキーを入力..." autocomplete="off" data-lpignore="true" data-1p-ignore="true" spellcheck="false">
                         </div>
                         <div class="form-group" id="customUrlGroup" style="display: none;">
                             <label for="customApiUrl">カスタムAPI URL</label>
@@ -1229,6 +1263,7 @@
                                     <h3 id="currentScenarioTitle" style="margin: 0;"></h3>
                                 </div>
                                 <p id="currentScenarioContent"></p>
+                                <div class="resize-handle"></div>
                             </div>
 
                             <!-- 自力分析画面 -->
@@ -1254,6 +1289,7 @@
                                         <textarea id="chatInput" placeholder="メッセージを入力...（Enterで改行、送信ボタンで送信）" rows="3"></textarea>
                                         <button id="sendMessageBtn">送信</button>
                                     </div>
+                                    <div class="resize-handle"></div>
                                 </div>
                                 <button id="finishChatBtn" class="btn" style="margin-top: 15px; background: #28a745;">対話を終了する</button>
                             </div>
@@ -2897,27 +2933,41 @@ function extractTextDeep(v) {
 
     // 実験機能
     window.startExperiment = async function startExperiment() {
-        participantId = document.getElementById('participantId').value;
-        currentDay = parseInt(document.getElementById('experimentDay').value);
-        
-        if (!participantId) {
-            alert('参加者IDを入力してください');
-            return;
+        // ボタンの重複クリック防止
+        const startBtn = document.getElementById('startExperimentBtn');
+        if (startBtn.disabled) {
+            return; // 既に処理中なので無視
         }
+        startBtn.disabled = true;
+        startBtn.textContent = '処理中...';
+        
+        try {
+            participantId = document.getElementById('participantId').value;
+            currentDay = parseInt(document.getElementById('experimentDay').value);
+            
+            if (!participantId) {
+                alert('参加者IDを入力してください');
+                return;
+            }
 
-        if (scenarios.length === 0) {
-            alert('シナリオが設定されていません');
-            return;
+            if (scenarios.length === 0) {
+                alert('シナリオが設定されていません');
+                return;
+            }
+            
+            // 過去のログをチェック
+            const shouldContinue = await checkPreviousLogs(participantId, currentDay);
+            if (!shouldContinue) {
+                return; // 過去ログ表示中なので実験開始を中断
+            }
+            
+            // 過去ログチェック後の実験開始処理
+            await proceedWithExperiment();
+        } finally {
+            // ボタンを再有効化
+            startBtn.disabled = false;
+            startBtn.textContent = '実験開始';
         }
-        
-        // 過去のログをチェック
-        const shouldContinue = await checkPreviousLogs(participantId, currentDay);
-        if (!shouldContinue) {
-            return; // 過去ログ表示中なので実験開始を中断
-        }
-        
-        // 過去ログチェック後の実験開始処理
-        await proceedWithExperiment();
     }
     
     // 過去ログチェックを行わずに実験を開始する関数
@@ -4780,6 +4830,62 @@ return _out;
     window.deleteSurvey = deleteSurvey;
     window.showSurvey = showSurvey;
     window.saveSurveyResult = saveSurveyResult;
+    
+    /* ===== スマホ操作改善：カスタムリサイズ機能 ===== */
+    function makeResizable(element, handle) {
+        let originalY;
+        let originalHeight;
+
+        const onDrag = (e) => {
+            // e.clientY はPCのマウス、e.touches[0].clientY はスマホのタッチ位置
+            const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+            const dy = currentY - originalY;
+            element.style.height = (originalHeight + dy) + 'px';
+        };
+
+        const onDragEnd = () => {
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', onDragEnd);
+            document.removeEventListener('touchmove', onDrag);
+            document.removeEventListener('touchend', onDragEnd);
+            // 操作終了後にbodyの選択不可を解除
+            document.body.style.userSelect = '';
+        };
+
+        const onDragStart = (e) => {
+            e.preventDefault(); // 親要素のスクロールなどを防止
+            originalY = e.touches ? e.touches[0].clientY : e.clientY;
+            originalHeight = element.offsetHeight;
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', onDragEnd);
+            document.addEventListener('touchmove', onDrag);
+            document.addEventListener('touchend', onDragEnd);
+            // ドラッグ中にテキストが選択されるのを防ぐ
+            document.body.style.userSelect = 'none';
+        };
+
+        handle.addEventListener('mousedown', onDragStart);
+        handle.addEventListener('touchstart', onDragStart, { passive: false });
+    }
+
+    // ページの読み込み完了時にリサイズ機能を有効化
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            const scenarioCard = document.getElementById('scenarioDisplay');
+            if (scenarioCard) {
+                const scenarioHandle = scenarioCard.querySelector('.resize-handle');
+                if (scenarioHandle) makeResizable(scenarioCard, scenarioHandle);
+            }
+
+            const chatContainer = document.querySelector('#agentChat .chat-container');
+            if (chatContainer) {
+                const chatHandle = chatContainer.querySelector('.resize-handle');
+                if (chatHandle) makeResizable(chatContainer, chatHandle);
+            }
+        } catch(e) {
+            console.error("リサイズ機能の初期化に失敗:", e);
+        }
+    });
     </script>
 <!-- === Compact & Admin Overrides (injected) === -->
 <style>
