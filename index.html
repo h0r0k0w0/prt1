@@ -274,18 +274,19 @@
             resize: vertical;
             position: relative;
         }
-        
+        .chat-container::after,
         .scenario-card::after {
             content: '⋮⋮⋮';
             position: absolute;
-            bottom: 8px;
-            right: 12px;
+            bottom: 2px;
+            right: 6px;
             color: #adb5bd;
             font-size: 12px;
             pointer-events: none;
             opacity: 0.6;
         }
-
+/* 元々.scenario-card::after {はボトムが8でライトが12だったが統一
+      しかし、７００行くらいでこれ無効化してるかも、よーわからん*/
         .scenario-card h3 {
             color: #495057;
             margin-bottom: 15px;
@@ -311,16 +312,7 @@
             position: relative;
         }
         
-        .chat-container::after {
-            content: '⋮⋮⋮';
-            position: absolute;
-            bottom: 2px;
-            right: 6px;
-            color: #adb5bd;
-            font-size: 12px;
-            pointer-events: none;
-            opacity: 0.6;
-        }
+
 
         .chat-messages {
             flex: 1;
@@ -577,20 +569,9 @@
             margin-bottom: 5px !important;
         }
         
-        .compact-mode .participant-interface {
-            padding: 2px !important;
-            margin: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            box-sizing: border-box !important;
-        }
+
         
         .compact-mode #experimentContent {
-/*             padding-left:  max(12px, env(safe-area-inset-left)) !important;
-            padding-right: max(12px, env(safe-area-inset-right)) !important;
-            padding-top:   max(12px, env(safe-area-inset-top)) !important;
-            padding-bottom:max(12px, env(safe-area-inset-bottom)) !important; */
-/*             margin: 0 auto !important; */
             margin: 0  !important;
             max-width: 100%;
             box-sizing: border-box;
@@ -626,9 +607,7 @@
             padding: 5px !important;
         }
         
-        .compact-mode .content {
-            padding: 1px !important;
-        }
+
         
         .compact-mode {
             padding: 2px !important;
@@ -666,12 +645,7 @@
           margin-left: auto !important; /* ← この行を追加 */
           
         }
-        /* 段落のはみ出し・詰まり防止（念のため）、比べるとない方がきれい、paddingで余白修正しようか */
-/*         .compact-mode .scenario-card p {
-          margin: 0 !important;
-          overflow-wrap: anywhere !important;
-          word-break: break-word !important;
-        } */
+
 
 
         
@@ -704,15 +678,7 @@
             }
       /* コンパクト時は container を切らない＆端まで使う */
             
-            .compact-mode .container {
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              border-radius: 0 !important;
-              overflow: visible !important;   /* ← 重要：はみ出しを切らない */
-              box-sizing: border-box !important;
-            }
+
             
             /* ノッチ/ホームバーも考慮した左右ガター（最小12px） */
             .compact-mode #experimentContent,
@@ -732,15 +698,13 @@
             .compact-mode .progress,
             .compact-mode .progress-bar { max-width: 100% !important; }
 
-/*             .compact-mode .scenario-card {
-              padding-inline: 18px !important;
-            } */
+
 
 
         
         /* ===== スマホ操作改善：カスタムリサイズハンドルのスタイル ===== */
 
-        /* 標準のリサイズ機能を無効化 */
+        /* 標準のリサイズ機能を無効化 、これは元々の機能っぽい*/
         .scenario-card, .chat-container {
             resize: none; 
         }
@@ -768,8 +732,10 @@
             letter-spacing: 2px;
         }
 
-        /* 既存の右下のツマミは不要なので非表示に */
-        .scenario-card::after, .chat-container::after {
+        /* 既存の右下のツマミは不要なので非表示に 、これにより.scenario-card::after の記述は完全無効化
+      スマホ版だけとかにするならこの辺は修正がいる*/
+        .scenario-card::after, 
+        .chat-container::after {
             display: none;
         }
     </style>
@@ -1395,68 +1361,9 @@ function extractTextDeep(v) {
 
 
     // Supabase初期化
-    // --- 方法B：ES Modules を import() で読み込む版 ---
+    // --- 方法B：ES Modules を import() で読み込む版は削除させてもらいました
    
-//     async function initializeSupabase () {
-//       if (globalThis.__supabase) {
-//         supabase = globalThis.__supabase;          // すでに作成済み
-//         return loadDataFromSupabase();
-//       }
-//       try {
-//         const mod          = await import('@supabase/supabase-js');
-//         // ImportMap により URL が解決される
-        
-//         const createClient =
-//               mod.createClient           // 通常の名前付き
-//            ?? mod.default?.createClient  // default がオブジェクト
-//            ?? mod.default;               // default が関数
-//         if (typeof createClient !== 'function') {
-//           throw new Error('createClient not found in module');
-//         }
-        
-//         const supabaseUrl  = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-//         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // ★ anon キーを必ず使用
 
-//         supabase            = createClient(supabaseUrl, supabaseAnonKey);
-
-        
-//         globalThis.__supabase = supabase; 
-        
-//         isSupabaseAvailable = true;
-//         console.log('✅ Supabase 初期化成功');
-// // ✅ admin_configのリアルタイム監視設定
-// // ✅ 各設定のリアルタイム監視設定
-//         const settingsToWatch = ['admin_config', 'scenarios', 'surveys'];
-        
-//         settingsToWatch.forEach((settingId) => {
-//           supabase
-//             .channel(`watch-${settingId}`)
-//             .on(
-//               'postgres_changes',
-//               {
-//                 event: '*',
-//                 schema: 'public',
-//                 table: 'admin_settings',
-//                 filter: `id=eq.${settingId}`
-//               },
-//               async (payload) => {
-//                 console.log(`🔄 ${settingId} が更新されました`);
-//                 await loadDataFromSupabase(); // すべて再取得・再反映
-//               }
-//             )
-//             .subscribe();
-//         });
-
-
-
-        
-
-    //     await loadDataFromSupabase();
-    //   } catch (err) {
-    //     console.error('❌ Supabase 初期化エラー:', err);
-    //     loadFromLocalStorage();
-    //   }
-    // }
 
 
 
@@ -4905,14 +4812,17 @@ return _out;
 .compact-mode .experiment-card,
 .compact-mode .experiment-card .content,
 .compact-mode .card, 
-/* .compact-mode [class*="card"], */
-/* .compact-mode .card:not(.scenario-card), */
+
 .compact-mode .section,
 .compact-mode .section .card,
 .compact-mode .panel,
 .compact-mode .wrapper {
   width:100% !important; max-width:100% !important;
   padding:0 !important; margin:0 !important;
+  box-sizing: border-box !important; 
+/*   唯一被ってない項目なので前半から移動 、580あたり削除できる、contentもいらんね*/
+  overflow: visible !important; 
+/*   ここは.compact-mode .containerだけにあった記述だけど追加、よって.compact-mode .container ももう上は消せる。 */
   border:none !important; box-shadow:none !important; border-radius:0 !important;
 }
 
@@ -5175,3 +5085,4 @@ return _out;
 
 </body>
 </html>
+
