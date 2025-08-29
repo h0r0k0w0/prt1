@@ -3035,7 +3035,7 @@ function extractTextDeep(v) {
         displayScenario();
     }
 
-    function displayScenario() {
+    async function displayScenario() {
     // 例：開始時のハンドラ内
     const assignment = await getOrCreateAssignment(participantId, currentDay);
     document.getElementById('currentScenarioTitle').textContent = assignment.snapshot_title;
@@ -5218,6 +5218,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
