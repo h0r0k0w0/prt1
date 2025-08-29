@@ -3032,15 +3032,21 @@ function extractTextDeep(v) {
         startSessionTimer();
         
         // 参加者IDとday番号に基づいて決定的にシナリオを選択
-        currentScenarioIndex = getDeterministicScenarioIndex(participantId, currentDay);
-        displayScenario();
+        // 参加者×日で割当を確定（7日分スナップショット固定）→ 表示
+        currentAssignment = await getOrCreateAssignment(participantId, currentDay);
+        await displayScenario();
+
     }
 
     async function displayScenario() {
     // 例：開始時のハンドラ内
-    const assignment = await getOrCreateAssignment(participantId, currentDay);
-    document.getElementById('currentScenarioTitle').textContent = assignment.snapshot_title;
-    document.getElementById('currentScenarioContent').textContent = assignment.snapshot_content;
+    // まだ無ければ取得、あればそのまま使う
+        if (!currentAssignment) {
+          currentAssignment = await getOrCreateAssignment(participantId, currentDay);
+        }
+        document.getElementById('currentScenarioTitle').textContent = currentAssignment.snapshot_title;
+        document.getElementById('currentScenarioContent').textContent = currentAssignment.snapshot_content;
+
 
         document.getElementById('scenarioDisplay').style.display = 'block';
         
@@ -3093,7 +3099,7 @@ function extractTextDeep(v) {
          scenarioIndex: null, // 互換のため残すなら null。不要なら行ごと削除でOK
          scenarioTitle: currentAssignment.snapshot_title,
          analysis,
-         chatHistory, // または getChatHistory()
+         chatHistory: getChatHistory(),
          experimentType,
          snapshot_content: currentAssignment.snapshot_content
        });
@@ -3218,15 +3224,6 @@ function extractTextDeep(v) {
         // 履歴とユーザー発話
         const chatHistory = (typeof getChatHistory === 'function') ? getChatHistory() : [];
         // ※「毎回シナリオ本文を送る」なら下で userContent に含めます
-        const userContent = `シナリオ: ${a.snapshot_content}\n\nユーザーの発言: ${userMessage}`;
-
-
-      
-
-        
-        // 会話履歴を取得して文脈を保持
-        const chatHistory = getChatHistory();
-       
         const userContent = `シナリオ: ${a.snapshot_content}\n\nユーザーの発言: ${userMessage}`;
         
         if (adminConfig.apiKey) {
@@ -3655,12 +3652,18 @@ return _out;
         }
 
         await saveExperimentLog({
-            participantId,
-            day: currentDay,
-            scenarioIndex: currentScenarioIndex,
-            scenarioTitle: scenarios[currentScenarioIndex].title,
-            chatHistory: getChatHistory(),
-            experimentType: 'agent_assisted'
+          participantId,
+          day: currentDay,
+          scenario_id: currentAssignment.scenario_id,
+          scenarioTitle: currentAssignment.snapshot_title, // 一覧用の見出し
+          analysis: '', // （必要なら空でOK）
+          chatHistory: getChatHistory(),
+          experimentType: 'agent_assisted',
+          snapshot_title: currentAssignment.snapshot_title,
+          snapshot_content: currentAssignment.snapshot_content,
+            // 互換が要るなら null で残す
+          scenarioIndex: null
+
         });
         
         // 実験終了時のアンケートをチェック
@@ -5233,6 +5236,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
