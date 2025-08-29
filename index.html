@@ -1791,7 +1791,7 @@ function extractTextDeep(v) {
             
             if (error) throw error;
             await loadExperimentLogs();
-            updateLogsList?();
+            updateLogsList?.();
         } catch (error) {
             console.error('実験ログ保存エラー:', error);
             alert('データの保存に失敗しました。');
@@ -5218,6 +5218,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
