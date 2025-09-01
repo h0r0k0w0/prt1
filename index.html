@@ -1651,18 +1651,32 @@ function extractTextDeep(v) {
     }
       // === 公開シナリオ（admin_settingsの配列 → 固定ID付きの配列） ===
     function getPublishedScenariosFromAdminSettings() {
-      return (scenarios || []).map(s => {
+      const active = (scenarios || []).filter(s => s && s.isActive !== false);
+
+      return active.map(s => {
         const id = hashStringToId((s.title || '') + '::' + (s.content || ''));
         return {
           id,
           title: s.title || '',
           content: s.content || '',
-          promptQuestions: s.promptQuestions || [],
+          promptQuestions: Array.isArray(s.promptQuestions) ? s.promptQuestions : [],
           hiddenContext: s.hiddenContext || '',
           analysisPoints: s.analysisPoints || ''
         };
       });
     }
+    //   return (scenarios || []).map(s => {
+    //     const id = hashStringToId((s.title || '') + '::' + (s.content || ''));
+    //     return {
+    //       id,
+    //       title: s.title || '',
+    //       content: s.content || '',
+    //       promptQuestions: s.promptQuestions || [],
+    //       hiddenContext: s.hiddenContext || '',
+    //       analysisPoints: s.analysisPoints || ''
+    //     };
+    //   });
+    // }
 
     // === 割当：参加者×日 の固定割当をDBに保持（初回だけ7日分を作成） ===
     async function getOrCreateAssignment(participantId, day) {
@@ -5236,6 +5250,7 @@ return _out;
 
 </body>
 </html>
+
 
 
 
