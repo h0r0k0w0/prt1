@@ -1301,6 +1301,32 @@ function extractTextDeep(v) {
 }
 // -----------------------------------------------------------------
 
+function sanitizeAIText(raw) {
+  if (raw == null) return '';
+  let text = typeof raw === 'string' ? raw : String(raw);
+
+  const delimiters = [
+    '<|end|><|start|>assistant<|channel|>final<|message|>',
+    '<|end|><|start|>assistant<|message|>',
+    '<|end|><|start|>assistant<|channel|>analysis<|message|>'
+  ];
+
+  for (const delimiter of delimiters) {
+    if (text.includes(delimiter)) {
+      const parts = text.split(delimiter);
+      text = parts[parts.length - 1];
+    }
+  }
+
+  const cleaned = text.replace(/<\|[^>]+?\|>/g, '').trim();
+  if (cleaned) {
+    return cleaned;
+  }
+
+  return text.trim();
+}
+
+
     // グローバル変数
     let currentMode = 'none';
     let isAdminAuthenticated = false;
@@ -3416,7 +3442,8 @@ try {
   if (!aiText && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
     aiText = '(ツール呼び出しのみの応答)';
   }
-  aiText = (aiText || '').toString().trim();
+  const normalized = (aiText || '').toString().trim();
+  aiText = sanitizeAIText(normalized) || normalized;
   if (!aiText) {
     console.warn('OpenAI content normalization produced empty output. Full data:', data);
     aiText = '(応答テキストが空でした)';
@@ -3425,7 +3452,7 @@ try {
   console.warn('OpenAI content parse error:', e);
   aiText = '(応答テキスト解析エラー)';
 }
-return aiText;
+  return sanitizeAIText(aiText);
 // ---------------------------------------------------------
 console.log('OpenAI raw response:', data);
 // デバッグ用: レスポンス時間をログ出力
@@ -3472,9 +3499,14 @@ return textOut;
 // --- end extraction ---
                     
                     if (adminConfig.apiProvider === 'claude') {
-                        return data.content[0].text;
+                        const claudeText = data && data.content && data.content[0] ? data.content[0].text : '';
+                        return sanitizeAIText(claudeText);
                     } else if (adminConfig.apiProvider === 'gemini') {
-                        return data.candidates[0].content.parts[0].text;
+                        const geminiText =
+                            data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
+                                ? data.candidates[0].content.parts[0].text
+                                : '';
+                        return sanitizeAIText(geminiText);
                     } else {
 
 const _choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
@@ -3507,8 +3539,8 @@ if (!_content && _msg && Array.isArray(_msg.tool_calls) && _msg.tool_calls.lengt
 
 const _fallback = (typeof data === 'string') ? data : '';
 const _out = (_content || _fallback || '').toString().trim();
-if (!_out) { throw new Error('Empty response from AI'); }
-return _out;
+  if (!_out) { throw new Error('Empty response from AI'); }
+  return sanitizeAIText(_out) || _out;
                 }
                 } else {
                     const errorData = await response.text();
