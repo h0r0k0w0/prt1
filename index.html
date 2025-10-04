@@ -1,6 +1,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1301,6 +1302,32 @@ function extractTextDeep(v) {
 }
 // -----------------------------------------------------------------
 
+function sanitizeAIText(raw) {
+  if (raw == null) return '';
+  let text = typeof raw === 'string' ? raw : String(raw);
+
+  const delimiters = [
+    '<|end|><|start|>assistant<|channel|>final<|message|>',
+    '<|end|><|start|>assistant<|message|>',
+    '<|end|><|start|>assistant<|channel|>analysis<|message|>'
+  ];
+
+  for (const delimiter of delimiters) {
+    if (text.includes(delimiter)) {
+      const parts = text.split(delimiter);
+      text = parts[parts.length - 1];
+    }
+  }
+
+  const cleaned = text.replace(/<\|[^>]+?\|>/g, '').trim();
+  if (cleaned) {
+    return cleaned;
+  }
+
+  return text.trim();
+}
+
+
     // グローバル変数
     let currentMode = 'none';
     let isAdminAuthenticated = false;
@@ -2265,11 +2292,11 @@ function extractTextDeep(v) {
                 });
             } else if (provider === 'claude') {
                 const claudeModels = [
-                    { value: 'claude-3-5-sonnet-20241022', text: 'Claude 3.5 Sonnet' },
-                    { value: 'claude-3-sonnet-20240229', text: 'Claude 3 Sonnet' },
+                    { value: 'claude-3-5-sonnet-20241022', text: 'Claude 3.5 Sonnet (最新)' },
+                    { value: 'claude-3-5-haiku-20241022', text: 'Claude 3.5 Haiku (高速)' },
                     { value: 'claude-3-opus-20240229', text: 'Claude 3 Opus' },
+                    { value: 'claude-3-sonnet-20240229', text: 'Claude 3 Sonnet' },
                     { value: 'claude-3-haiku-20240307', text: 'Claude 3 Haiku' },
-                    { value: 'claude-4-sonnet', text: 'Claude 4 Sonnet' },
                     { value: 'custom-model', text: '🔧 カスタムモデル' }
                 ];
                 claudeModels.forEach(model => {
@@ -3252,104 +3279,93 @@ function extractTextDeep(v) {
                     if (!adminConfig.apiKey.startsWith('sk-')) {
                         throw new Error('OpenAI APIキーの形式が正しくありません');
                     }
-                    
+
                     apiUrl = 'https://api.openai.com/v1/chat/completions';
                     headers = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
-                    
-                    // 会話履歴を含むメッセージを構築
+
                     const messages = [{ role: 'system', content: systemPrompt }];
-                    
-                    // 過去の会話履歴を追加（現在のメッセージを除く）
                     chatHistory.slice(0, -1).forEach(msg => {
                         messages.push({
                             role: msg.sender === 'user' ? 'user' : 'assistant',
                             content: msg.content
                         });
                     });
-                    
-   
-                  // 現在のユーザーメッセージを追加
                     messages.push({ role: 'user', content: userContent });
-                  
-                    if (adminConfig && typeof adminConfig.model === 'string' && adminConfig.model.indexOf('gpt-5') === 0) {
-                      // GPT-5 系：max_tokensは不可、temperatureも送らない（=デフォルト1）
-                      // Build request body per model family (GPT-5 vs legacy)
-if (typeof adminConfig.model === 'string' && adminConfig.model.indexOf('gpt-5') === 0) {
-  requestBody = {
-    model: adminConfig.model,
-    messages: messages,
-    // Force plain text output for GPT-5
-    response_format: { type: 'text' },
-    max_completion_tokens: (adminConfig.maxTokens || 1024)
-    // NOTE: Do not send temperature/top_p for GPT-5
-  };
-} else {
-  requestBody = {
-    model: adminConfig.model,
-    messages: messages,
-    max_tokens: (adminConfig.maxTokens || 300),
-    temperature: (adminConfig.temperature || 0.7)
-  };
-}
 
-                    } else {
-                      
-                      requestBody = {
+                    const isGpt5 = typeof adminConfig.model === 'string' && adminConfig.model.startsWith('gpt-5');
+                    requestBody = {
                         model: adminConfig.model,
-                        messages: messages,
-                        max_tokens: (adminConfig.maxTokens || 300),
-                        temperature: (adminConfig.temperature || 0.7)
-                      };
+                        messages
+                    };
+
+                    if (isGpt5) {
+                        requestBody.response_format = { type: 'text' };
+                        requestBody.max_completion_tokens = adminConfig.maxTokens || 1024;
+                    } else {
+                        requestBody.max_tokens = adminConfig.maxTokens || 300;
+                        requestBody.temperature = adminConfig.temperature ?? 0.7;
                     }
-                   //
 
                 } else if (adminConfig.apiProvider === 'claude') {
+                    const maxTokens = Math.max(adminConfig.maxTokens || 1024, 1);
                     apiUrl = 'https://api.anthropic.com/v1/messages';
                     headers = {
                         'Content-Type': 'application/json',
                         'x-api-key': adminConfig.apiKey,
                         'anthropic-version': '2023-06-01'
                     };
-                    
-                    // 会話履歴を含むメッセージを構築（Claudeはシステムプロンプトが別）
+
                     const messages = [];
-                    
-                    // 過去の会話履歴を追加（現在のメッセージを除く）
                     chatHistory.slice(0, -1).forEach(msg => {
                         messages.push({
                             role: msg.sender === 'user' ? 'user' : 'assistant',
                             content: msg.content
                         });
                     });
-                    
-                    // 現在のユーザーメッセージを追加
                     messages.push({ role: 'user', content: userContent });
-                    
+
                     requestBody = {
                         model: adminConfig.model,
-                        max_tokens: adminConfig.maxTokens || 300,
-                        temperature: adminConfig.temperature || 0.7,
+                        max_tokens: maxTokens,
+                        temperature: adminConfig.temperature ?? 0.7,
                         system: systemPrompt,
-                        messages: messages
+                        messages
                     };
                 } else if (adminConfig.apiProvider === 'gemini') {
-                    // Google Gemini API
-                    apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${adminConfig.model}:generateContent?key=${adminConfig.apiKey}`;
+                    apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(adminConfig.model)}:generateContent?key=${encodeURIComponent(adminConfig.apiKey)}`;
                     headers = {
                         'Content-Type': 'application/json'
                     };
+
+                    const contents = [];
+                    chatHistory.slice(0, -1).forEach(msg => {
+                        contents.push({
+                            role: msg.sender === 'user' ? 'user' : 'model',
+                            parts: [{ text: msg.content }]
+                        });
+                    });
+                    contents.push({
+                        role: 'user',
+                        parts: [{ text: userContent }]
+                    });
+
                     requestBody = {
-                        contents: [{
-                            parts: [{ text: `${systemPrompt}\n\n${userContent}` }]
-                        }],
+                        contents,
                         generationConfig: {
                             maxOutputTokens: adminConfig.maxTokens || 300,
-                            temperature: adminConfig.temperature || 0.7
+                            temperature: adminConfig.temperature ?? 0.7
                         }
                     };
+
+                    if (systemPrompt) {
+                        requestBody.systemInstruction = {
+                            role: 'system',
+                            parts: [{ text: systemPrompt }]
+                        };
+                    }
                 } else if (adminConfig.apiProvider === 'custom') {
                     if (!adminConfig.customApiUrl) {
                         throw new Error('カスタムAPI URLが設定されていません');
@@ -3393,127 +3409,104 @@ if (typeof adminConfig.model === 'string' && adminConfig.model.indexOf('gpt-5') 
 
                 if (response.ok) {
                     const data = await response.json();
-                    
-                    // ---- Normalize OpenAI chat.completions to plain text ----
-let aiText = '';
-try {
-  const choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
-  const msg = choice && choice.message ? choice.message : null;
+                    let rawText = '';
 
-  if (!aiText && choice && typeof choice.output_text === 'string') {
-    aiText = choice.output_text;
-  }
-  if (!aiText && msg && typeof msg.output_text === 'string') {
-    aiText = msg.output_text;
-  }
+                    if (adminConfig.apiProvider === 'claude') {
+                        if (!Array.isArray(data?.content)) {
+                            console.error('Invalid Claude response:', data);
+                            throw new Error('Claude APIから無効なレスポンス形式が返されました');
+                        }
 
-  if (!aiText && msg && ('content' in msg)) {
-    aiText = extractTextDeep(msg.content);
-  }
-  if (!aiText && choice && typeof choice.text === 'string') {
-    aiText = choice.text;
-  }
-  if (!aiText && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-    aiText = '(ツール呼び出しのみの応答)';
-  }
-  aiText = (aiText || '').toString().trim();
-  if (!aiText) {
-    console.warn('OpenAI content normalization produced empty output. Full data:', data);
-    aiText = '(応答テキストが空でした)';
-  }
-} catch (e) {
-  console.warn('OpenAI content parse error:', e);
-  aiText = '(応答テキスト解析エラー)';
-}
-return aiText;
-// ---------------------------------------------------------
-console.log('OpenAI raw response:', data);
-// デバッグ用: レスポンス時間をログ出力
+                        const textBlocks = data.content
+                            .filter(block => block?.type === 'text' && typeof block.text === 'string')
+                            .map(block => block.text);
+
+                        if (!textBlocks.length) {
+                            console.warn('Claude response has no text content:', data);
+                            rawText = '(応答にテキストが含まれていませんでした)';
+                        } else {
+                            rawText = textBlocks.join('\n');
+                        }
+
+                    } else if (adminConfig.apiProvider === 'gemini') {
+                        const candidate = data?.candidates?.[0];
+                        const parts = candidate?.content?.parts;
+                        if (Array.isArray(parts)) {
+                            rawText = parts
+                                .map(part => (typeof part?.text === 'string' ? part.text : ''))
+                                .filter(Boolean)
+                                .join('\n');
+                        }
+
+                        if (!rawText) {
+                            console.warn('Gemini response missing text content:', data);
+                            rawText = '(応答テキストが空でした)';
+                        }
+
+                    } else {
+                        const choice = data?.choices?.[0] ?? null;
+                        const msg = choice?.message ?? null;
+
+                        let textOut = '';
+
+                        if (msg && typeof msg.output_text === 'string') {
+                            textOut = msg.output_text;
+                        }
+                        if (!textOut && choice && typeof choice.output_text === 'string') {
+                            textOut = choice.output_text;
+                        }
+                        if (!textOut && msg && 'content' in msg) {
+                            textOut = extractTextDeep(msg.content);
+                        }
+                        if (!textOut && choice && typeof choice.text === 'string') {
+                            textOut = choice.text;
+                        }
+                        if (!textOut && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+                            textOut = '(ツール呼び出しのみの応答)';
+                        }
+                        if (!textOut && typeof data === 'string') {
+                            textOut = data;
+                        }
+
+                        textOut = (textOut || '').toString().trim();
+                        if (!textOut) {
+                            console.warn('OpenAI content normalization produced empty output. Full data:', data);
+                            textOut = '(応答テキストが空でした)';
+                        }
+
+                        rawText = textOut;
+                    }
+
                     const requestEndTime = performance.now();
                     const responseTime = Math.round(requestEndTime - requestStartTime);
                     console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
-// --- Robust extraction for OpenAI chat.completions ---
-const choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
-const msg = choice && choice.message ? choice.message : null;
-const raw = msg ? msg.content : null;
 
-function normalize(c) {
-  if (!c) return '';
-  if (typeof c === 'string') return c;
-  if (Array.isArray(c)) {
-    return c.map(p => {
-      if (typeof p === 'string') return p;
-      if (p && typeof p.text === 'string') return p.text;
-      if (p && typeof p.content === 'string') return p.content;
-      if (p && p.type === 'text' && p.text && typeof p.text.value === 'string') return p.text.value;
-      if (p && p.type === 'output_text' && typeof p.text === 'string') return p.text;
-      return '';
-    }).join('\n');
-  }
-  if (typeof c.text === 'string') return c.text;
-  if (c && c.type === 'text' && c.text && typeof c.text.value === 'string') return c.text.value;
-  if (c && c.type === 'output_text' && typeof c.text === 'string') return c.text;
-  return '';
-}
-
-let textOut = normalize(raw);
-if (!textOut && choice && typeof choice.text === 'string') {
-  textOut = choice.text;
-}
-if (!textOut && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-  textOut = '(ツール呼び出しのみの応答)';
-}
-textOut = (textOut || '').toString().trim();
-if (!textOut) {
-  console.warn('OpenAI content normalization produced empty output. Full data:', data);
-  textOut = '(応答テキストが空でした)';
-}
-return textOut;
-// --- end extraction ---
-                    
-                    if (adminConfig.apiProvider === 'claude') {
-                        return data.content[0].text;
-                    } else if (adminConfig.apiProvider === 'gemini') {
-                        return data.candidates[0].content.parts[0].text;
-                    } else {
-
-const _choice = data && data.choices && data.choices[0] ? data.choices[0] : null;
-const _msg = _choice && _choice.message ? _choice.message : null;
-
-function normalizeContent(c) {
-  if (!c) return '';
-  if (typeof c === 'string') return c;
-  if (Array.isArray(c)) {
-    return c.map(part => {
-      if (typeof part === 'string') return part;
-      if (part && typeof part.text === 'string') return part.text;
-      if (part && typeof part.content === 'string') return part.content;
-      if (part && part.type === 'text' && part.text && typeof part.text.value === 'string') return part.text.value;
-      return '';
-    }).join('\n');
-  }
-  if (typeof c.text === 'string') return c.text;
-  if (c && c.type === 'text' && c.text && typeof c.text.value === 'string') return c.text.value;
-  return '';
-}
-
-let _content = normalizeContent(_msg && _msg.content);
-if (!_content && _choice && typeof _choice.text === 'string') {
-  _content = _choice.text;
-}
-if (!_content && _msg && Array.isArray(_msg.tool_calls) && _msg.tool_calls.length > 0) {
-  _content = '(ツール呼び出しのみの応答)';
-}
-
-const _fallback = (typeof data === 'string') ? data : '';
-const _out = (_content || _fallback || '').toString().trim();
-if (!_out) { throw new Error('Empty response from AI'); }
-return _out;
-                }
+                    return sanitizeAIText(rawText);
                 } else {
-                    const errorData = await response.text();
-                    console.error(`APIエラー (${response.status}):`, errorData);
-                    throw new Error(`APIリクエストが失敗しました (${response.status})`);
+                    const errorPayload = await response.text();
+                    let parsedError;
+                    try {
+                        parsedError = JSON.parse(errorPayload);
+                    } catch (e) {
+                        parsedError = null;
+                    }
+
+                    let errorMsg = 'APIリクエストが失敗しました';
+
+                    if (adminConfig.apiProvider === 'claude') {
+                        errorMsg = parsedError?.error?.message || errorMsg;
+
+                        if (response.status === 401) {
+                            errorMsg += ' - APIキーが無効です';
+                        } else if (response.status === 400 && errorMsg.includes('max_tokens')) {
+                            errorMsg += ' - max_tokensの値を確認してください(最小値: 1)';
+                        }
+                    } else {
+                        errorMsg = parsedError?.error?.message || errorMsg;
+                    }
+
+                    console.error(`APIエラー (${response.status}):`, parsedError ?? errorPayload);
+                    throw new Error(`${errorMsg} (${response.status})`);
                 }
             } catch (error) {
                 console.error('AI API エラー:', error);
@@ -5250,13 +5243,4 @@ return _out;
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
 
