@@ -1,10 +1,13 @@
 import { createOpenAIProxyHandler } from './_openaiProxyHandler.js';
 
-// Legacy endpoint kept for backwards compatibility with older clients that
-// expect /api/chat. The actual implementation is shared with openai-proxy so
-// both routes behave identically.
+/**
+ * `/api/chat` は旧フロントエンドから利用されることを想定したレガシー API です。
+ * 実際のロジックは `_openaiProxyHandler` に集約されており、ここでは互換性維持のために
+ * 必要最小限のオプションだけを指定します。
+ *
+ * - exposeErrorDetails: true を指定することで、従来通り詳細なエラー内容を返し、
+ *   旧クライアントが期待する挙動を保ちます。
+ */
 export default createOpenAIProxyHandler({
-  // Preserve the original behaviour of exposing detailed error messages when
-  // something goes wrong server-side.
   exposeErrorDetails: true,
 });

@@ -4,6 +4,17 @@ import {
   toNumber,
 } from './_messageUtils.js';
 
+/**
+ * OpenAI へのリクエスト送信処理を共通化したハンドラ。
+ *
+ * - リクエストボディを正規化して system/user/assistant ロール付きの messages 配列を生成
+ * - ルートごとの既定値（モデル、温度、ペナルティなど）を柔軟に差し替え可能
+ * - OpenAI API からのエラーを種類別にハンドリングし、日本語のメッセージを返却
+ *
+ * `chat.js` / `openai-proxy.js` から呼び出すことで、両エンドポイントの挙動差を
+ * オプションによる宣言的な記述に閉じ込めています。
+ */
+
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
