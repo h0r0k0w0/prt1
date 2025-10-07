@@ -3189,11 +3189,17 @@ function sanitizeAIText(raw) {
 
     function getChatHistory() {
         const messages = document.querySelectorAll('#chatMessages .message');
-        return Array.from(messages).map(msg => ({
-            sender: msg.classList.contains('user') ? 'user' : 'ai',
-            content: msg.textContent,
-            timestamp: new Date().toISOString()
-        }));
+        return Array.from(messages)
+            .filter(msg => !msg.classList.contains('loading'))
+            .map(msg => {
+                const sender = msg.dataset.sender || (msg.classList.contains('user') ? 'user' : 'ai');
+                return {
+                    sender,
+                    role: sender === 'user' ? 'user' : 'assistant',
+                    content: msg.textContent,
+                    timestamp: msg.dataset.timestamp || new Date().toISOString()
+                };
+            });
     }
 
     function addMessage(sender, text) {
@@ -3201,6 +3207,8 @@ function sanitizeAIText(raw) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
         messageDiv.textContent = text;
+        messageDiv.dataset.sender = sender;
+        messageDiv.dataset.timestamp = new Date().toISOString();
         messages.appendChild(messageDiv);
         messages.scrollTop = messages.scrollHeight;
     }
@@ -3213,11 +3221,12 @@ function sanitizeAIText(raw) {
         messageDiv.id = loadingId;
         messageDiv.className = 'message ai loading';
         messageDiv.innerHTML = '🤔 考えています...';
-        
+        messageDiv.dataset.sender = 'assistant';
+
         // CSS animations for the loading indicator
         messageDiv.style.opacity = '0.7';
         messageDiv.style.fontStyle = 'italic';
-        
+
         messages.appendChild(messageDiv);
         messages.scrollTop = messages.scrollHeight;
         
@@ -3264,8 +3273,21 @@ function sanitizeAIText(raw) {
         
         // 履歴とユーザー発話
         const chatHistory = (typeof getChatHistory === 'function') ? getChatHistory() : [];
-        // ※「毎回シナリオ本文を送る」なら下で userContent に含めます
-        const userContent = `シナリオ: ${a.snapshot_content}\n\nユーザーの発言: ${userMessage}`;
+
+        // APIリクエスト用に、履歴を役割つきでコピーしつつ、直近のユーザー発話にシナリオ文脈を付与
+        const historyForApi = chatHistory.map(msg => ({
+          role: msg.role || (msg.sender === 'user' ? 'user' : 'assistant'),
+          content: msg.content
+        }));
+
+        const scenarioPreface = `シナリオ: ${a.snapshot_content}\n\nユーザーの発言: `;
+        const lastHistoryEntry = historyForApi[historyForApi.length - 1];
+
+        if (!lastHistoryEntry || lastHistoryEntry.role !== 'user') {
+          historyForApi.push({ role: 'user', content: `${scenarioPreface}${userMessage}` });
+        } else {
+          lastHistoryEntry.content = `${scenarioPreface}${lastHistoryEntry.content}`;
+        }
         
         if (adminConfig.apiKey) {
             try {
@@ -3287,13 +3309,12 @@ function sanitizeAIText(raw) {
                     };
 
                     const messages = [{ role: 'system', content: systemPrompt }];
-                    chatHistory.slice(0, -1).forEach(msg => {
+                    historyForApi.forEach(msg => {
                         messages.push({
-                            role: msg.sender === 'user' ? 'user' : 'assistant',
+                            role: msg.role,
                             content: msg.content
                         });
                     });
-                    messages.push({ role: 'user', content: userContent });
 
                     const isGpt5 = typeof adminConfig.model === 'string' && adminConfig.model.startsWith('gpt-5');
                     requestBody = {
@@ -3319,13 +3340,12 @@ function sanitizeAIText(raw) {
                     };
 
                     const messages = [];
-                    chatHistory.slice(0, -1).forEach(msg => {
+                    historyForApi.forEach(msg => {
                         messages.push({
-                            role: msg.sender === 'user' ? 'user' : 'assistant',
+                            role: msg.role,
                             content: msg.content
                         });
                     });
-                    messages.push({ role: 'user', content: userContent });
 
                     requestBody = {
                         model: adminConfig.model,
@@ -3341,15 +3361,11 @@ function sanitizeAIText(raw) {
                     };
 
                     const contents = [];
-                    chatHistory.slice(0, -1).forEach(msg => {
+                    historyForApi.forEach(msg => {
                         contents.push({
-                            role: msg.sender === 'user' ? 'user' : 'model',
+                            role: msg.role === 'assistant' ? 'model' : 'user',
                             parts: [{ text: msg.content }]
                         });
-                    });
-                    contents.push({
-                        role: 'user',
-                        parts: [{ text: userContent }]
                     });
 
                     requestBody = {
@@ -3379,17 +3395,13 @@ function sanitizeAIText(raw) {
                     
                     // 会話履歴を含むメッセージを構築
                     const messages = [{ role: 'system', content: systemPrompt }];
-                    
-                    // 過去の会話履歴を追加（現在のメッセージを除く）
-                    chatHistory.slice(0, -1).forEach(msg => {
+
+                    historyForApi.forEach(msg => {
                         messages.push({
-                            role: msg.sender === 'user' ? 'user' : 'assistant',
+                            role: msg.role,
                             content: msg.content
                         });
                     });
-                    
-                    // 現在のユーザーメッセージを追加
-                    messages.push({ role: 'user', content: userContent });
                     
                     requestBody = {
                         model: adminConfig.model,
