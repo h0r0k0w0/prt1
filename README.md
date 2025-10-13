@@ -1,6 +1,6 @@
 # プロジェクト概要
 
-このリポジトリは、メンタライズ学習支援用のチャット UI と、OpenAI API へのプロキシエンドポイントを提供します。
+このリポジトリは、メンタライズ学習支援用のチャット UI と、OpenAI / Claude API へのプロキシエンドポイントを提供します。
 
 ## エンドポイント構成
 
@@ -8,13 +8,27 @@
   - フロントエンドが標準的に利用するエンドポイントです。
   - アシスタントの応答品質を安定させるために presence/frequency penalty の既定値を付与します。
   - 本番利用を想定し、サーバー内部の詳細なエラー文言はユーザーに返さない設計です。
+- `/api/claude-proxy`
+  - Anthropic Claude モデルをサーバー経由で呼び出すための新しいエンドポイントです。
+  - OpenAI ルートと同じ正規化ロジックを使いつつ、`https://api.anthropic.com/v1/messages` へ転送するよう調整しています。
+  - レートリミットや認証エラーなど、Anthropic 固有のエラーコードを日本語メッセージに変換します。
 - `/api/chat`
   - 過去のフロントエンド実装との後方互換性を保つために残しているレガシーエンドポイントです。
   - 実装そのものは `/api/openai-proxy` と共通化されており、追加のオプションを与えないラッパーに留めています。
   - 旧クライアントでも挙動の違いが生じないよう、詳細なエラー文言を返す設定にしています。
 
-どちらのエンドポイントも内部的には `_openaiProxyHandler.js` で定義された共通ハンドラを呼び出し、
-`_messageUtils.js` でメッセージ履歴を正規化してから OpenAI API へ転送します。
+OpenAI 用ルートは `_openaiProxyHandler.js`、Claude 用ルートは `_anthropicProxyHandler.js` を介して、
+`_messageUtils.js` でメッセージ履歴を正規化してから各プロバイダーの API へ転送します。
+
+### 「サーバー側」の意味と Claude 連携
+
+- `api/` フォルダの各ファイルは、Next.js や Vercel Edge Functions のような「サーバー側で動作する API ルート」に相当します。
+  ブラウザから直接 OpenAI に鍵を付けてアクセスさせるのではなく、一度これらのエンドポイントに POST してから、サーバーが OpenAI へ代理で通信します。
+- 現在は OpenAI / Claude の双方をサーバー経由で利用できます。`api/openai-proxy.js` は OpenAI 専用、`api/claude-proxy.js` は Claude 専用のラッパーです。
+- どちらも内部で `_messageUtils.js` による正規化を行った後、`_openaiProxyHandler.js` / `_anthropicProxyHandler.js` が API 固有のヘッダーやレスポンス整形を担当します。
+- Supabase を利用している場合でも、API ルートの配置は変わりません。Supabase には保存された設定（API キーやモデル名など）を保管し、フロントエンドから取得してリクエストに含めます。サーバー側で目的のプロバイダーへ転送する部分だけを差し替えれば、OpenAI と同様のフローで安全に Claude を呼び出せます。
+
+> 参考: フロントエンドから直接 Claude API を呼び出す構成にしている場合は、新しいサーバーエンドポイントを作らなくても利用可能です。ただしブラウザに API キーが露出するため、保護が必要な環境ではサーバー経由のプロキシを推奨します。
 
 ## 会話履歴の正規化が必要な理由
 
@@ -35,8 +49,10 @@
 
 ```
 api/
+  |_ _anthropicProxyHandler.js # Claude (Anthropic) 向けリクエスト組み立て＆レスポンス処理
   |_ _messageUtils.js       # リクエスト正規化・APIキー抽出などの共通ユーティリティ
   |_ _openaiProxyHandler.js # OpenAI へのリクエスト組み立て＆レスポンス処理を担う共通ハンドラ
+  |_ claude-proxy.js        # Claude 用 `/api/claude-proxy` エンドポイント定義
   |_ chat.js                # レガシー `/api/chat` 向け薄いラッパー
   |_ openai-proxy.js        # メインの `/api/openai-proxy` エンドポイント定義
 index.html                  # フロントエンド
