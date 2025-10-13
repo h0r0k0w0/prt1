@@ -3332,26 +3332,22 @@ function sanitizeAIText(raw) {
 
                 } else if (adminConfig.apiProvider === 'claude') {
                     const maxTokens = Math.max(adminConfig.maxTokens || 1024, 1);
-                    apiUrl = 'https://api.anthropic.com/v1/messages';
+                    apiUrl = '/api/claude-proxy';
                     headers = {
                         'Content-Type': 'application/json',
-                        'x-api-key': adminConfig.apiKey,
-                        'anthropic-version': '2023-06-01'
+                        'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
 
-                    const messages = [];
-                    historyForApi.forEach(msg => {
-                        messages.push({
-                            role: msg.role,
-                            content: msg.content
-                        });
-                    });
+                    const messages = historyForApi.map(msg => ({
+                        role: msg.role,
+                        content: msg.content
+                    }));
 
                     requestBody = {
                         model: adminConfig.model,
                         max_tokens: maxTokens,
                         temperature: adminConfig.temperature ?? 0.7,
-                        system: systemPrompt,
+                        systemPrompt,
                         messages
                     };
                 } else if (adminConfig.apiProvider === 'gemini') {
@@ -3424,20 +3420,25 @@ function sanitizeAIText(raw) {
                     let rawText = '';
 
                     if (adminConfig.apiProvider === 'claude') {
-                        if (!Array.isArray(data?.content)) {
-                            console.error('Invalid Claude response:', data);
-                            throw new Error('Claude APIから無効なレスポンス形式が返されました');
+                        const normalizedText = typeof data?.response === 'string'
+                            ? data.response.trim()
+                            : '';
+
+                        if (normalizedText) {
+                            rawText = normalizedText;
+                        } else if (Array.isArray(data?.content)) {
+                            const textBlocks = data.content
+                                .filter(block => block?.type === 'text' && typeof block.text === 'string')
+                                .map(block => block.text);
+
+                            if (textBlocks.length) {
+                                rawText = textBlocks.join('\n');
+                            }
                         }
 
-                        const textBlocks = data.content
-                            .filter(block => block?.type === 'text' && typeof block.text === 'string')
-                            .map(block => block.text);
-
-                        if (!textBlocks.length) {
-                            console.warn('Claude response has no text content:', data);
+                        if (!rawText) {
+                            console.warn('Claude response did not contain text output:', data);
                             rawText = '(応答にテキストが含まれていませんでした)';
-                        } else {
-                            rawText = textBlocks.join('\n');
                         }
 
                     } else if (adminConfig.apiProvider === 'gemini') {
@@ -3506,7 +3507,10 @@ function sanitizeAIText(raw) {
                     let errorMsg = 'APIリクエストが失敗しました';
 
                     if (adminConfig.apiProvider === 'claude') {
-                        errorMsg = parsedError?.error?.message || errorMsg;
+                        const proxyMessage = typeof parsedError?.error === 'string'
+                            ? parsedError.error
+                            : parsedError?.error?.message;
+                        errorMsg = proxyMessage || errorMsg;
 
                         if (response.status === 401) {
                             errorMsg += ' - APIキーが無効です';
