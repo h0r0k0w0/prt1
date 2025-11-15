@@ -4,6 +4,33 @@ import {
   toNumber,
 } from './_messageUtils.js';
 
+const DEFAULT_RESPONSE_FORMAT = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'reply_and_state',
+    schema: {
+      type: 'object',
+      properties: {
+        reply: {
+          type: 'string',
+          description:
+            'ユーザーに表示する受容文と質問文を統合したメッセージを文字列で返してください。',
+        },
+        state: {
+          description:
+            '現在の分析結果を表すState全体をJSONオブジェクトで返してください。該当する情報がなければnullを返してください。',
+          oneOf: [
+            { type: 'object', additionalProperties: true },
+            { type: 'null' },
+          ],
+        },
+      },
+      required: ['reply', 'state'],
+      additionalProperties: false,
+    },
+  },
+};
+
 /**
  * OpenAI へのリクエスト送信処理を共通化したハンドラ。
  *
@@ -28,7 +55,8 @@ function extractModelName(body, fallbackModel) {
   return fallbackModel;
 }
 
-function buildRequestPayload(body, normalizedMessages, options) {
+function buildRequestPayload(body, normalized, options) {
+  const normalizedMessages = normalized.messages;
   const {
     defaultModel,
     defaultTemperature,
@@ -46,6 +74,27 @@ function buildRequestPayload(body, normalizedMessages, options) {
     messages: normalizedMessages,
     temperature,
   };
+
+  const explicitResponseFormat = body.response_format ?? body.responseFormat;
+  if (explicitResponseFormat) {
+    payload.response_format = explicitResponseFormat;
+  } else if (normalized.expectsStructuredResponse) {
+    payload.response_format = DEFAULT_RESPONSE_FORMAT;
+  }
+
+  if (Array.isArray(body.tools)) {
+    payload.tools = body.tools;
+  }
+
+  const toolChoice = body.tool_choice ?? body.toolChoice;
+  if (toolChoice != null) {
+    payload.tool_choice = toolChoice;
+  }
+
+  const parallelToolCalls = body.parallel_tool_calls ?? body.parallelToolCalls;
+  if (parallelToolCalls != null) {
+    payload.parallel_tool_calls = parallelToolCalls;
+  }
 
   if (body.max_completion_tokens != null) {
     payload.max_completion_tokens = toNumber(
@@ -109,32 +158,112 @@ function normalizeOpenAIResponse(data, requestPayload) {
   const choice = Array.isArray(data?.choices) ? data.choices[0] : null;
   const message = choice?.message;
 
-  if (message && typeof message.content === 'string') {
-    return {
-      response: message.content,
-      model: requestPayload.model,
-      usage: data.usage,
-      timestamp: new Date().toISOString(),
-    };
+  if (!message) {
+    return null;
   }
 
-  if (message && Array.isArray(message.content)) {
-    const combined = message.content
-      .map(part => (typeof part?.text === 'string' ? part.text : ''))
+  const rawText = extractMessageText(message);
+  const structured = parseStructuredContent(rawText);
+
+  return {
+    response: structured.reply ?? rawText ?? '',
+    reply: structured.reply ?? rawText ?? '',
+    state: structured.state,
+    rawResponse: rawText ?? '',
+    model: requestPayload.model,
+    usage: data.usage,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function extractMessageText(message) {
+  if (typeof message?.content === 'string') {
+    return message.content;
+  }
+
+  if (Array.isArray(message?.content)) {
+    return message.content
+      .map(part => {
+        if (typeof part?.text === 'string') return part.text;
+        if (Array.isArray(part?.content)) {
+          return part.content
+            .map(inner => (typeof inner?.text === 'string' ? inner.text : ''))
+            .filter(Boolean)
+            .join('\n');
+        }
+        return '';
+      })
       .filter(Boolean)
       .join('\n');
+  }
 
-    if (combined) {
-      return {
-        response: combined,
-        model: requestPayload.model,
-        usage: data.usage,
-        timestamp: new Date().toISOString(),
-      };
+  return '';
+}
+
+function parseStructuredContent(rawText) {
+  if (typeof rawText !== 'string' || !rawText.trim()) {
+    return { reply: null, state: null };
+  }
+
+  const cleaned = stripCodeFences(rawText.trim());
+
+  const parsed = tryParseJson(cleaned) ?? tryParseEmbeddedJson(cleaned);
+
+  if (!parsed || typeof parsed !== 'object') {
+    return { reply: null, state: null };
+  }
+
+  const reply = typeof parsed.reply === 'string' ? parsed.reply : null;
+  const state = normalizeState(parsed.state);
+
+  return { reply, state };
+}
+
+function stripCodeFences(text) {
+  const fenceMatch = text.match(/^```[a-zA-Z0-9_-]*\n([\s\S]*?)```$/);
+  if (fenceMatch) {
+    return fenceMatch[1].trim();
+  }
+  return text;
+}
+
+function tryParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return null;
+  }
+}
+
+function tryParseEmbeddedJson(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    return null;
+  }
+
+  const snippet = text.slice(start, end + 1);
+  return tryParseJson(snippet);
+}
+
+function normalizeState(stateValue) {
+  if (stateValue == null) {
+    return null;
+  }
+
+  if (typeof stateValue === 'object') {
+    return stateValue;
+  }
+
+  if (typeof stateValue === 'string' && stateValue.trim()) {
+    try {
+      return JSON.parse(stateValue);
+    } catch (error) {
+      return stateValue;
     }
   }
 
-  return null;
+  return stateValue;
 }
 
 function handleOpenAiError(res, data, requestPayload) {
@@ -209,11 +338,7 @@ export function createOpenAIProxyHandler(options = {}) {
       return res.status(400).json({ error: 'OpenAI APIキーが指定されていません' });
     }
 
-    const requestPayload = buildRequestPayload(
-      body,
-      normalized.messages,
-      handlerOptions,
-    );
+    const requestPayload = buildRequestPayload(body, normalized, handlerOptions);
 
     try {
       console.log('Making request to OpenAI with model:', requestPayload.model);

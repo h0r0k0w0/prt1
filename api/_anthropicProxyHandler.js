@@ -4,6 +4,34 @@ import {
   toNumber,
 } from './_messageUtils.js';
 
+const DEFAULT_STATE_TOOL = {
+  name: 'state_update',
+  description:
+    'ユーザーへの返信文(reply)と更新後のstate(JSON)を含む構造化出力を返すためのツールです。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      reply: {
+        type: 'string',
+        description: 'ユーザーに送る受容文と質問文を統合したメッセージ。',
+      },
+      state: {
+        description: '更新後のState全体。',
+        oneOf: [
+          { type: 'object', additionalProperties: true },
+          { type: 'null' },
+        ],
+      },
+    },
+    required: ['reply', 'state'],
+    additionalProperties: false,
+  },
+};
+
+function createDefaultStateTool() {
+  return JSON.parse(JSON.stringify(DEFAULT_STATE_TOOL));
+}
+
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -64,7 +92,8 @@ function normalizeConversation(messages) {
   };
 }
 
-function buildRequestPayload(body, normalizedMessages, options) {
+function buildRequestPayload(body, normalized, options) {
+  const normalizedMessages = normalized.messages;
   const {
     defaultModel,
     defaultTemperature,
@@ -112,6 +141,20 @@ function buildRequestPayload(body, normalizedMessages, options) {
     payload.system = systemPrompt;
   }
 
+  const explicitTools = Array.isArray(body.tools) ? body.tools : null;
+  if (explicitTools && explicitTools.length) {
+    payload.tools = explicitTools;
+  } else if (normalized.expectsStructuredResponse) {
+    payload.tools = [createDefaultStateTool()];
+  }
+
+  const toolChoice = body.tool_choice ?? body.toolChoice;
+  if (toolChoice != null) {
+    payload.tool_choice = toolChoice;
+  } else if (payload.tools && payload.tools.length === 1 && normalized.expectsStructuredResponse) {
+    payload.tool_choice = { type: 'tool', name: payload.tools[0].name };
+  }
+
   return payload;
 }
 
@@ -151,32 +194,129 @@ function normalizeAnthropicResponse(data, requestPayload) {
   if (!data) return null;
 
   const content = Array.isArray(data.content) ? data.content : [];
-  const text = content
-    .map(part => {
-      if (!part) return '';
-      if (typeof part.text === 'string') return part.text;
-      if (Array.isArray(part.content)) {
-        return part.content
-          .map(inner => (typeof inner?.text === 'string' ? inner.text : ''))
-          .filter(Boolean)
-          .join('\n');
-      }
-      return '';
-    })
-    .filter(Boolean)
-    .join('\n')
-    .trim();
 
-  if (!text) {
+  let textResponse = '';
+  let structuredReply = null;
+  let structuredState = null;
+
+  for (const part of content) {
+    if (!part) continue;
+
+    if (part.type === 'tool_use' && part.input && structuredReply == null) {
+      const input = part.input;
+      if (typeof input.reply === 'string') {
+        structuredReply = input.reply;
+      }
+      if (input.state !== undefined) {
+        structuredState = normalizeState(input.state);
+      }
+      continue;
+    }
+
+    if (typeof part.text === 'string' && part.text.trim()) {
+      textResponse += (textResponse ? '\n' : '') + part.text.trim();
+    } else if (Array.isArray(part.content)) {
+      const nestedText = part.content
+        .map(inner => (typeof inner?.text === 'string' ? inner.text : ''))
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+      if (nestedText) {
+        textResponse += (textResponse ? '\n' : '') + nestedText;
+      }
+    }
+  }
+
+  if (structuredReply == null && textResponse) {
+    const parsed = parseStructuredText(textResponse);
+    if (parsed) {
+      structuredReply = parsed.reply ?? structuredReply;
+      if (structuredState == null) {
+        structuredState = parsed.state;
+      }
+    }
+  }
+
+  const reply = structuredReply ?? (textResponse || null);
+
+  if (reply == null && structuredState == null) {
     return null;
   }
 
   return {
-    response: text,
+    response: reply ?? '',
+    reply: reply ?? '',
+    state: structuredState,
+    rawResponse: textResponse,
     model: data.model ?? requestPayload.model,
     usage: data.usage,
     timestamp: new Date().toISOString(),
   };
+}
+
+function normalizeState(stateValue) {
+  if (stateValue == null) {
+    return null;
+  }
+
+  if (typeof stateValue === 'object') {
+    return stateValue;
+  }
+
+  if (typeof stateValue === 'string' && stateValue.trim()) {
+    try {
+      return JSON.parse(stateValue);
+    } catch (error) {
+      return stateValue;
+    }
+  }
+
+  return stateValue;
+}
+
+function parseStructuredText(text) {
+  if (typeof text !== 'string' || !text.trim()) {
+    return null;
+  }
+
+  const cleaned = stripCodeFences(text.trim());
+  const parsed = tryParseJson(cleaned) ?? tryParseEmbeddedJson(cleaned);
+
+  if (!parsed || typeof parsed !== 'object') {
+    return null;
+  }
+
+  const reply = typeof parsed.reply === 'string' ? parsed.reply : null;
+  const state = normalizeState(parsed.state);
+
+  return { reply, state };
+}
+
+function stripCodeFences(text) {
+  const fenceMatch = text.match(/^```[a-zA-Z0-9_-]*\n([\s\S]*?)```$/);
+  if (fenceMatch) {
+    return fenceMatch[1].trim();
+  }
+  return text;
+}
+
+function tryParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return null;
+  }
+}
+
+function tryParseEmbeddedJson(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    return null;
+  }
+
+  const snippet = text.slice(start, end + 1);
+  return tryParseJson(snippet);
 }
 
 function handleAnthropicError(res, status, data, options) {
@@ -272,7 +412,7 @@ export function createAnthropicProxyHandler(options = {}) {
 
     let requestPayload;
     try {
-      requestPayload = buildRequestPayload(body, normalized.messages, handlerOptions);
+      requestPayload = buildRequestPayload(body, normalized, handlerOptions);
     } catch (error) {
       console.error('Failed to build Anthropic payload:', error);
       return res.status(400).json({

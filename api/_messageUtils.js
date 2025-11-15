@@ -12,6 +12,15 @@ const DEFAULT_GUIDELINE = `以下のガイドラインに従って応答して�
 
 応答は200文字以内で、次の質問や気づきを促すようにしてください。`;
 
+const STRUCTURED_OUTPUT_INSTRUCTION = `必ず次の形式で応答してください。
+
+{
+  "reply": "受容文と質問文を統合したユーザー向けメッセージ",
+  "state": { ...更新後のState全体... }
+}
+
+replyには自然な文章を入れ、stateには現在の分析結果を表すJSON全体を入れてください。`;
+
 function extractBearerToken(headerValue = '') {
   if (typeof headerValue !== 'string') return '';
   const trimmed = headerValue.trim();
@@ -97,6 +106,60 @@ function buildDefaultSystemPrompt(scenarioText = '') {
   return `あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。${scenario}\n\n${DEFAULT_GUIDELINE}`;
 }
 
+function serializeStateForPrompt(stateValue) {
+  if (stateValue == null) {
+    return null;
+  }
+
+  if (typeof stateValue === 'string') {
+    const trimmed = stateValue.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      return JSON.stringify(parsed, null, 2);
+    } catch (error) {
+      return trimmed;
+    }
+  }
+
+  if (typeof stateValue === 'object') {
+    try {
+      return JSON.stringify(stateValue, null, 2);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  return String(stateValue);
+}
+
+function tryParseStateObject(stateValue) {
+  if (stateValue == null) {
+    return null;
+  }
+
+  if (typeof stateValue === 'object') {
+    try {
+      return JSON.parse(JSON.stringify(stateValue));
+    } catch (error) {
+      return null;
+    }
+  }
+
+  if (typeof stateValue === 'string' && stateValue.trim()) {
+    try {
+      return JSON.parse(stateValue);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export function parseRequestBody(body) {
   if (!body) return {};
   if (typeof body === 'object') return body;
@@ -115,6 +178,9 @@ export function prepareConversationPayload(rawBody) {
   const providedSystemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt.trim() : '';
   const defaultSystemPrompt = buildDefaultSystemPrompt(scenario);
   const finalSystemPrompt = providedSystemPrompt || defaultSystemPrompt;
+
+  const serializedState = serializeStateForPrompt(body.state);
+  const parsedState = tryParseStateObject(body.state);
 
   const turnCandidates = Array.isArray(body.messages)
     ? body.messages
@@ -137,6 +203,44 @@ export function prepareConversationPayload(rawBody) {
     }
   }
 
+  const expectsStructuredResponse =
+    body.expectStructuredResponse !== false && (serializedState != null || body.expectStructuredResponse === true);
+
+  if (expectsStructuredResponse) {
+    const instructionMessage = { role: 'system', content: STRUCTURED_OUTPUT_INSTRUCTION };
+
+    const existingInstructionIndex = messages.findIndex(
+      message => message.role === 'system' && message.content === STRUCTURED_OUTPUT_INSTRUCTION,
+    );
+
+    if (existingInstructionIndex === -1) {
+      const firstSystemIndex = messages.findIndex(message => message.role === 'system');
+      if (firstSystemIndex >= 0) {
+        messages.splice(firstSystemIndex + 1, 0, instructionMessage);
+      } else {
+        messages.unshift(instructionMessage);
+      }
+    }
+  }
+
+  if (serializedState) {
+    const stateMessage = {
+      role: 'system',
+      content: `現在のState JSONは次の通りです。モデルはこの内容を参照し、更新した結果をstateフィールドに返してください。\n${serializedState}`,
+    };
+
+    const lastSystemIndex = messages.reduce(
+      (lastIndex, message, index) => (message.role === 'system' ? index : lastIndex),
+      -1,
+    );
+
+    if (lastSystemIndex >= 0) {
+      messages.splice(lastSystemIndex + 1, 0, stateMessage);
+    } else {
+      messages.unshift(stateMessage);
+    }
+  }
+
   const messageText = typeof body.message === 'string' ? body.message : '';
   const hasUserTurn = messages.some(msg => msg.role === 'user');
 
@@ -154,6 +258,9 @@ export function prepareConversationPayload(rawBody) {
     scenario,
     finalSystemPrompt,
     messages,
+    serializedState,
+    parsedState,
+    expectsStructuredResponse,
   };
 }
 

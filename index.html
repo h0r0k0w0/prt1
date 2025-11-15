@@ -1336,6 +1336,7 @@ function sanitizeAIText(raw) {
     let supabase = null;
     let isSupabaseAvailable = false;
     let currentAssignment = null;
+    let currentStructuredState = null;
     
     let adminConfig = {
         adminPassword: 'MentalizeAdmin2024!',
@@ -1781,6 +1782,7 @@ function sanitizeAIText(raw) {
                     analysis: logData.analysis,
                     chatHistory: logData.chatHistory,
                     model: adminConfig.model,
+                    structuredState: currentStructuredState,
                     scenarioIndex: logData.scenarioIndex ?? null,
                     scenario_id: logData.scenario_id,               // 追加：固定ID
                     snapshot: {                                     // 追加：完全再現用
@@ -1814,6 +1816,7 @@ function sanitizeAIText(raw) {
                   analysis: logData.analysis,
                   chatHistory: logData.chatHistory,
                   model: adminConfig.model,
+                  structuredState: currentStructuredState,
                   // 互換のために scenarioIndex を残す（不要になったら NULL か削除）
                   scenarioIndex: logData.scenarioIndex ?? null,
                   // 新規：固定IDと完全再現用スナップショット
@@ -3157,9 +3160,10 @@ function sanitizeAIText(raw) {
     }
 
     function initializeChat() {
+        currentStructuredState = null;
         const messages = document.getElementById('chatMessages');
         messages.innerHTML = '';
-        
+
         addMessage('ai', 'こんにちは！このシナリオについて、登場人物の気持ちや考えを一緒に探ってみましょう。まず、どの人物に注目しますか？');
         
         document.getElementById('progressFill').style.width = '50%';
@@ -3178,9 +3182,10 @@ function sanitizeAIText(raw) {
         const loadingMessageId = addLoadingMessage();
         
         try {
-            const response = await generateAIResponse(message);
+            const result = await generateAIResponse(message);
             removeLoadingMessage(loadingMessageId);
-            addMessage('ai', (response && response.trim()) ? response : '（応答が空でした）');
+            const replyText = typeof result?.reply === 'string' ? result.reply : '';
+            addMessage('ai', replyText && replyText.trim() ? replyText : '（応答が空でした）');
         } catch (error) {
             removeLoadingMessage(loadingMessageId);
             addMessage('ai', 'AIからの応答を取得できませんでした。もう一度お試しください。');
@@ -3248,33 +3253,25 @@ function sanitizeAIText(raw) {
           throw new Error('シナリオ割当が未確定です。displayScenario() が先に実行されているか確認してください。');
         }
 
-        // システムプロンプト（管理UIの systemPrompt に、シナリオの隠し文脈を足す）
-
-
-      
         // --- system prompt を一度だけ合成（管理プロンプト + 隠し文脈 + 参考質問/着目点） ---
         let systemPrompt = (adminConfig?.systemPrompt ?? '').toString();
-        
-        // 隠し文脈
+
         const hidden = (a.snapshot_hidden_context ?? '').toString();
         if (hidden) systemPrompt += (systemPrompt ? '\n\n' : '') + hidden;
-        
-        // 参考用想定質問
+
         const qs = Array.isArray(a.snapshot_prompt_questions) ? a.snapshot_prompt_questions : [];
         if (qs.length) {
           systemPrompt += '\n\n参考用想定質問:\n' + qs.map(q => `- ${q}`).join('\n');
         }
-        
-        // 分析時の着目点
+
         const ap = (a.snapshot_analysis_points ?? '').toString();
         if (ap) {
           systemPrompt += '\n\n分析時の着目点:\n' + ap;
         }
-        
+
         // 履歴とユーザー発話
         const chatHistory = (typeof getChatHistory === 'function') ? getChatHistory() : [];
 
-        // APIリクエスト用に、履歴を役割つきでコピーしつつ、直近のユーザー発話にシナリオ文脈を付与
         const historyForApi = chatHistory.map(msg => ({
           role: msg.role || (msg.sender === 'user' ? 'user' : 'assistant'),
           content: msg.content
@@ -3288,48 +3285,66 @@ function sanitizeAIText(raw) {
         } else {
           lastHistoryEntry.content = `${scenarioPreface}${lastHistoryEntry.content}`;
         }
-        
+
         if (adminConfig.apiKey) {
             try {
-                // デバッグ用: 使用中のモデルをログ出力
                 const requestStartTime = performance.now();
                 console.log(`🤖 AI Request - Provider: ${adminConfig.apiProvider}, Model: ${adminConfig.model}, Custom: ${adminConfig.useCustomModel || false}`);
-                
-                let apiUrl, headers, requestBody;
-                
+
+                let apiUrl = '';
+                let headers = {};
+                let requestBody = null;
+                let parseResponse = null;
+
                 if (adminConfig.apiProvider === 'openai') {
                     if (!adminConfig.apiKey.startsWith('sk-')) {
                         throw new Error('OpenAI APIキーの形式が正しくありません');
                     }
 
-                    apiUrl = 'https://api.openai.com/v1/chat/completions';
+                    apiUrl = '/api/openai-proxy';
                     headers = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
 
-                    const messages = [{ role: 'system', content: systemPrompt }];
-                    historyForApi.forEach(msg => {
-                        messages.push({
-                            role: msg.role,
-                            content: msg.content
-                        });
-                    });
-
                     const isGpt5 = typeof adminConfig.model === 'string' && adminConfig.model.startsWith('gpt-5');
                     requestBody = {
                         model: adminConfig.model,
-                        messages
+                        systemPrompt,
+                        scenario: a.snapshot_content,
+                        messages: historyForApi,
+                        expectStructuredResponse: true,
+                        state: currentStructuredState ?? null,
                     };
 
                     if (isGpt5) {
-                        requestBody.response_format = { type: 'text' };
                         requestBody.max_completion_tokens = adminConfig.maxTokens || 1024;
                     } else {
                         requestBody.max_tokens = adminConfig.maxTokens || 300;
                         requestBody.temperature = adminConfig.temperature ?? 0.7;
                     }
 
+                    parseResponse = data => {
+                        if (data && Object.prototype.hasOwnProperty.call(data, 'state')) {
+                            currentStructuredState = data.state;
+                        }
+
+                        const replyCandidate =
+                            (typeof data?.reply === 'string' ? data.reply : null) ??
+                            (typeof data?.response === 'string' ? data.response : null);
+                        const fallbackRaw = typeof data === 'string' ? data : '';
+                        const rawCandidate =
+                            (typeof data?.rawResponse === 'string' ? data.rawResponse : null) ??
+                            replyCandidate ??
+                            fallbackRaw;
+                        const reply = sanitizeAIText((replyCandidate ?? rawCandidate ?? '').toString());
+
+                        return {
+                            reply: reply || '(応答が空でした)',
+                            state: currentStructuredState,
+                            raw: rawCandidate || reply,
+                        };
+                    };
                 } else if (adminConfig.apiProvider === 'claude') {
                     const maxTokens = Math.max(adminConfig.maxTokens || 1024, 1);
                     apiUrl = '/api/claude-proxy';
@@ -3338,17 +3353,46 @@ function sanitizeAIText(raw) {
                         'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
 
-                    const messages = historyForApi.map(msg => ({
-                        role: msg.role,
-                        content: msg.content
-                    }));
-
                     requestBody = {
                         model: adminConfig.model,
                         max_tokens: maxTokens,
                         temperature: adminConfig.temperature ?? 0.7,
                         systemPrompt,
-                        messages
+                        scenario: a.snapshot_content,
+                        messages: historyForApi,
+                        expectStructuredResponse: true,
+                        state: currentStructuredState ?? null,
+                    };
+
+                    parseResponse = data => {
+                        if (data && Object.prototype.hasOwnProperty.call(data, 'state')) {
+                            currentStructuredState = data.state;
+                        }
+
+                        let replyCandidate = '';
+                        if (typeof data?.reply === 'string') {
+                            replyCandidate = data.reply;
+                        } else if (typeof data?.response === 'string') {
+                            replyCandidate = data.response;
+                        } else if (Array.isArray(data?.content)) {
+                            replyCandidate = data.content
+                                .filter(block => block?.type === 'text' && typeof block.text === 'string')
+                                .map(block => block.text)
+                                .join('\n');
+                        } else if (typeof data === 'string') {
+                            replyCandidate = data;
+                        }
+
+                        if (!replyCandidate) {
+                            console.warn('Claude response did not contain text output:', data);
+                        }
+
+                        const reply = sanitizeAIText((replyCandidate || '').toString());
+                        return {
+                            reply: reply || '(応答が空でした)',
+                            state: currentStructuredState,
+                            raw: replyCandidate || reply,
+                        };
                     };
                 } else if (adminConfig.apiProvider === 'gemini') {
                     apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(adminConfig.model)}:generateContent?key=${encodeURIComponent(adminConfig.apiKey)}`;
@@ -3378,70 +3422,9 @@ function sanitizeAIText(raw) {
                             parts: [{ text: systemPrompt }]
                         };
                     }
-                } else if (adminConfig.apiProvider === 'custom') {
-                    if (!adminConfig.customApiUrl) {
-                        throw new Error('カスタムAPI URLが設定されていません');
-                    }
-                    
-                    apiUrl = adminConfig.customApiUrl;
-                    headers = {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminConfig.apiKey}`
-                    };
-                    
-                    // 会話履歴を含むメッセージを構築
-                    const messages = [{ role: 'system', content: systemPrompt }];
 
-                    historyForApi.forEach(msg => {
-                        messages.push({
-                            role: msg.role,
-                            content: msg.content
-                        });
-                    });
-                    
-                    requestBody = {
-                        model: adminConfig.model,
-                        messages: messages,
-                        ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
-                            ? { max_completion_tokens: adminConfig.maxTokens || 300 }
-                            : { max_tokens: adminConfig.maxTokens || 300 }),
-                        // temperature omitted for gpt-5
-                    };
-                }
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(requestBody)
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    let rawText = '';
-
-                    if (adminConfig.apiProvider === 'claude') {
-                        const normalizedText = typeof data?.response === 'string'
-                            ? data.response.trim()
-                            : '';
-
-                        if (normalizedText) {
-                            rawText = normalizedText;
-                        } else if (Array.isArray(data?.content)) {
-                            const textBlocks = data.content
-                                .filter(block => block?.type === 'text' && typeof block.text === 'string')
-                                .map(block => block.text);
-
-                            if (textBlocks.length) {
-                                rawText = textBlocks.join('\n');
-                            }
-                        }
-
-                        if (!rawText) {
-                            console.warn('Claude response did not contain text output:', data);
-                            rawText = '(応答にテキストが含まれていませんでした)';
-                        }
-
-                    } else if (adminConfig.apiProvider === 'gemini') {
+                    parseResponse = data => {
+                        let rawText = '';
                         const candidate = data?.candidates?.[0];
                         const parts = candidate?.content?.parts;
                         if (Array.isArray(parts)) {
@@ -3456,81 +3439,136 @@ function sanitizeAIText(raw) {
                             rawText = '(応答テキストが空でした)';
                         }
 
-                    } else {
+                        const reply = sanitizeAIText(rawText);
+                        return {
+                            reply: reply || rawText,
+                            state: currentStructuredState,
+                            raw: rawText,
+                        };
+                    };
+                } else if (adminConfig.apiProvider === 'custom') {
+                    if (!adminConfig.customApiUrl) {
+                        throw new Error('カスタムAPI URLが設定されていません');
+                    }
+
+                    apiUrl = adminConfig.customApiUrl;
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminConfig.apiKey}`
+                    };
+
+                    const messages = [{ role: 'system', content: systemPrompt }];
+                    historyForApi.forEach(msg => {
+                        messages.push({
+                            role: msg.role,
+                            content: msg.content
+                        });
+                    });
+
+                    requestBody = {
+                        model: adminConfig.model,
+                        messages,
+                        ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
+                            ? { max_completion_tokens: adminConfig.maxTokens || 300 }
+                            : { max_tokens: adminConfig.maxTokens || 300 }),
+                    };
+
+                    parseResponse = data => {
+                        let rawText = '';
                         const choice = data?.choices?.[0] ?? null;
                         const msg = choice?.message ?? null;
 
-                        let textOut = '';
-
                         if (msg && typeof msg.output_text === 'string') {
-                            textOut = msg.output_text;
+                            rawText = msg.output_text;
                         }
-                        if (!textOut && choice && typeof choice.output_text === 'string') {
-                            textOut = choice.output_text;
+                        if (!rawText && choice && typeof choice.output_text === 'string') {
+                            rawText = choice.output_text;
                         }
-                        if (!textOut && msg && 'content' in msg) {
-                            textOut = extractTextDeep(msg.content);
+                        if (!rawText && msg && 'content' in msg) {
+                            rawText = extractTextDeep(msg.content);
                         }
-                        if (!textOut && choice && typeof choice.text === 'string') {
-                            textOut = choice.text;
+                        if (!rawText && choice && typeof choice.text === 'string') {
+                            rawText = choice.text;
                         }
-                        if (!textOut && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-                            textOut = '(ツール呼び出しのみの応答)';
+                        if (!rawText && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+                            rawText = '(ツール呼び出しのみの応答)';
                         }
-                        if (!textOut && typeof data === 'string') {
-                            textOut = data;
-                        }
-
-                        textOut = (textOut || '').toString().trim();
-                        if (!textOut) {
-                            console.warn('OpenAI content normalization produced empty output. Full data:', data);
-                            textOut = '(応答テキストが空でした)';
+                        if (!rawText && typeof data === 'string') {
+                            rawText = data;
                         }
 
-                        rawText = textOut;
-                    }
+                        rawText = (rawText || '').toString().trim();
+                        if (!rawText) {
+                            console.warn('カスタムAPIの応答が空でした:', data);
+                            rawText = '(応答テキストが空でした)';
+                        }
 
-                    const requestEndTime = performance.now();
-                    const responseTime = Math.round(requestEndTime - requestStartTime);
-                    console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
+                        const reply = sanitizeAIText(rawText);
+                        return {
+                            reply: reply || rawText,
+                            state: currentStructuredState,
+                            raw: rawText,
+                        };
+                    };
+                }
 
-                    return sanitizeAIText(rawText);
-                } else {
-                    const errorPayload = await response.text();
-                    let parsedError;
-                    try {
-                        parsedError = JSON.parse(errorPayload);
-                    } catch (e) {
-                        parsedError = null;
-                    }
+                if (!apiUrl || !requestBody || typeof parseResponse !== 'function') {
+                    throw new Error('APIリクエストの構成に失敗しました');
+                }
 
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                const isJsonResponse = contentType.includes('application/json');
+                const data = isJsonResponse ? await response.json() : await response.text();
+
+                if (!response.ok) {
                     let errorMsg = 'APIリクエストが失敗しました';
 
-                    if (adminConfig.apiProvider === 'claude') {
-                        const proxyMessage = typeof parsedError?.error === 'string'
-                            ? parsedError.error
-                            : parsedError?.error?.message;
-                        errorMsg = proxyMessage || errorMsg;
-
-                        if (response.status === 401) {
-                            errorMsg += ' - APIキーが無効です';
-                        } else if (response.status === 400 && errorMsg.includes('max_tokens')) {
-                            errorMsg += ' - max_tokensの値を確認してください(最小値: 1)';
-                        }
-                    } else {
-                        errorMsg = parsedError?.error?.message || errorMsg;
+                    if (typeof data === 'object' && data !== null) {
+                        errorMsg = data.error?.message || data.error || errorMsg;
+                    } else if (typeof data === 'string' && data.trim()) {
+                        errorMsg = data.trim();
                     }
 
-                    console.error(`APIエラー (${response.status}):`, parsedError ?? errorPayload);
+                    if (response.status === 401) {
+                        errorMsg += ' - APIキーが無効です';
+                    }
+
                     throw new Error(`${errorMsg} (${response.status})`);
                 }
+
+                const requestEndTime = performance.now();
+                const responseTime = Math.round(requestEndTime - requestStartTime);
+                console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
+
+                const parsed = parseResponse(data);
+                if (!parsed || typeof parsed.reply !== 'string') {
+                    console.warn('AI応答の解析結果が不正です:', parsed);
+                    return {
+                        reply: '(応答テキストが空でした)',
+                        state: currentStructuredState,
+                        raw: '',
+                    };
+                }
+
+                return parsed;
             } catch (error) {
                 console.error('AI API エラー:', error);
-                addMessage('ai', '申し訳ございません、AIサービスに接続できませんでした。デモモードで続行します。');
+                const fallbackMessage = '申し訳ございません、AIサービスに接続できませんでした。デモモードで続行します。';
+                return {
+                    reply: fallbackMessage,
+                    state: currentStructuredState,
+                    raw: fallbackMessage,
+                    error: true,
+                };
             }
         }
 
-        // デモ用の応答
         const responses = [
             "なるほど、その観点は興味深いですね。登場人物の表情や行動からも何か読み取れることはありますか？",
             "とても良い分析ですね。他の登場人物はどのような気持ちでいると思いますか？",
@@ -3539,9 +3577,15 @@ function sanitizeAIText(raw) {
             "興味深い指摘ですね。その状況で相手はどんなことを考えているでしょうか？",
             "良い視点ですね。もし自分がその立場だったら、どのように感じるでしょうか？"
         ];
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000));
-        return responses[Math.floor(Math.random() * responses.length)];
+        const demoReply = responses[Math.floor(Math.random() * responses.length)];
+        return {
+            reply: demoReply,
+            state: currentStructuredState,
+            raw: demoReply,
+            demo: true,
+        };
     }
 
     async function initializeUserSession(userId) {
@@ -3790,7 +3834,9 @@ function sanitizeAIText(raw) {
     function resetExperiment() {
         // セッションタイマーを停止
         stopSessionTimer();
-        
+
+        currentStructuredState = null;
+
         document.getElementById('experimentContent').style.display = 'none';
         document.getElementById('participantSetup').style.display = 'block';
         
