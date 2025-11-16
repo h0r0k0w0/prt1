@@ -1336,7 +1336,53 @@ function sanitizeAIText(raw) {
     let supabase = null;
     let isSupabaseAvailable = false;
     let currentAssignment = null;
-    let currentStructuredState = null;
+
+    function createInitialStructuredState() {
+      return {
+        personas: [
+          {
+            persona_id: 1,
+            persona_name: null,
+            phases: {
+              before_c: {
+                focus: { name: '未定', type: null, is_completed: false, details: null },
+                pattern_usage: {
+                  c_used: false,
+                  b_count: 0,
+                  b_categories_used: [],
+                  k_used: false,
+                  h_used: false
+                },
+                information: { reasons: [] }
+              },
+              after_c: {
+                focus: { name: '未定', type: null, is_completed: false, details: null },
+                pattern_usage: {
+                  c_used: false,
+                  b_count: 0,
+                  b_categories_used: [],
+                  k_used: false,
+                  h_used: false
+                },
+                information: { reasons: [] }
+              }
+            }
+          }
+        ],
+        global_state: {
+          current_persona_id: 1,
+          current_phase: 'before_c',
+          total_personas_analyzed: 0,
+          relationship_analysis_done: false
+        },
+        last_pattern_used: {
+          pattern: null,
+          category: null
+        }
+      };
+    }
+
+    let currentStructuredState = createInitialStructuredState();
     
     let adminConfig = {
         adminPassword: 'MentalizeAdmin2024!',
@@ -3181,7 +3227,7 @@ function sanitizeAIText(raw) {
     }
 
     function initializeChat() {
-        currentStructuredState = null;
+        currentStructuredState = createInitialStructuredState();
         const messages = document.getElementById('chatMessages');
         messages.innerHTML = '';
 
@@ -3897,7 +3943,7 @@ function sanitizeAIText(raw) {
         // セッションタイマーを停止
         stopSessionTimer();
 
-        currentStructuredState = null;
+        currentStructuredState = createInitialStructuredState();
 
         document.getElementById('experimentContent').style.display = 'none';
         document.getElementById('participantSetup').style.display = 'block';
