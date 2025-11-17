@@ -143,16 +143,41 @@ function buildRequestPayload(body, normalized, options) {
       .filter(Boolean);
   }
 
+  const thinkingModeRaw = body.thinking_mode ?? body.thinkingMode;
+  const thinkingMode = typeof thinkingModeRaw === 'string'
+    ? thinkingModeRaw.trim()
+    : null;
   const thinkingBudget = toNumber(
     body.thinking_budget_tokens ?? body.thinkingBudgetTokens,
     null,
   );
-  if (thinkingBudget != null) {
+  if (thinkingMode === 'enabled') {
+    payload.thinking = { type: 'enabled' };
+    if (thinkingBudget != null) {
+      payload.thinking.budget_tokens = thinkingBudget;
+    }
+  } else if (thinkingMode === 'disabled') {
+    payload.thinking = { type: 'disabled' };
+  } else if (thinkingBudget != null) {
     payload.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
   }
 
   if (systemPrompt) {
-    payload.system = systemPrompt;
+    const cacheControl = body.system_cache_control ?? body.systemCacheControl;
+    const cacheType = typeof cacheControl?.type === 'string'
+      ? cacheControl.type.trim()
+      : null;
+    if (cacheType) {
+      payload.system = [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: cacheType },
+        },
+      ];
+    } else {
+      payload.system = systemPrompt;
+    }
   }
 
   const explicitTools = Array.isArray(body.tools) ? body.tools : null;

@@ -147,6 +147,31 @@ function buildRequestPayload(body, normalized, options) {
       .filter(Boolean);
   }
 
+  const reasoningEffort =
+    body.reasoning_effort ??
+    body.reasoningEffort ??
+    (typeof body.reasoning === 'object' ? body.reasoning.effort : null);
+  if (typeof reasoningEffort === 'string' && reasoningEffort.trim()) {
+    payload.reasoning = { effort: reasoningEffort.trim() };
+  }
+
+  const textVerbosity =
+    body.text_verbosity ??
+    body.textVerbosity ??
+    (typeof body.text === 'object' ? body.text.verbosity : null);
+  if (typeof textVerbosity === 'string' && textVerbosity.trim()) {
+    payload.text = { verbosity: textVerbosity.trim() };
+  }
+
+  const maxOutputTokens = toNumber(body.max_output_tokens, null);
+  if (maxOutputTokens != null) {
+    payload.max_output_tokens = maxOutputTokens;
+  }
+
+  if (typeof body.prompt_cache_retention === 'string' && body.prompt_cache_retention.trim()) {
+    payload.prompt_cache_retention = body.prompt_cache_retention.trim();
+  }
+
   return payload;
 }
 

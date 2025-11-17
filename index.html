@@ -897,6 +897,40 @@
                             <textarea id="openaiStopSequences" style="height:70px;" placeholder="例: ###\n</end>"></textarea>
                             <small style="color:#6c757d;">空欄のままなら送信しません</small>
                           </div>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="openaiReasoningEffort">reasoning.effort（gpt-5系）</label>
+                              <select id="openaiReasoningEffort">
+                                <option value="">未指定</option>
+                                <option value="minimal">minimal</option>
+                                <option value="none">none（gpt-5.1）</option>
+                                <option value="low">low</option>
+                                <option value="medium">medium</option>
+                                <option value="high">high</option>
+                              </select>
+                              <small style="color:#6c757d;">値を空欄にすると送信しません</small>
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiTextVerbosity">text.verbosity（出力詳細度）</label>
+                              <select id="openaiTextVerbosity">
+                                <option value="">未指定</option>
+                                <option value="low">low</option>
+                                <option value="medium">medium</option>
+                                <option value="high">high</option>
+                              </select>
+                              <small style="color:#6c757d;">未指定のままなら送信しません</small>
+                            </div>
+                          </div>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="openaiMaxOutputTokens">max_output_tokens（推論込みの上限）</label>
+                              <input type="number" id="openaiMaxOutputTokens" step="1" min="1" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiPromptCacheRetention">prompt_cache_retention（例: 24h）</label>
+                              <input type="text" id="openaiPromptCacheRetention" placeholder="空欄で送信しない">
+                            </div>
+                          </div>
                         </div>
 
                         <div id="claudeAdvancedSettings" class="form-group" style="display: none; border: 1px solid #e9ecef; padding: 12px; border-radius: 8px;">
@@ -920,6 +954,19 @@
                             <label for="claudeThinkingBudget">thinking budget_tokens（思考モード対応モデルのみ）</label>
                             <input type="number" id="claudeThinkingBudget" step="1" min="1" placeholder="空欄で無効">
                             <small style="color:#6c757d;">空欄の場合は送信しません</small>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeThinkingToggle">thinking（思考モード）</label>
+                            <select id="claudeThinkingToggle">
+                              <option value="">未指定（送信しない）</option>
+                              <option value="enabled">enabled</option>
+                              <option value="disabled">disabled</option>
+                            </select>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeCacheControl">cache_control.type（例: ephemeral）</label>
+                            <input type="text" id="claudeCacheControl" placeholder="空欄で送信しない">
+                            <small style="color:#6c757d;">systemメッセージに cache_control を付与します</small>
                           </div>
                         </div>
                         <div class="form-group">
@@ -1452,12 +1499,18 @@ function sanitizeAIText(raw) {
           presence_penalty: null,
           frequency_penalty: null,
           stop: [],
+          reasoning_effort: null,
+          text_verbosity: null,
+          max_output_tokens: null,
+          prompt_cache_retention: null,
         },
         claudeParams: {
           top_p: null,
           top_k: null,
           stop_sequences: [],
           thinking_budget_tokens: null,
+          thinking_mode: null,
+          cache_control_type: null,
         },
         sessionTimeout: 60,
         showSessionTimer: true,
@@ -2165,12 +2218,18 @@ function sanitizeAIText(raw) {
           presence_penalty: parseNullableNumberInput('openaiPresencePenalty'),
           frequency_penalty: parseNullableNumberInput('openaiFrequencyPenalty'),
           stop: parseStopList('openaiStopSequences'),
+          reasoning_effort: (document.getElementById('openaiReasoningEffort')?.value || '').trim() || null,
+          text_verbosity: (document.getElementById('openaiTextVerbosity')?.value || '').trim() || null,
+          max_output_tokens: parseNullableNumberInput('openaiMaxOutputTokens'),
+          prompt_cache_retention: (document.getElementById('openaiPromptCacheRetention')?.value || '').trim() || null,
         };
         adminConfig.claudeParams = {
           top_p: parseNullableNumberInput('claudeTopP'),
           top_k: parseNullableNumberInput('claudeTopK'),
           stop_sequences: parseStopList('claudeStopSequences'),
           thinking_budget_tokens: parseNullableNumberInput('claudeThinkingBudget'),
+          thinking_mode: (document.getElementById('claudeThinkingToggle')?.value || '').trim() || null,
+          cache_control_type: (document.getElementById('claudeCacheControl')?.value || '').trim() || null,
         };
         adminConfig.sessionTimeout = Number(document.getElementById('sessionTimeout').value);
         adminConfig.showSessionTimer = document.getElementById('showTimer').checked;
@@ -2412,6 +2471,14 @@ function sanitizeAIText(raw) {
         if (openaiFrequencyPenaltyInput) openaiFrequencyPenaltyInput.value = adminConfig?.openaiParams?.frequency_penalty ?? '';
         const openaiStopInput = document.getElementById('openaiStopSequences');
         if (openaiStopInput) openaiStopInput.value = (adminConfig?.openaiParams?.stop || []).join('\n');
+        const openaiReasoningEffort = document.getElementById('openaiReasoningEffort');
+        if (openaiReasoningEffort) openaiReasoningEffort.value = adminConfig?.openaiParams?.reasoning_effort || '';
+        const openaiTextVerbosity = document.getElementById('openaiTextVerbosity');
+        if (openaiTextVerbosity) openaiTextVerbosity.value = adminConfig?.openaiParams?.text_verbosity || '';
+        const openaiMaxOutputTokens = document.getElementById('openaiMaxOutputTokens');
+        if (openaiMaxOutputTokens) openaiMaxOutputTokens.value = adminConfig?.openaiParams?.max_output_tokens ?? '';
+        const openaiPromptCacheRetention = document.getElementById('openaiPromptCacheRetention');
+        if (openaiPromptCacheRetention) openaiPromptCacheRetention.value = adminConfig?.openaiParams?.prompt_cache_retention || '';
 
         const claudeTopPInput = document.getElementById('claudeTopP');
         if (claudeTopPInput) claudeTopPInput.value = adminConfig?.claudeParams?.top_p ?? '';
@@ -2421,6 +2488,10 @@ function sanitizeAIText(raw) {
         if (claudeStopInput) claudeStopInput.value = (adminConfig?.claudeParams?.stop_sequences || []).join('\n');
         const claudeThinkingInput = document.getElementById('claudeThinkingBudget');
         if (claudeThinkingInput) claudeThinkingInput.value = adminConfig?.claudeParams?.thinking_budget_tokens ?? '';
+        const claudeThinkingToggle = document.getElementById('claudeThinkingToggle');
+        if (claudeThinkingToggle) claudeThinkingToggle.value = adminConfig?.claudeParams?.thinking_mode || '';
+        const claudeCacheControl = document.getElementById('claudeCacheControl');
+        if (claudeCacheControl) claudeCacheControl.value = adminConfig?.claudeParams?.cache_control_type || '';
 
         const timeoutInput = document.getElementById('sessionTimeout');
         if (timeoutInput) timeoutInput.value = adminConfig.sessionTimeout ?? 30;
@@ -3553,6 +3624,18 @@ function sanitizeAIText(raw) {
                     if (Array.isArray(openaiParams.stop) && openaiParams.stop.length) {
                         requestBody.stop = openaiParams.stop;
                     }
+                    if (openaiParams.reasoning_effort) {
+                        requestBody.reasoning = { effort: openaiParams.reasoning_effort };
+                    }
+                    if (openaiParams.text_verbosity) {
+                        requestBody.text = { verbosity: openaiParams.text_verbosity };
+                    }
+                    if (openaiParams.max_output_tokens != null) {
+                        requestBody.max_output_tokens = openaiParams.max_output_tokens;
+                    }
+                    if (openaiParams.prompt_cache_retention) {
+                        requestBody.prompt_cache_retention = openaiParams.prompt_cache_retention;
+                    }
 
                     parseResponse = data => {
                         if (data && Object.prototype.hasOwnProperty.call(data, 'state')) {
@@ -3604,8 +3687,18 @@ function sanitizeAIText(raw) {
                     if (Array.isArray(claudeParams.stop_sequences) && claudeParams.stop_sequences.length) {
                         requestBody.stop_sequences = claudeParams.stop_sequences;
                     }
-                    if (claudeParams.thinking_budget_tokens != null) {
+                    if (claudeParams.thinking_mode === 'enabled') {
+                        requestBody.thinking = { type: 'enabled' };
+                        if (claudeParams.thinking_budget_tokens != null) {
+                            requestBody.thinking.budget_tokens = claudeParams.thinking_budget_tokens;
+                        }
+                    } else if (claudeParams.thinking_mode === 'disabled') {
+                        requestBody.thinking = { type: 'disabled' };
+                    } else if (claudeParams.thinking_budget_tokens != null) {
                         requestBody.thinking = { type: 'enabled', budget_tokens: claudeParams.thinking_budget_tokens };
+                    }
+                    if (claudeParams.cache_control_type) {
+                        requestBody.system_cache_control = { type: claudeParams.cache_control_type };
                     }
 
                     parseResponse = data => {
