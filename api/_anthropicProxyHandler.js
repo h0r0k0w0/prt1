@@ -131,6 +131,10 @@ function buildSystemField(systemBlocks, cacheType) {
 
   if (cacheType) {
     const limitedBlocks = limitCacheBreakpoints(systemBlocks);
+    // cache_control は system ブロックにのみ付与される。ここで静的ブロックと
+    // state を含む動的ブロックの両方へ同一設定を付けることで、静的部のみ一致
+    // している場合でもキャッシュが再利用される（state 部分が変わればその
+    // ブロックだけが無効化される）。
     return limitedBlocks.map(block => ({
       type: 'text',
       text: block.text,
