@@ -91,7 +91,8 @@ function normalizeConversation(messages, stateMessageContent) {
   };
 }
 
-// Claudeはsystemに最大4ブロックまでcache_controlを付けられるため、超過分は後ろ側をマージする。
+// Claudeは "system" メッセージに対してのみ cache_control を最大4ブロックまで付けられるため、
+// それ以外（user/assistant）のターンはここでは扱わない。超過分は後ろ側をマージする。
 // isStateフラグはマージ後のブロックにもORで引き継ぎ、"この塊は動的stateを含む"という判定を維持する。
 function limitCacheBreakpoints(blocks, maxBreakpoints = 4) {
   const limited = blocks.map(block => ({ ...block }));
