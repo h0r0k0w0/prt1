@@ -929,6 +929,7 @@
                             <div class="form-group">
                               <label for="openaiPromptCacheRetention">prompt_cache_retention（例: 24h）</label>
                               <input type="text" id="openaiPromptCacheRetention" placeholder="空欄で送信しない">
+                              <small style="color:#6c757d;">OpenAI側でプロンプト全体をキャッシュします（同一プロンプト・同一パラメータ時に有効）。</small>
                             </div>
                           </div>
                         </div>
@@ -966,8 +967,12 @@
                           <div class="form-group">
                             <label for="claudeCacheControl">cache_control.type（例: ephemeral）</label>
                             <input type="text" id="claudeCacheControl" placeholder="空欄で送信しない">
-                            <small style="color:#6c757d;">systemメッセージに cache_control を付与します</small>
+                            <small style="color:#6c757d;">systemメッセージに cache_control を付与し、同一システムプロンプトを再利用する際に効きます。</small>
                           </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 10px;">
+                          <button id="saveModelParamsBtn" class="btn" style="background:#4a5bdc;color:white;">モデル設定を保存</button>
+                          <small style="display:block; color:#6c757d; margin-top:6px;">OpenAI/Claudeのモデル・詳細パラメータを保存します（下の設定保存ボタンと同じ動作）。</small>
                         </div>
                         <div class="form-group">
                           <label for="sessionTimeout">セッションタイムアウト (分)</label>
@@ -4631,6 +4636,7 @@ function sanitizeAIText(raw) {
         // 設定保存
         document.getElementById('changePasswordBtn').addEventListener('click', changeAdminPassword);
         document.getElementById('saveConfigBtn').addEventListener('click', saveAdminConfig);
+        document.getElementById('saveModelParamsBtn').addEventListener('click', saveAdminConfig);
         document.getElementById('savePromptBtn').addEventListener('click', savePromptConfig);
         document.getElementById('saveSessionConfigBtn').addEventListener('click', saveSessionConfig);
         document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
