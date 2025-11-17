@@ -42,6 +42,8 @@ function toAnthropicContentBlock(text) {
   return [{ type: 'text', text }];
 }
 
+// Systemメッセージ群とユーザー/assistantターンを分離し、stateを含むsystemメッセージにフラグを付与する。
+// stateMessageContent は prepareConversationPayload が生成する「Stateを埋め込んだsystemテキスト」そのもの。
 function normalizeConversation(messages, stateMessageContent) {
   const systemMessages = [];
   const conversation = [];
@@ -55,6 +57,7 @@ function normalizeConversation(messages, stateMessageContent) {
     if (message.role === 'system') {
       systemMessages.push({
         text: trimmed,
+        // stateを埋め込んだsystemメッセージと完全一致する場合だけ動的ブロックとしてマークする。
         isState: !!stateMessageContent && trimmed === stateMessageContent,
       });
       continue;
@@ -88,6 +91,8 @@ function normalizeConversation(messages, stateMessageContent) {
   };
 }
 
+// Claudeはsystemに最大4ブロックまでcache_controlを付けられるため、超過分は後ろ側をマージする。
+// isStateフラグはマージ後のブロックにもORで引き継ぎ、"この塊は動的stateを含む"という判定を維持する。
 function limitCacheBreakpoints(blocks, maxBreakpoints = 4) {
   const limited = blocks.map(block => ({ ...block }));
 

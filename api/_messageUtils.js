@@ -206,6 +206,7 @@ export function prepareConversationPayload(rawBody) {
   const expectsStructuredResponse =
     body.expectStructuredResponse !== false && (serializedState != null || body.expectStructuredResponse === true);
 
+  // (2) reply/state形式の構造化出力指示を system として差し込む
   if (expectsStructuredResponse) {
     const instructionMessage = { role: 'system', content: STRUCTURED_OUTPUT_INSTRUCTION };
 
@@ -225,6 +226,7 @@ export function prepareConversationPayload(rawBody) {
 
   let stateMessageContent = null;
 
+  // (3) 現在のStateを埋め込んだ system メッセージ（動的部分）を最後の system 直後に差し込む
   if (serializedState) {
     stateMessageContent = `現在のState JSONは次の通りです。モデルはこの内容を参照し、更新した結果をstateフィールドに返してください。\n${serializedState}`;
 

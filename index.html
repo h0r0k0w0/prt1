@@ -967,7 +967,8 @@
                           <div class="form-group">
                             <label for="claudeCacheControl">cache_control.type（例: ephemeral）</label>
                             <input type="text" id="claudeCacheControl" placeholder="空欄で送信しない">
-                            <small style="color:#6c757d;">systemメッセージを最大4つのブロックに分割し、同一の cache_control.type を付与します。静的なプロンプトブロックはstateが変わってもキャッシュが再利用され、state付きブロックも同一stateなら再利用されます（stateが変わるとそのブロックのみ無効化）。設定項目は1つですが、静的プロンプト用とstateを含む全体用の両方に反映されます。</small>
+                            <small style="color:#6c757d; display:block;">対象は <strong>systemメッセージのみ</strong> です（ユーザー/assistantの履歴は分割されません）。構成は (1) 管理画面で入力した基本システムプロンプト＋シナリオ、(2) reply/state 形式の構造化出力指示、(3) 現在の State JSON を埋め込んだ system メッセージ の順で1列に並びます。</small>
+                            <small style="color:#6c757d; display:block;">上記の system メッセージ列を最大4ブロックに分割し、同じ cache_control.type を付与します。静的プロンプトだけのブロックは State が変わっても再利用され、State を含むブロックは同一の State でのみ再利用されます（State が変わるとそのブロックだけが無効化）。</small>
                           </div>
                         </div>
                         <div class="form-group" style="margin-top: 10px;">
