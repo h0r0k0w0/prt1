@@ -38,18 +38,11 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-function mergeSystemPrompts(systemMessages) {
-  return systemMessages
-    .map(message => message.content?.trim())
-    .filter(Boolean)
-    .join('\n\n');
-}
-
 function toAnthropicContentBlock(text) {
   return [{ type: 'text', text }];
 }
 
-function normalizeConversation(messages) {
+function normalizeConversation(messages, stateMessageContent) {
   const systemMessages = [];
   const conversation = [];
 
@@ -60,7 +53,10 @@ function normalizeConversation(messages) {
     if (!trimmed) continue;
 
     if (message.role === 'system') {
-      systemMessages.push({ ...message, content: trimmed });
+      systemMessages.push({
+        text: trimmed,
+        isState: !!stateMessageContent && trimmed === stateMessageContent,
+      });
       continue;
     }
 
@@ -87,9 +83,43 @@ function normalizeConversation(messages) {
   }
 
   return {
-    systemPrompt: mergeSystemPrompts(systemMessages),
+    systemBlocks: systemMessages,
     conversation,
   };
+}
+
+function limitCacheBreakpoints(blocks, maxBreakpoints = 4) {
+  const limited = blocks.map(block => ({ ...block }));
+
+  while (limited.length > maxBreakpoints) {
+    const overflow = limited.splice(maxBreakpoints - 1);
+    const mergedText = overflow.map(part => part.text).filter(Boolean).join('\n\n');
+    limited[maxBreakpoints - 1].text = [
+      limited[maxBreakpoints - 1].text,
+      mergedText,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    limited[maxBreakpoints - 1].isState =
+      limited[maxBreakpoints - 1].isState || overflow.some(part => part.isState);
+  }
+
+  return limited;
+}
+
+function buildSystemField(systemBlocks, cacheType) {
+  if (!systemBlocks.length) return null;
+
+  if (cacheType) {
+    const limitedBlocks = limitCacheBreakpoints(systemBlocks);
+    return limitedBlocks.map(block => ({
+      type: 'text',
+      text: block.text,
+      cache_control: { type: cacheType },
+    }));
+  }
+
+  return systemBlocks.map(block => block.text).filter(Boolean).join('\n\n');
 }
 
 function buildRequestPayload(body, normalized, options) {
@@ -102,7 +132,10 @@ function buildRequestPayload(body, normalized, options) {
     defaultTopK,
   } = options;
 
-  const { systemPrompt, conversation } = normalizeConversation(normalizedMessages);
+  const { systemBlocks, conversation } = normalizeConversation(
+    normalizedMessages,
+    normalized.stateMessageContent,
+  );
 
   const model = typeof body.model === 'string' && body.model.trim()
     ? body.model.trim()
@@ -162,21 +195,15 @@ function buildRequestPayload(body, normalized, options) {
     payload.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
   }
 
-  if (systemPrompt) {
-    const cacheControl = body.system_cache_control ?? body.systemCacheControl;
-    const cacheType = typeof cacheControl?.type === 'string'
-      ? cacheControl.type.trim()
-      : null;
-    if (cacheType) {
-      payload.system = [
-        {
-          type: 'text',
-          text: systemPrompt,
-          cache_control: { type: cacheType },
-        },
-      ];
-    } else {
-      payload.system = systemPrompt;
+  const cacheControl = body.system_cache_control ?? body.systemCacheControl;
+  const cacheType = typeof cacheControl?.type === 'string'
+    ? cacheControl.type.trim()
+    : null;
+
+  if (systemBlocks.length) {
+    const systemField = buildSystemField(systemBlocks, cacheType);
+    if (systemField) {
+      payload.system = systemField;
     }
   }
 

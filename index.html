@@ -929,7 +929,7 @@
                             <div class="form-group">
                               <label for="openaiPromptCacheRetention">prompt_cache_retention（例: 24h）</label>
                               <input type="text" id="openaiPromptCacheRetention" placeholder="空欄で送信しない">
-                              <small style="color:#6c757d;">OpenAI側でプロンプト全体をキャッシュします（同一プロンプト・同一パラメータ時に有効）。stateもプロンプトに含まれるため、stateが変わるとキャッシュは効きません。</small>
+                              <small style="color:#6c757d;">OpenAI側でプロンプト全体をキャッシュします。同一プロンプト（先頭から一致する部分）+同一パラメータでヒットするため、静的な指示・シナリオを前半、stateなどの動的情報を後半に置くと、動的部分が変わっても静的部分のキャッシュを活かせます。</small>
                             </div>
                           </div>
                         </div>
@@ -967,7 +967,7 @@
                           <div class="form-group">
                             <label for="claudeCacheControl">cache_control.type（例: ephemeral）</label>
                             <input type="text" id="claudeCacheControl" placeholder="空欄で送信しない">
-                            <small style="color:#6c757d;">systemメッセージに cache_control を付与し、同一システムプロンプトを再利用する際に効きます。stateをsystemメッセージに埋め込んで送る設計のため、stateが変わるとキャッシュは無効になります。キャッシュは「完全に同一のプロンプト（stateを含む）＋同一パラメータ」のときだけ再利用され、部分一致や一部変更ではヒットしません。プロンプトやstate以外に独立してキャッシュできる対象は現状ありません。</small>
+                            <small style="color:#6c757d;">systemメッセージを最大4つのブロックに分割し、同一の cache_control.type を付与します。静的なプロンプトブロックはstateが変わってもキャッシュが再利用され、state付きブロックも同一stateなら再利用されます（stateが変わるとそのブロックのみ無効化）。設定項目は1つですが、静的プロンプト用とstateを含む全体用の両方に反映されます。</small>
                           </div>
                         </div>
                         <div class="form-group" style="margin-top: 10px;">

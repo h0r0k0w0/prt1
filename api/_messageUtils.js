@@ -223,10 +223,14 @@ export function prepareConversationPayload(rawBody) {
     }
   }
 
+  let stateMessageContent = null;
+
   if (serializedState) {
+    stateMessageContent = `現在のState JSONは次の通りです。モデルはこの内容を参照し、更新した結果をstateフィールドに返してください。\n${serializedState}`;
+
     const stateMessage = {
       role: 'system',
-      content: `現在のState JSONは次の通りです。モデルはこの内容を参照し、更新した結果をstateフィールドに返してください。\n${serializedState}`,
+      content: stateMessageContent,
     };
 
     const lastSystemIndex = messages.reduce(
@@ -260,6 +264,7 @@ export function prepareConversationPayload(rawBody) {
     messages,
     serializedState,
     parsedState,
+    stateMessageContent,
     expectsStructuredResponse,
   };
 }
