@@ -875,6 +875,102 @@
                           <label for="temperature">Temperature</label>
                           <input type="number" id="temperature" value="0.7" step="0.1" min="0" max="2">
                         </div>
+                        <div id="openaiAdvancedSettings" class="form-group" style="display: none; border: 1px solid #e9ecef; padding: 12px; border-radius: 8px;">
+                          <label style="font-weight: 700;">OpenAIモデル詳細設定</label>
+                          <small style="display:block; color:#6c757d; margin-bottom:8px;">未入力の項目はリクエストに含めません（非対応モデルでのエラー回避）</small>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="openaiTopP">top_p (0〜1)</label>
+                              <input type="number" id="openaiTopP" step="0.01" min="0" max="1" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiPresencePenalty">presence_penalty (-2〜2)</label>
+                              <input type="number" id="openaiPresencePenalty" step="0.1" min="-2" max="2" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiFrequencyPenalty">frequency_penalty (-2〜2)</label>
+                              <input type="number" id="openaiFrequencyPenalty" step="0.1" min="-2" max="2" placeholder="空欄で無効">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="openaiStopSequences">stop（改行区切り）</label>
+                            <textarea id="openaiStopSequences" style="height:70px;" placeholder="例: ###\n</end>"></textarea>
+                            <small style="color:#6c757d;">空欄のままなら送信しません</small>
+                          </div>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="openaiReasoningEffort">reasoning.effort（gpt-5系）</label>
+                              <select id="openaiReasoningEffort">
+                                <option value="">未指定</option>
+                                <option value="minimal">minimal</option>
+                                <option value="none">none（gpt-5.1）</option>
+                                <option value="low">low</option>
+                                <option value="medium">medium</option>
+                                <option value="high">high</option>
+                              </select>
+                              <small style="color:#6c757d;">値を空欄にすると送信しません</small>
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiTextVerbosity">text.verbosity（出力詳細度）</label>
+                              <select id="openaiTextVerbosity">
+                                <option value="">未指定</option>
+                                <option value="low">low</option>
+                                <option value="medium">medium</option>
+                                <option value="high">high</option>
+                              </select>
+                              <small style="color:#6c757d;">未指定のままなら送信しません</small>
+                            </div>
+                          </div>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="openaiMaxOutputTokens">max_output_tokens（推論込みの上限）</label>
+                              <input type="number" id="openaiMaxOutputTokens" step="1" min="1" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiPromptCacheRetention">prompt_cache_retention（例: 24h）</label>
+                              <input type="text" id="openaiPromptCacheRetention" placeholder="空欄で送信しない">
+                              <small style="color:#6c757d;">OpenAI側でプロンプト全体をキャッシュします。同一プロンプト（先頭から一致する部分）+同一パラメータでヒットするため、静的な指示・シナリオを前半、stateなどの動的情報を後半に置くと、動的部分が変わっても静的部分のキャッシュを活かせます。</small>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div id="claudeAdvancedSettings" class="form-group" style="display: none; border: 1px solid #e9ecef; padding: 12px; border-radius: 8px;">
+                          <label style="font-weight: 700;">Claudeモデル詳細設定</label>
+                          <small style="display:block; color:#6c757d; margin-bottom:8px;">空欄のパラメータは送信しません（モデル非対応を考慮）</small>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="claudeTopP">top_p (0〜1)</label>
+                              <input type="number" id="claudeTopP" step="0.01" min="0" max="1" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="claudeTopK">top_k</label>
+                              <input type="number" id="claudeTopK" step="1" min="1" placeholder="空欄で無効">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeStopSequences">stop_sequences（改行区切り）</label>
+                            <textarea id="claudeStopSequences" style="height:70px;" placeholder="例: ###\n</end>"></textarea>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeThinkingBudget">thinking budget_tokens（思考モード対応モデルのみ）</label>
+                            <input type="number" id="claudeThinkingBudget" step="1" min="1" placeholder="空欄で無効">
+                            <small style="color:#6c757d;">空欄の場合は送信しません</small>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeThinkingToggle">thinking（思考モード）</label>
+                            <select id="claudeThinkingToggle">
+                              <option value="">未指定（送信しない）</option>
+                              <option value="enabled">enabled</option>
+                              <option value="disabled">disabled</option>
+                            </select>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeCacheControl">cache_control.type（例: ephemeral）</label>
+                            <input type="text" id="claudeCacheControl" placeholder="空欄で送信しない">
+                            <small style="color:#6c757d; display:block;">対象は <strong>systemメッセージのみ</strong> です（ユーザー/assistantの履歴は分割されません）。列の内容は①管理画面の基本システムプロンプト＋シナリオ（静的）→②reply/state 形式の構造化出力指示（静的）→③「現在の State JSON は以下」のように <u>State 本文だけを埋め込んだ system メッセージ</u>（動的）の順です。③には管理画面プロンプトは再掲されず、最新の State JSON だけが入ります。</small>
+                            <small style="color:#6c757d; display:block;">この3つの system メッセージだけを最大4ブロックに分割し、同じ cache_control.type を付与します。静的ブロック（①②）は State が変わっても再利用され、State を含む動的ブロック（③のみ、または③を含むマージブロック）は同一の State でのみ再利用されます。</small>
+                          </div>
+                        </div>
                         <div class="form-group">
                           <label for="sessionTimeout">セッションタイムアウト (分)</label>
                           <input type="number" id="sessionTimeout" value="30" min="1">
@@ -889,6 +985,15 @@
                     <button id="saveConfigBtn" class="btn">設定を保存</button>
                 </div>
                 
+                <div class="admin-config">
+                    <h3>🗒️ モデルパラメータメモ</h3>
+                    <div class="form-group">
+                        <label for="modelNotes">モデルごとの対応パラメータの備忘録</label>
+                        <textarea id="modelNotes" style="height: 100px;" placeholder="例: gpt-5.1 は temperature 固定、Claude 4.5 は thinking budget 対応 など"></textarea>
+                    </div>
+                    <button id="saveModelNotesBtn" class="btn">モデルパラメータメモを保存</button>
+                </div>
+
                 <div class="admin-config">
                     <h3>💬 システムプロンプト</h3>
                     <div class="form-group">
@@ -1336,7 +1441,54 @@ function sanitizeAIText(raw) {
     let supabase = null;
     let isSupabaseAvailable = false;
     let currentAssignment = null;
-    
+
+    function createInitialStructuredState() {
+      return {
+        personas: [
+          {
+            persona_id: 1,
+            persona_name: null,
+            phases: {
+              before_c: {
+                focus: { name: '未定', type: null, is_completed: false, details: null },
+                pattern_usage: {
+                  c_used: false,
+                  b_count: 0,
+                  b_categories_used: [],
+                  k_used: false,
+                  h_used: false
+                },
+                information: { reasons: [] }
+              },
+              after_c: {
+                focus: { name: '未定', type: null, is_completed: false, details: null },
+                pattern_usage: {
+                  c_used: false,
+                  b_count: 0,
+                  b_categories_used: [],
+                  k_used: false,
+                  h_used: false
+                },
+                information: { reasons: [] }
+              }
+            }
+          }
+        ],
+        global_state: {
+          current_persona_id: 1,
+          current_phase: 'before_c',
+          total_personas_analyzed: 0,
+          relationship_analysis_done: false
+        },
+        last_pattern_used: {
+          pattern: null,
+          category: null
+        }
+      };
+    }
+
+    let currentStructuredState = createInitialStructuredState();
+
     let adminConfig = {
         adminPassword: 'MentalizeAdmin2024!',
         apiProvider: 'openai',
@@ -1345,11 +1497,51 @@ function sanitizeAIText(raw) {
         model: 'gpt-3.5-turbo',
         maxTokens: 1000,
         temperature: 0.7,
+        openaiParams: {
+          top_p: null,
+          presence_penalty: null,
+          frequency_penalty: null,
+          stop: [],
+          reasoning_effort: null,
+          text_verbosity: null,
+          max_output_tokens: null,
+          prompt_cache_retention: null,
+        },
+        claudeParams: {
+          top_p: null,
+          top_k: null,
+          stop_sequences: [],
+          thinking_budget_tokens: null,
+          thinking_mode: null,
+          cache_control_type: null,
+        },
         sessionTimeout: 60,
         showSessionTimer: true,
         minimumSessionTime: 300, // 最低セッション時間（秒）- デフォルト5分
-        systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。'
+        systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。',
+        modelNotes: '',
     };
+
+    function mergeAdminConfig(base, incoming = {}) {
+        const merged = { ...base, ...incoming };
+        merged.openaiParams = { ...(base.openaiParams || {}), ...(incoming.openaiParams || {}) };
+        merged.claudeParams = { ...(base.claudeParams || {}), ...(incoming.claudeParams || {}) };
+        return merged;
+    }
+
+    function modelSupportsCustomTemperature(modelName) {
+        if (!modelName) return true;
+        const normalized = modelName.toLowerCase();
+        return !(
+            normalized.startsWith('gpt-5') ||
+            normalized.startsWith('o1')
+        );
+    }
+
+    function modelSupportsReasoning(modelName) {
+        if (!modelName) return false;
+        return modelName.toLowerCase().startsWith('gpt-5');
+    }
     
     let currentScenarioIndex = 0;
     let currentDay = 1;
@@ -1541,7 +1733,7 @@ function sanitizeAIText(raw) {
             if (error && error.code !== 'PGRST116') throw error;
             
             if (data) {
-                adminConfig = { ...adminConfig, ...data.settings };
+                adminConfig = mergeAdminConfig(adminConfig, data.settings || {});
               } else {
                 console.log('admin_config 行が存在しないため、デフォルト設定を使用します');
             }
@@ -1781,12 +1973,14 @@ function sanitizeAIText(raw) {
                     analysis: logData.analysis,
                     chatHistory: logData.chatHistory,
                     model: adminConfig.model,
+                    structuredState: currentStructuredState,
                     scenarioIndex: logData.scenarioIndex ?? null,
                     scenario_id: logData.scenario_id,               // 追加：固定ID
                     snapshot: {                                     // 追加：完全再現用
                       title: logData.snapshot_title,
                       content: logData.snapshot_content
-                    }
+                    },
+                    sessionDuration: logData.sessionDuration ?? null
                 },
                 created_at: new Date().toISOString()
             };
@@ -1814,6 +2008,7 @@ function sanitizeAIText(raw) {
                   analysis: logData.analysis,
                   chatHistory: logData.chatHistory,
                   model: adminConfig.model,
+                  structuredState: currentStructuredState,
                   // 互換のために scenarioIndex を残す（不要になったら NULL か削除）
                   scenarioIndex: logData.scenarioIndex ?? null,
                   // 新規：固定IDと完全再現用スナップショット
@@ -1821,7 +2016,8 @@ function sanitizeAIText(raw) {
                   snapshot: {
                     title: logData.snapshot_title,
                     content: logData.snapshot_content
-                  }
+                  },
+                  sessionDuration: logData.sessionDuration ?? null
                 }
               };
 
@@ -1846,7 +2042,7 @@ function sanitizeAIText(raw) {
         const savedConfig = localStorage.getItem('mentalizeAdminConfig');
         if (savedConfig) {
             try {
-                adminConfig = { ...adminConfig, ...JSON.parse(savedConfig) };
+                adminConfig = mergeAdminConfig(adminConfig, JSON.parse(savedConfig));
             } catch (error) {
                 console.warn('管理者設定読み込みエラー:', error);
             }
@@ -1958,6 +2154,24 @@ function sanitizeAIText(raw) {
         selectMode('none');
     }
 
+    function parseNullableNumberInput(elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return null;
+        const value = el.value;
+        if (value === '' || value == null) return null;
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+    }
+
+    function parseStopList(elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return [];
+        return el.value
+            .split(/\r?\n/)
+            .map(v => v.trim())
+            .filter(v => v.length > 0);
+    }
+
     // 管理者パスワード変更
     async function changeAdminPassword() {
         const newPassword = document.getElementById('newAdminPassword').value;
@@ -2007,8 +2221,27 @@ function sanitizeAIText(raw) {
         
         adminConfig.maxTokens = Number(document.getElementById('maxTokens').value);
         adminConfig.temperature = Number(document.getElementById('temperature').value);
+        adminConfig.openaiParams = {
+          top_p: parseNullableNumberInput('openaiTopP'),
+          presence_penalty: parseNullableNumberInput('openaiPresencePenalty'),
+          frequency_penalty: parseNullableNumberInput('openaiFrequencyPenalty'),
+          stop: parseStopList('openaiStopSequences'),
+          reasoning_effort: (document.getElementById('openaiReasoningEffort')?.value || '').trim() || null,
+          text_verbosity: (document.getElementById('openaiTextVerbosity')?.value || '').trim() || null,
+          max_output_tokens: parseNullableNumberInput('openaiMaxOutputTokens'),
+          prompt_cache_retention: (document.getElementById('openaiPromptCacheRetention')?.value || '').trim() || null,
+        };
+        adminConfig.claudeParams = {
+          top_p: parseNullableNumberInput('claudeTopP'),
+          top_k: parseNullableNumberInput('claudeTopK'),
+          stop_sequences: parseStopList('claudeStopSequences'),
+          thinking_budget_tokens: parseNullableNumberInput('claudeThinkingBudget'),
+          thinking_mode: (document.getElementById('claudeThinkingToggle')?.value || '').trim() || null,
+          cache_control_type: (document.getElementById('claudeCacheControl')?.value || '').trim() || null,
+        };
         adminConfig.sessionTimeout = Number(document.getElementById('sessionTimeout').value);
         adminConfig.showSessionTimer = document.getElementById('showTimer').checked;
+        adminConfig.modelNotes = document.getElementById('modelNotes')?.value || '';
         await saveAdminSettings();
         
         document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
@@ -2020,6 +2253,13 @@ function sanitizeAIText(raw) {
         adminConfig.adminMemo = document.getElementById('adminMemo').value;
         await saveAdminSettings();
         alert('メモが保存されました！');
+    }
+
+    // モデルパラメータメモ保存
+    async function saveModelNotes() {
+        adminConfig.modelNotes = document.getElementById('modelNotes')?.value || '';
+        await saveAdminSettings();
+        alert('モデルパラメータメモを保存しました！');
     }
     
     // カスタムモデル入力フィールドの表示/非表示
@@ -2238,14 +2478,47 @@ function sanitizeAIText(raw) {
         const tempInput = document.getElementById('temperature');
         if (tempInput) tempInput.value = adminConfig.temperature ?? 0.7;
 
+        const openaiTopPInput = document.getElementById('openaiTopP');
+        if (openaiTopPInput) openaiTopPInput.value = adminConfig?.openaiParams?.top_p ?? '';
+        const openaiPresencePenaltyInput = document.getElementById('openaiPresencePenalty');
+        if (openaiPresencePenaltyInput) openaiPresencePenaltyInput.value = adminConfig?.openaiParams?.presence_penalty ?? '';
+        const openaiFrequencyPenaltyInput = document.getElementById('openaiFrequencyPenalty');
+        if (openaiFrequencyPenaltyInput) openaiFrequencyPenaltyInput.value = adminConfig?.openaiParams?.frequency_penalty ?? '';
+        const openaiStopInput = document.getElementById('openaiStopSequences');
+        if (openaiStopInput) openaiStopInput.value = (adminConfig?.openaiParams?.stop || []).join('\n');
+        const openaiReasoningEffort = document.getElementById('openaiReasoningEffort');
+        if (openaiReasoningEffort) openaiReasoningEffort.value = adminConfig?.openaiParams?.reasoning_effort || '';
+        const openaiTextVerbosity = document.getElementById('openaiTextVerbosity');
+        if (openaiTextVerbosity) openaiTextVerbosity.value = adminConfig?.openaiParams?.text_verbosity || '';
+        const openaiMaxOutputTokens = document.getElementById('openaiMaxOutputTokens');
+        if (openaiMaxOutputTokens) openaiMaxOutputTokens.value = adminConfig?.openaiParams?.max_output_tokens ?? '';
+        const openaiPromptCacheRetention = document.getElementById('openaiPromptCacheRetention');
+        if (openaiPromptCacheRetention) openaiPromptCacheRetention.value = adminConfig?.openaiParams?.prompt_cache_retention || '';
+
+        const claudeTopPInput = document.getElementById('claudeTopP');
+        if (claudeTopPInput) claudeTopPInput.value = adminConfig?.claudeParams?.top_p ?? '';
+        const claudeTopKInput = document.getElementById('claudeTopK');
+        if (claudeTopKInput) claudeTopKInput.value = adminConfig?.claudeParams?.top_k ?? '';
+        const claudeStopInput = document.getElementById('claudeStopSequences');
+        if (claudeStopInput) claudeStopInput.value = (adminConfig?.claudeParams?.stop_sequences || []).join('\n');
+        const claudeThinkingInput = document.getElementById('claudeThinkingBudget');
+        if (claudeThinkingInput) claudeThinkingInput.value = adminConfig?.claudeParams?.thinking_budget_tokens ?? '';
+        const claudeThinkingToggle = document.getElementById('claudeThinkingToggle');
+        if (claudeThinkingToggle) claudeThinkingToggle.value = adminConfig?.claudeParams?.thinking_mode || '';
+        const claudeCacheControl = document.getElementById('claudeCacheControl');
+        if (claudeCacheControl) claudeCacheControl.value = adminConfig?.claudeParams?.cache_control_type || '';
+
         const timeoutInput = document.getElementById('sessionTimeout');
         if (timeoutInput) timeoutInput.value = adminConfig.sessionTimeout ?? 30;
 
         const showTimerCheckbox = document.getElementById('showTimer');
         if (showTimerCheckbox) showTimerCheckbox.checked = adminConfig.showSessionTimer ?? true;
-        
+
         const systemPromptInput = document.getElementById('systemPrompt');
         if (systemPromptInput) systemPromptInput.value = adminConfig.systemPrompt || '';
+
+        const modelNotesInput = document.getElementById('modelNotes');
+        if (modelNotesInput) modelNotesInput.value = adminConfig.modelNotes || '';
 
         const minimumSessionTimeInput = document.getElementById('minimumSessionTime');
         if (minimumSessionTimeInput) minimumSessionTimeInput.value = Math.floor((adminConfig.minimumSessionTime || 300) / 60); // 秒を分に変換
@@ -2255,16 +2528,26 @@ function sanitizeAIText(raw) {
     }
     
     // APIプロバイダーUIの更新
-    function updateApiProviderUI() {
-        const provider = document.getElementById('apiProvider')?.value;
-        const customUrlGroup = document.getElementById('customUrlGroup');
-        
-        if (customUrlGroup) {
-            customUrlGroup.style.display = provider === 'custom' ? 'block' : 'none';
-        }
-        
-        updateModelOptions();
-    }
+      function updateApiProviderUI() {
+          const provider = document.getElementById('apiProvider')?.value;
+          const customUrlGroup = document.getElementById('customUrlGroup');
+
+          if (customUrlGroup) {
+              customUrlGroup.style.display = provider === 'custom' ? 'block' : 'none';
+          }
+
+          const openaiAdv = document.getElementById('openaiAdvancedSettings');
+          if (openaiAdv) {
+              openaiAdv.style.display = provider === 'openai' ? 'block' : 'none';
+          }
+
+          const claudeAdv = document.getElementById('claudeAdvancedSettings');
+          if (claudeAdv) {
+              claudeAdv.style.display = provider === 'claude' ? 'block' : 'none';
+          }
+
+          updateModelOptions();
+      }
     
     // モデル選択肢の更新
     function updateModelOptions() {
@@ -2712,13 +2995,20 @@ function sanitizeAIText(raw) {
         filteredLogs.forEach(log => {
             const item = document.createElement('div');
             item.style.cssText = 'background: white; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin-bottom: 15px;';
-            
+
             const date = new Date(log.created_at).toLocaleString('ja-JP');
             const typeLabels = {
                 'self_analysis': '自力分析',
                 'agent_assisted': 'エージェント支援'
             };
-            
+
+            const durationInfo = log.data?.sessionDuration;
+            const durationLabel = typeof durationInfo?.formatted === 'string' ? durationInfo.formatted : '';
+            const durationSeconds = Number.isFinite(durationInfo?.seconds) ? durationInfo.seconds : null;
+            const durationHtml = durationLabel
+                ? `<div style="margin-bottom: 10px;"><strong>経過時間:</strong> ${durationLabel}${durationSeconds !== null ? ` (${durationSeconds}秒)` : ''}</div>`
+                : '';
+
             let content = '';
             if (log.experiment_type === 'self_analysis') {
                 content = `<div><strong>分析内容:</strong><br>${log.data?.analysis || ''}</div>`;
@@ -2737,6 +3027,7 @@ function sanitizeAIText(raw) {
                     <div style="font-size: 14px; color: #6c757d;">${date}</div>
                 </div>
                 ${log.scenario_title ? `<div style="margin-bottom: 10px;"><strong>シナリオ:</strong> ${log.scenario_title}</div>` : ''}
+                ${durationHtml}
                 ${content}
             `;
             list.appendChild(item);
@@ -2749,8 +3040,8 @@ function sanitizeAIText(raw) {
             return;
         }
         
-        let csv = 'ID,参加者ID,実験日,実験タイプ,シナリオ,データ,タイムスタンプ\n';
-        
+        let csv = 'ID,参加者ID,実験日,実験タイプ,シナリオ,データ,タイムスタンプ,経過時間(表示),経過時間(秒)\n';
+
         experimentLogs.forEach(log => {
             let data = '';
             if (log.experiment_type === 'self_analysis') {
@@ -2758,8 +3049,12 @@ function sanitizeAIText(raw) {
             } else if (log.experiment_type === 'agent_assisted') {
                 data = log.data?.chatHistory?.map(msg => `${msg.sender}: ${msg.content}`).join(' | ') || '';
             }
-            
-            csv += `"${log.id}","${log.participant_id}","${log.day || ''}","${log.experiment_type}","${log.scenario_title || ''}","${data}","${log.created_at}"\n`;
+
+            const durationInfo = log.data?.sessionDuration;
+            const durationLabel = typeof durationInfo?.formatted === 'string' ? durationInfo.formatted : '';
+            const durationSeconds = Number.isFinite(durationInfo?.seconds) ? durationInfo.seconds : '';
+
+            csv += `"${log.id}","${log.participant_id}","${log.day || ''}","${log.experiment_type}","${log.scenario_title || ''}","${data}","${log.created_at}","${durationLabel}","${durationSeconds}"\n`;
         });
         
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -2898,6 +3193,9 @@ function sanitizeAIText(raw) {
         
         logs.forEach(log => {
             const date = new Date(log.created_at).toLocaleString('ja-JP');
+            const durationInfo = log.data?.sessionDuration;
+            const durationLabel = typeof durationInfo?.formatted === 'string' ? durationInfo.formatted : '';
+            const durationSeconds = Number.isFinite(durationInfo?.seconds) ? durationInfo.seconds : null;
             logsHtml += `
                 <div style="border: 1px solid #e9ecef; margin-bottom: 15px; border-radius: 8px; padding: 15px; background: #f8f9fa;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
@@ -2905,8 +3203,9 @@ function sanitizeAIText(raw) {
                         <span style="color: #6c757d; font-size: 16px;">${date}</span>
                     </div>
                     <div style="margin-bottom: 10px;"><strong>シナリオ:</strong> ${log.scenario_title}</div>
+                    ${durationLabel ? `<div style="margin-bottom: 10px;"><strong>経過時間:</strong> ${durationLabel}${durationSeconds !== null ? ` (${durationSeconds}秒)` : ''}</div>` : ''}
             `;
-            
+
             if (log.data && log.data.chatHistory && log.data.chatHistory.length > 0) {
                 logsHtml += `
                     <div style="margin-top: 10px;">
@@ -3132,6 +3431,8 @@ function sanitizeAIText(raw) {
        const experimentType =
          (currentDay === 1 || currentDay === 7) ? 'self_analysis' : 'agent_assisted';
         
+       const sessionDuration = getSessionElapsedInfo();
+
        await saveExperimentLog({
          participantId,
          day: currentDay,
@@ -3142,7 +3443,8 @@ function sanitizeAIText(raw) {
          analysis,
          chatHistory: getChatHistory(),
          experimentType,
-         snapshot_content: currentAssignment.snapshot_content
+         snapshot_content: currentAssignment.snapshot_content,
+         sessionDuration
        });
         
         // 実験終了時のアンケートをチェック
@@ -3157,9 +3459,10 @@ function sanitizeAIText(raw) {
     }
 
     function initializeChat() {
+        currentStructuredState = createInitialStructuredState();
         const messages = document.getElementById('chatMessages');
         messages.innerHTML = '';
-        
+
         addMessage('ai', 'こんにちは！このシナリオについて、登場人物の気持ちや考えを一緒に探ってみましょう。まず、どの人物に注目しますか？');
         
         document.getElementById('progressFill').style.width = '50%';
@@ -3178,9 +3481,10 @@ function sanitizeAIText(raw) {
         const loadingMessageId = addLoadingMessage();
         
         try {
-            const response = await generateAIResponse(message);
+            const result = await generateAIResponse(message);
             removeLoadingMessage(loadingMessageId);
-            addMessage('ai', (response && response.trim()) ? response : '（応答が空でした）');
+            const replyText = typeof result?.reply === 'string' ? result.reply : '';
+            addMessage('ai', replyText && replyText.trim() ? replyText : '（応答が空でした）');
         } catch (error) {
             removeLoadingMessage(loadingMessageId);
             addMessage('ai', 'AIからの応答を取得できませんでした。もう一度お試しください。');
@@ -3248,33 +3552,25 @@ function sanitizeAIText(raw) {
           throw new Error('シナリオ割当が未確定です。displayScenario() が先に実行されているか確認してください。');
         }
 
-        // システムプロンプト（管理UIの systemPrompt に、シナリオの隠し文脈を足す）
-
-
-      
         // --- system prompt を一度だけ合成（管理プロンプト + 隠し文脈 + 参考質問/着目点） ---
         let systemPrompt = (adminConfig?.systemPrompt ?? '').toString();
-        
-        // 隠し文脈
+
         const hidden = (a.snapshot_hidden_context ?? '').toString();
         if (hidden) systemPrompt += (systemPrompt ? '\n\n' : '') + hidden;
-        
-        // 参考用想定質問
+
         const qs = Array.isArray(a.snapshot_prompt_questions) ? a.snapshot_prompt_questions : [];
         if (qs.length) {
           systemPrompt += '\n\n参考用想定質問:\n' + qs.map(q => `- ${q}`).join('\n');
         }
-        
-        // 分析時の着目点
+
         const ap = (a.snapshot_analysis_points ?? '').toString();
         if (ap) {
           systemPrompt += '\n\n分析時の着目点:\n' + ap;
         }
-        
+
         // 履歴とユーザー発話
         const chatHistory = (typeof getChatHistory === 'function') ? getChatHistory() : [];
 
-        // APIリクエスト用に、履歴を役割つきでコピーしつつ、直近のユーザー発話にシナリオ文脈を付与
         const historyForApi = chatHistory.map(msg => ({
           role: msg.role || (msg.sender === 'user' ? 'user' : 'assistant'),
           content: msg.content
@@ -3288,48 +3584,96 @@ function sanitizeAIText(raw) {
         } else {
           lastHistoryEntry.content = `${scenarioPreface}${lastHistoryEntry.content}`;
         }
-        
+
         if (adminConfig.apiKey) {
             try {
-                // デバッグ用: 使用中のモデルをログ出力
                 const requestStartTime = performance.now();
                 console.log(`🤖 AI Request - Provider: ${adminConfig.apiProvider}, Model: ${adminConfig.model}, Custom: ${adminConfig.useCustomModel || false}`);
-                
-                let apiUrl, headers, requestBody;
-                
+
+                let apiUrl = '';
+                let headers = {};
+                let requestBody = null;
+                let parseResponse = null;
+
                 if (adminConfig.apiProvider === 'openai') {
                     if (!adminConfig.apiKey.startsWith('sk-')) {
                         throw new Error('OpenAI APIキーの形式が正しくありません');
                     }
 
-                    apiUrl = 'https://api.openai.com/v1/chat/completions';
+                    apiUrl = '/api/openai-proxy';
                     headers = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
 
-                    const messages = [{ role: 'system', content: systemPrompt }];
-                    historyForApi.forEach(msg => {
-                        messages.push({
-                            role: msg.role,
-                            content: msg.content
-                        });
-                    });
-
                     const isGpt5 = typeof adminConfig.model === 'string' && adminConfig.model.startsWith('gpt-5');
+                    const supportsCustomTemp = modelSupportsCustomTemperature(adminConfig.model);
+                    const supportsReasoning = modelSupportsReasoning(adminConfig.model);
                     requestBody = {
                         model: adminConfig.model,
-                        messages
+                        systemPrompt,
+                        scenario: a.snapshot_content,
+                        messages: historyForApi,
+                        expectStructuredResponse: true,
+                        state: currentStructuredState ?? null,
                     };
 
                     if (isGpt5) {
-                        requestBody.response_format = { type: 'text' };
                         requestBody.max_completion_tokens = adminConfig.maxTokens || 1024;
                     } else {
                         requestBody.max_tokens = adminConfig.maxTokens || 300;
-                        requestBody.temperature = adminConfig.temperature ?? 0.7;
+                        if (supportsCustomTemp) {
+                            requestBody.temperature = adminConfig.temperature ?? 0.7;
+                        }
                     }
 
+                    const openaiParams = adminConfig?.openaiParams || {};
+                    if (openaiParams.top_p != null) {
+                        requestBody.top_p = openaiParams.top_p;
+                    }
+                    if (openaiParams.presence_penalty != null) {
+                        requestBody.presence_penalty = openaiParams.presence_penalty;
+                    }
+                    if (openaiParams.frequency_penalty != null) {
+                        requestBody.frequency_penalty = openaiParams.frequency_penalty;
+                    }
+                    if (Array.isArray(openaiParams.stop) && openaiParams.stop.length) {
+                        requestBody.stop = openaiParams.stop;
+                    }
+                    if (supportsReasoning && openaiParams.reasoning_effort) {
+                        requestBody.reasoning = { effort: openaiParams.reasoning_effort };
+                    }
+                    if (openaiParams.text_verbosity) {
+                        requestBody.text = { verbosity: openaiParams.text_verbosity };
+                    }
+                    if (openaiParams.max_output_tokens != null) {
+                        requestBody.max_output_tokens = openaiParams.max_output_tokens;
+                    }
+                    if (openaiParams.prompt_cache_retention) {
+                        requestBody.prompt_cache_retention = openaiParams.prompt_cache_retention;
+                    }
+
+                    parseResponse = data => {
+                        if (data && Object.prototype.hasOwnProperty.call(data, 'state')) {
+                            currentStructuredState = data.state;
+                        }
+
+                        const replyCandidate =
+                            (typeof data?.reply === 'string' ? data.reply : null) ??
+                            (typeof data?.response === 'string' ? data.response : null);
+                        const fallbackRaw = typeof data === 'string' ? data : '';
+                        const rawCandidate =
+                            (typeof data?.rawResponse === 'string' ? data.rawResponse : null) ??
+                            replyCandidate ??
+                            fallbackRaw;
+                        const reply = sanitizeAIText((replyCandidate ?? rawCandidate ?? '').toString());
+
+                        return {
+                            reply: reply || '(応答が空でした)',
+                            state: currentStructuredState,
+                            raw: rawCandidate || reply,
+                        };
+                    };
                 } else if (adminConfig.apiProvider === 'claude') {
                     const maxTokens = Math.max(adminConfig.maxTokens || 1024, 1);
                     apiUrl = '/api/claude-proxy';
@@ -3338,17 +3682,70 @@ function sanitizeAIText(raw) {
                         'Authorization': `Bearer ${adminConfig.apiKey}`
                     };
 
-                    const messages = historyForApi.map(msg => ({
-                        role: msg.role,
-                        content: msg.content
-                    }));
-
                     requestBody = {
                         model: adminConfig.model,
                         max_tokens: maxTokens,
                         temperature: adminConfig.temperature ?? 0.7,
                         systemPrompt,
-                        messages
+                        scenario: a.snapshot_content,
+                        messages: historyForApi,
+                        expectStructuredResponse: true,
+                        state: currentStructuredState ?? null,
+                    };
+
+                    const claudeParams = adminConfig?.claudeParams || {};
+                    if (claudeParams.top_p != null) {
+                        requestBody.top_p = claudeParams.top_p;
+                    }
+                    if (claudeParams.top_k != null) {
+                        requestBody.top_k = claudeParams.top_k;
+                    }
+                    if (Array.isArray(claudeParams.stop_sequences) && claudeParams.stop_sequences.length) {
+                        requestBody.stop_sequences = claudeParams.stop_sequences;
+                    }
+                    if (claudeParams.thinking_mode === 'enabled') {
+                        requestBody.thinking = { type: 'enabled' };
+                        if (claudeParams.thinking_budget_tokens != null) {
+                            requestBody.thinking.budget_tokens = claudeParams.thinking_budget_tokens;
+                        }
+                    } else if (claudeParams.thinking_mode === 'disabled') {
+                        requestBody.thinking = { type: 'disabled' };
+                    } else if (claudeParams.thinking_budget_tokens != null) {
+                        requestBody.thinking = { type: 'enabled', budget_tokens: claudeParams.thinking_budget_tokens };
+                    }
+                    if (claudeParams.cache_control_type) {
+                        requestBody.system_cache_control = { type: claudeParams.cache_control_type };
+                    }
+
+                    parseResponse = data => {
+                        if (data && Object.prototype.hasOwnProperty.call(data, 'state')) {
+                            currentStructuredState = data.state;
+                        }
+
+                        let replyCandidate = '';
+                        if (typeof data?.reply === 'string') {
+                            replyCandidate = data.reply;
+                        } else if (typeof data?.response === 'string') {
+                            replyCandidate = data.response;
+                        } else if (Array.isArray(data?.content)) {
+                            replyCandidate = data.content
+                                .filter(block => block?.type === 'text' && typeof block.text === 'string')
+                                .map(block => block.text)
+                                .join('\n');
+                        } else if (typeof data === 'string') {
+                            replyCandidate = data;
+                        }
+
+                        if (!replyCandidate) {
+                            console.warn('Claude response did not contain text output:', data);
+                        }
+
+                        const reply = sanitizeAIText((replyCandidate || '').toString());
+                        return {
+                            reply: reply || '(応答が空でした)',
+                            state: currentStructuredState,
+                            raw: replyCandidate || reply,
+                        };
                     };
                 } else if (adminConfig.apiProvider === 'gemini') {
                     apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(adminConfig.model)}:generateContent?key=${encodeURIComponent(adminConfig.apiKey)}`;
@@ -3378,70 +3775,9 @@ function sanitizeAIText(raw) {
                             parts: [{ text: systemPrompt }]
                         };
                     }
-                } else if (adminConfig.apiProvider === 'custom') {
-                    if (!adminConfig.customApiUrl) {
-                        throw new Error('カスタムAPI URLが設定されていません');
-                    }
-                    
-                    apiUrl = adminConfig.customApiUrl;
-                    headers = {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${adminConfig.apiKey}`
-                    };
-                    
-                    // 会話履歴を含むメッセージを構築
-                    const messages = [{ role: 'system', content: systemPrompt }];
 
-                    historyForApi.forEach(msg => {
-                        messages.push({
-                            role: msg.role,
-                            content: msg.content
-                        });
-                    });
-                    
-                    requestBody = {
-                        model: adminConfig.model,
-                        messages: messages,
-                        ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
-                            ? { max_completion_tokens: adminConfig.maxTokens || 300 }
-                            : { max_tokens: adminConfig.maxTokens || 300 }),
-                        // temperature omitted for gpt-5
-                    };
-                }
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(requestBody)
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    let rawText = '';
-
-                    if (adminConfig.apiProvider === 'claude') {
-                        const normalizedText = typeof data?.response === 'string'
-                            ? data.response.trim()
-                            : '';
-
-                        if (normalizedText) {
-                            rawText = normalizedText;
-                        } else if (Array.isArray(data?.content)) {
-                            const textBlocks = data.content
-                                .filter(block => block?.type === 'text' && typeof block.text === 'string')
-                                .map(block => block.text);
-
-                            if (textBlocks.length) {
-                                rawText = textBlocks.join('\n');
-                            }
-                        }
-
-                        if (!rawText) {
-                            console.warn('Claude response did not contain text output:', data);
-                            rawText = '(応答にテキストが含まれていませんでした)';
-                        }
-
-                    } else if (adminConfig.apiProvider === 'gemini') {
+                    parseResponse = data => {
+                        let rawText = '';
                         const candidate = data?.candidates?.[0];
                         const parts = candidate?.content?.parts;
                         if (Array.isArray(parts)) {
@@ -3456,81 +3792,136 @@ function sanitizeAIText(raw) {
                             rawText = '(応答テキストが空でした)';
                         }
 
-                    } else {
+                        const reply = sanitizeAIText(rawText);
+                        return {
+                            reply: reply || rawText,
+                            state: currentStructuredState,
+                            raw: rawText,
+                        };
+                    };
+                } else if (adminConfig.apiProvider === 'custom') {
+                    if (!adminConfig.customApiUrl) {
+                        throw new Error('カスタムAPI URLが設定されていません');
+                    }
+
+                    apiUrl = adminConfig.customApiUrl;
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminConfig.apiKey}`
+                    };
+
+                    const messages = [{ role: 'system', content: systemPrompt }];
+                    historyForApi.forEach(msg => {
+                        messages.push({
+                            role: msg.role,
+                            content: msg.content
+                        });
+                    });
+
+                    requestBody = {
+                        model: adminConfig.model,
+                        messages,
+                        ...(adminConfig.model && adminConfig.model.startsWith('gpt-5')
+                            ? { max_completion_tokens: adminConfig.maxTokens || 300 }
+                            : { max_tokens: adminConfig.maxTokens || 300 }),
+                    };
+
+                    parseResponse = data => {
+                        let rawText = '';
                         const choice = data?.choices?.[0] ?? null;
                         const msg = choice?.message ?? null;
 
-                        let textOut = '';
-
                         if (msg && typeof msg.output_text === 'string') {
-                            textOut = msg.output_text;
+                            rawText = msg.output_text;
                         }
-                        if (!textOut && choice && typeof choice.output_text === 'string') {
-                            textOut = choice.output_text;
+                        if (!rawText && choice && typeof choice.output_text === 'string') {
+                            rawText = choice.output_text;
                         }
-                        if (!textOut && msg && 'content' in msg) {
-                            textOut = extractTextDeep(msg.content);
+                        if (!rawText && msg && 'content' in msg) {
+                            rawText = extractTextDeep(msg.content);
                         }
-                        if (!textOut && choice && typeof choice.text === 'string') {
-                            textOut = choice.text;
+                        if (!rawText && choice && typeof choice.text === 'string') {
+                            rawText = choice.text;
                         }
-                        if (!textOut && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-                            textOut = '(ツール呼び出しのみの応答)';
+                        if (!rawText && msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+                            rawText = '(ツール呼び出しのみの応答)';
                         }
-                        if (!textOut && typeof data === 'string') {
-                            textOut = data;
-                        }
-
-                        textOut = (textOut || '').toString().trim();
-                        if (!textOut) {
-                            console.warn('OpenAI content normalization produced empty output. Full data:', data);
-                            textOut = '(応答テキストが空でした)';
+                        if (!rawText && typeof data === 'string') {
+                            rawText = data;
                         }
 
-                        rawText = textOut;
-                    }
+                        rawText = (rawText || '').toString().trim();
+                        if (!rawText) {
+                            console.warn('カスタムAPIの応答が空でした:', data);
+                            rawText = '(応答テキストが空でした)';
+                        }
 
-                    const requestEndTime = performance.now();
-                    const responseTime = Math.round(requestEndTime - requestStartTime);
-                    console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
+                        const reply = sanitizeAIText(rawText);
+                        return {
+                            reply: reply || rawText,
+                            state: currentStructuredState,
+                            raw: rawText,
+                        };
+                    };
+                }
 
-                    return sanitizeAIText(rawText);
-                } else {
-                    const errorPayload = await response.text();
-                    let parsedError;
-                    try {
-                        parsedError = JSON.parse(errorPayload);
-                    } catch (e) {
-                        parsedError = null;
-                    }
+                if (!apiUrl || !requestBody || typeof parseResponse !== 'function') {
+                    throw new Error('APIリクエストの構成に失敗しました');
+                }
 
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                const isJsonResponse = contentType.includes('application/json');
+                const data = isJsonResponse ? await response.json() : await response.text();
+
+                if (!response.ok) {
                     let errorMsg = 'APIリクエストが失敗しました';
 
-                    if (adminConfig.apiProvider === 'claude') {
-                        const proxyMessage = typeof parsedError?.error === 'string'
-                            ? parsedError.error
-                            : parsedError?.error?.message;
-                        errorMsg = proxyMessage || errorMsg;
-
-                        if (response.status === 401) {
-                            errorMsg += ' - APIキーが無効です';
-                        } else if (response.status === 400 && errorMsg.includes('max_tokens')) {
-                            errorMsg += ' - max_tokensの値を確認してください(最小値: 1)';
-                        }
-                    } else {
-                        errorMsg = parsedError?.error?.message || errorMsg;
+                    if (typeof data === 'object' && data !== null) {
+                        errorMsg = data.error?.message || data.error || errorMsg;
+                    } else if (typeof data === 'string' && data.trim()) {
+                        errorMsg = data.trim();
                     }
 
-                    console.error(`APIエラー (${response.status}):`, parsedError ?? errorPayload);
+                    if (response.status === 401) {
+                        errorMsg += ' - APIキーが無効です';
+                    }
+
                     throw new Error(`${errorMsg} (${response.status})`);
                 }
+
+                const requestEndTime = performance.now();
+                const responseTime = Math.round(requestEndTime - requestStartTime);
+                console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
+
+                const parsed = parseResponse(data);
+                if (!parsed || typeof parsed.reply !== 'string') {
+                    console.warn('AI応答の解析結果が不正です:', parsed);
+                    return {
+                        reply: '(応答テキストが空でした)',
+                        state: currentStructuredState,
+                        raw: '',
+                    };
+                }
+
+                return parsed;
             } catch (error) {
                 console.error('AI API エラー:', error);
-                addMessage('ai', '申し訳ございません、AIサービスに接続できませんでした。デモモードで続行します。');
+                const fallbackMessage = '申し訳ございません、AIサービスに接続できませんでした。デモモードで続行します。';
+                return {
+                    reply: fallbackMessage,
+                    state: currentStructuredState,
+                    raw: fallbackMessage,
+                    error: true,
+                };
             }
         }
 
-        // デモ用の応答
         const responses = [
             "なるほど、その観点は興味深いですね。登場人物の表情や行動からも何か読み取れることはありますか？",
             "とても良い分析ですね。他の登場人物はどのような気持ちでいると思いますか？",
@@ -3539,9 +3930,15 @@ function sanitizeAIText(raw) {
             "興味深い指摘ですね。その状況で相手はどんなことを考えているでしょうか？",
             "良い視点ですね。もし自分がその立場だったら、どのように感じるでしょうか？"
         ];
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000));
-        return responses[Math.floor(Math.random() * responses.length)];
+        const demoReply = responses[Math.floor(Math.random() * responses.length)];
+        return {
+            reply: demoReply,
+            state: currentStructuredState,
+            raw: demoReply,
+            demo: true,
+        };
     }
 
     async function initializeUserSession(userId) {
@@ -3674,6 +4071,8 @@ function sanitizeAIText(raw) {
             return;
         }
 
+        const sessionDuration = getSessionElapsedInfo();
+
         await saveExperimentLog({
           participantId,
           day: currentDay,
@@ -3685,7 +4084,8 @@ function sanitizeAIText(raw) {
           snapshot_title: currentAssignment.snapshot_title,
           snapshot_content: currentAssignment.snapshot_content,
             // 互換が要るなら null で残す
-          scenarioIndex: null
+          scenarioIndex: null,
+          sessionDuration
 
         });
         
@@ -3712,50 +4112,85 @@ function sanitizeAIText(raw) {
     let timerInterval = null;
     let accumulatedTime = 0; // 蓄積された経過時間（ミリ秒）
     let isPaused = false;
-    
+
+    function formatDuration(milliseconds) {
+        const safeMs = Number.isFinite(milliseconds) && milliseconds > 0 ? milliseconds : 0;
+        const totalSeconds = Math.floor(safeMs / 1000);
+        const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+        const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}`;
+    }
+
+    function getSessionElapsedInfo() {
+        let elapsedMs = accumulatedTime;
+        if (sessionStartTime && !isPaused) {
+            elapsedMs += new Date() - sessionStartTime;
+        }
+
+        if (!Number.isFinite(elapsedMs) || elapsedMs < 0) {
+            elapsedMs = 0;
+        }
+
+        return {
+            milliseconds: elapsedMs,
+            seconds: Math.round(elapsedMs / 1000),
+            formatted: formatDuration(elapsedMs)
+        };
+    }
+
+    function updateSessionTimerDisplay() {
+        const timerElement = document.getElementById('timerDisplay');
+        if (!timerElement) {
+            console.error('❌ timerDisplay要素が見つかりません');
+            return;
+        }
+        timerElement.textContent = getSessionElapsedInfo().formatted;
+    }
+
+    function resetSessionTimerDisplay() {
+        const timerElement = document.getElementById('timerDisplay');
+        if (!timerElement) {
+            console.error('❌ timerDisplay要素が見つかりません');
+            return;
+        }
+        timerElement.textContent = formatDuration(0);
+    }
+
     // セッションタイマーを開始する関数
     function startSessionTimer() {
         console.log('🕐 セッションタイマー開始要求:', adminConfig.showSessionTimer);
-        
+
         // 管理者設定でタイマー表示が有効な場合のみ表示
         if (adminConfig.showSessionTimer) {
             document.getElementById('sessionTimer').style.display = 'block';
             console.log('✅ セッションタイマーを表示します');
         } else {
             document.getElementById('sessionTimer').style.display = 'none';
-            console.log('⚠️ セッションタイマーは無効に設定されています');
-            return; // タイマー表示が無効な場合は処理を終了
+            console.log('⚠️ セッションタイマーは非表示設定ですが計測は継続します');
         }
-        
+
+        accumulatedTime = 0;
+        isPaused = false;
         sessionStartTime = new Date();
-        
+
         // 既存のタイマーがあれば停止
         if (timerInterval) {
             clearInterval(timerInterval);
         }
-        
+
+        updateSessionTimerDisplay();
+
         // 1秒ごとにタイマーを更新
         timerInterval = setInterval(() => {
             if (sessionStartTime && !isPaused) {
-                const currentElapsed = new Date() - sessionStartTime;
-                const totalElapsed = accumulatedTime + currentElapsed;
-                const hours = Math.floor(totalElapsed / 3600000);
-                const minutes = Math.floor((totalElapsed % 3600000) / 60000);
-                const seconds = Math.floor((totalElapsed % 60000) / 1000);
-                
-                const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                const timerElement = document.getElementById('timerDisplay');
-                if (timerElement) {
-                    timerElement.textContent = timeString;
-                } else {
-                    console.error('❌ timerDisplay要素が見つかりません');
-                }
+                updateSessionTimerDisplay();
             }
         }, 1000);
-        
+
         console.log('✅ セッションタイマーが開始されました');
     }
-    
+
     // セッションタイマーを停止する関数
     function stopSessionTimer() {
         if (timerInterval) {
@@ -3766,8 +4201,9 @@ function sanitizeAIText(raw) {
         accumulatedTime = 0;
         isPaused = false;
         document.getElementById('sessionTimer').style.display = 'none';
+        resetSessionTimerDisplay();
     }
-    
+
     // セッションタイマーを一時停止する関数
     function pauseSessionTimer() {
         if (sessionStartTime && !isPaused) {
@@ -3775,22 +4211,26 @@ function sanitizeAIText(raw) {
             isPaused = true;
             sessionStartTime = null;
             console.log('⏸️ セッションタイマーが一時停止されました');
+            updateSessionTimerDisplay();
         }
     }
-    
+
     // セッションタイマーを再開する関数
     function resumeSessionTimer() {
         if (isPaused) {
             sessionStartTime = new Date();
             isPaused = false;
             console.log('▶️ セッションタイマーが再開されました');
+            updateSessionTimerDisplay();
         }
     }
     
     function resetExperiment() {
         // セッションタイマーを停止
         stopSessionTimer();
-        
+
+        currentStructuredState = createInitialStructuredState();
+
         document.getElementById('experimentContent').style.display = 'none';
         document.getElementById('participantSetup').style.display = 'block';
         
@@ -4210,6 +4650,7 @@ function sanitizeAIText(raw) {
         document.getElementById('savePromptBtn').addEventListener('click', savePromptConfig);
         document.getElementById('saveSessionConfigBtn').addEventListener('click', saveSessionConfig);
         document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
+        document.getElementById('saveModelNotesBtn').addEventListener('click', saveModelNotes);
         
         // モデル関連イベント
         document.getElementById('modelSelect').addEventListener('change', updateCustomModelVisibility);
