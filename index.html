@@ -1537,6 +1537,11 @@ function sanitizeAIText(raw) {
             normalized.startsWith('o1')
         );
     }
+
+    function modelSupportsReasoning(modelName) {
+        if (!modelName) return false;
+        return modelName.toLowerCase().startsWith('gpt-5');
+    }
     
     let currentScenarioIndex = 0;
     let currentDay = 1;
@@ -3603,6 +3608,7 @@ function sanitizeAIText(raw) {
 
                     const isGpt5 = typeof adminConfig.model === 'string' && adminConfig.model.startsWith('gpt-5');
                     const supportsCustomTemp = modelSupportsCustomTemperature(adminConfig.model);
+                    const supportsReasoning = modelSupportsReasoning(adminConfig.model);
                     requestBody = {
                         model: adminConfig.model,
                         systemPrompt,
@@ -3634,7 +3640,7 @@ function sanitizeAIText(raw) {
                     if (Array.isArray(openaiParams.stop) && openaiParams.stop.length) {
                         requestBody.stop = openaiParams.stop;
                     }
-                    if (openaiParams.reasoning_effort) {
+                    if (supportsReasoning && openaiParams.reasoning_effort) {
                         requestBody.reasoning = { effort: openaiParams.reasoning_effort };
                     }
                     if (openaiParams.text_verbosity) {

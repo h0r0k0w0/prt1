@@ -151,7 +151,11 @@ function buildRequestPayload(body, normalized, options) {
     body.reasoning_effort ??
     body.reasoningEffort ??
     (typeof body.reasoning === 'object' ? body.reasoning.effort : null);
-  if (typeof reasoningEffort === 'string' && reasoningEffort.trim()) {
+  if (
+    typeof reasoningEffort === 'string' &&
+    reasoningEffort.trim() &&
+    modelSupportsReasoning(payload.model)
+  ) {
     payload.reasoning = { effort: reasoningEffort.trim() };
   }
 
@@ -182,6 +186,12 @@ function modelSupportsCustomTemperature(model) {
     normalized.startsWith('gpt-5') ||
     normalized.startsWith('o1')
   );
+}
+
+function modelSupportsReasoning(model) {
+  if (!model || typeof model !== 'string') return false;
+  const normalized = model.toLowerCase();
+  return normalized.startsWith('gpt-5');
 }
 
 function buildErrorResponse(options, error) {
