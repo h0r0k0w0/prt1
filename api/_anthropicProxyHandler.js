@@ -44,6 +44,8 @@ function toAnthropicContentBlock(text) {
 
 // Systemメッセージ群とユーザー/assistantターンを分離し、stateを含むsystemメッセージにフラグを付与する。
 // stateMessageContent は prepareConversationPayload が生成する「Stateを埋め込んだsystemテキスト」そのもの。
+// 3パート構成（ベースのsystemプロンプト + 構造化出力指示 + stateメッセージ）が分かっているので、
+// 連続する静的systemメッセージは一塊にまとめ、state付きのsystemメッセージは単独ブロックとして保持する。
 function normalizeConversation(messages, stateMessageContent) {
   const systemMessages = [];
   const conversation = [];
@@ -85,8 +87,19 @@ function normalizeConversation(messages, stateMessageContent) {
     throw new Error('Anthropic に渡す会話履歴にユーザーの発話が含まれていません');
   }
 
+  const groupedSystemBlocks = [];
+  for (const block of systemMessages) {
+    const last = groupedSystemBlocks[groupedSystemBlocks.length - 1];
+    if (last && !last.isState && !block.isState) {
+      last.text = [last.text, block.text].filter(Boolean).join('\n\n');
+      continue;
+    }
+
+    groupedSystemBlocks.push({ ...block });
+  }
+
   return {
-    systemBlocks: systemMessages,
+    systemBlocks: groupedSystemBlocks,
     conversation,
   };
 }
