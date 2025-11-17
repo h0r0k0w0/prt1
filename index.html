@@ -929,7 +929,7 @@
                             <div class="form-group">
                               <label for="openaiPromptCacheRetention">prompt_cache_retention（例: 24h）</label>
                               <input type="text" id="openaiPromptCacheRetention" placeholder="空欄で送信しない">
-                              <small style="color:#6c757d;">OpenAI側でプロンプト全体をキャッシュします（同一プロンプト・同一パラメータ時に有効）。</small>
+                              <small style="color:#6c757d;">OpenAI側でプロンプト全体をキャッシュします（同一プロンプト・同一パラメータ時に有効）。stateもプロンプトに含まれるため、stateが変わるとキャッシュは効きません。</small>
                             </div>
                           </div>
                         </div>
@@ -967,7 +967,7 @@
                           <div class="form-group">
                             <label for="claudeCacheControl">cache_control.type（例: ephemeral）</label>
                             <input type="text" id="claudeCacheControl" placeholder="空欄で送信しない">
-                            <small style="color:#6c757d;">systemメッセージに cache_control を付与し、同一システムプロンプトを再利用する際に効きます。</small>
+                            <small style="color:#6c757d;">systemメッセージに cache_control を付与し、同一システムプロンプトを再利用する際に効きます。stateをsystemメッセージに埋め込んで送る設計のため、stateが変わるとキャッシュは無効になります。</small>
                           </div>
                         </div>
                         <div class="form-group" style="margin-top: 10px;">
