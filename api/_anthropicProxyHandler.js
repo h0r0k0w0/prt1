@@ -99,6 +99,7 @@ function buildRequestPayload(body, normalized, options) {
     defaultTemperature,
     defaultMaxTokens,
     defaultTopP,
+    defaultTopK,
   } = options;
 
   const { systemPrompt, conversation } = normalizeConversation(normalizedMessages);
@@ -130,11 +131,24 @@ function buildRequestPayload(body, normalized, options) {
     payload.top_p = topP;
   }
 
+  const topK = toNumber(body.top_k ?? body.topK, defaultTopK);
+  if (topK != null) {
+    payload.top_k = topK;
+  }
+
   const stopSequences = body.stop_sequences ?? body.stopSequences;
   if (Array.isArray(stopSequences) && stopSequences.length) {
     payload.stop_sequences = stopSequences
       .map(value => (typeof value === 'string' ? value : ''))
       .filter(Boolean);
+  }
+
+  const thinkingBudget = toNumber(
+    body.thinking_budget_tokens ?? body.thinkingBudgetTokens,
+    null,
+  );
+  if (thinkingBudget != null) {
+    payload.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
   }
 
   if (systemPrompt) {
@@ -370,6 +384,7 @@ export function createAnthropicProxyHandler(options = {}) {
     defaultTemperature: 0.7,
     defaultMaxTokens: 1024,
     defaultTopP: undefined,
+    defaultTopK: undefined,
     internalErrorMessage: 'サーバー内部エラーが発生しました',
     exposeErrorDetails: false,
     ...options,

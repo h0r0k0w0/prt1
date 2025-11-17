@@ -62,6 +62,7 @@ function buildRequestPayload(body, normalized, options) {
     defaultTemperature,
     defaultPresencePenalty,
     defaultFrequencyPenalty,
+    defaultTopP,
     defaultMaxTokens,
     defaultMaxCompletionTokens,
   } = options;
@@ -132,6 +133,18 @@ function buildRequestPayload(body, normalized, options) {
       frequencyPenalty,
       defaultFrequencyPenalty ?? 0,
     );
+  }
+
+  const topP = body.top_p ?? body.topP ?? defaultTopP ?? null;
+  if (topP != null) {
+    payload.top_p = toNumber(topP, defaultTopP ?? null);
+  }
+
+  const stop = body.stop ?? body.stop_sequences ?? body.stopSequences;
+  if (Array.isArray(stop) && stop.length) {
+    payload.stop = stop
+      .map(value => (typeof value === 'string' ? value : ''))
+      .filter(Boolean);
   }
 
   return payload;
@@ -320,6 +333,7 @@ export function createOpenAIProxyHandler(options = {}) {
     defaultTemperature: 0.7,
     defaultPresencePenalty: undefined,
     defaultFrequencyPenalty: undefined,
+    defaultTopP: undefined,
     defaultMaxTokens: 300,
     defaultMaxCompletionTokens: 300,
     internalErrorMessage: 'サーバー内部エラーが発生しました',

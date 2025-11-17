@@ -875,6 +875,53 @@
                           <label for="temperature">Temperature</label>
                           <input type="number" id="temperature" value="0.7" step="0.1" min="0" max="2">
                         </div>
+                        <div id="openaiAdvancedSettings" class="form-group" style="display: none; border: 1px solid #e9ecef; padding: 12px; border-radius: 8px;">
+                          <label style="font-weight: 700;">OpenAIモデル詳細設定</label>
+                          <small style="display:block; color:#6c757d; margin-bottom:8px;">未入力の項目はリクエストに含めません（非対応モデルでのエラー回避）</small>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="openaiTopP">top_p (0〜1)</label>
+                              <input type="number" id="openaiTopP" step="0.01" min="0" max="1" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiPresencePenalty">presence_penalty (-2〜2)</label>
+                              <input type="number" id="openaiPresencePenalty" step="0.1" min="-2" max="2" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="openaiFrequencyPenalty">frequency_penalty (-2〜2)</label>
+                              <input type="number" id="openaiFrequencyPenalty" step="0.1" min="-2" max="2" placeholder="空欄で無効">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="openaiStopSequences">stop（改行区切り）</label>
+                            <textarea id="openaiStopSequences" style="height:70px;" placeholder="例: ###\n</end>"></textarea>
+                            <small style="color:#6c757d;">空欄のままなら送信しません</small>
+                          </div>
+                        </div>
+
+                        <div id="claudeAdvancedSettings" class="form-group" style="display: none; border: 1px solid #e9ecef; padding: 12px; border-radius: 8px;">
+                          <label style="font-weight: 700;">Claudeモデル詳細設定</label>
+                          <small style="display:block; color:#6c757d; margin-bottom:8px;">空欄のパラメータは送信しません（モデル非対応を考慮）</small>
+                          <div class="config-grid">
+                            <div class="form-group">
+                              <label for="claudeTopP">top_p (0〜1)</label>
+                              <input type="number" id="claudeTopP" step="0.01" min="0" max="1" placeholder="空欄で無効">
+                            </div>
+                            <div class="form-group">
+                              <label for="claudeTopK">top_k</label>
+                              <input type="number" id="claudeTopK" step="1" min="1" placeholder="空欄で無効">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeStopSequences">stop_sequences（改行区切り）</label>
+                            <textarea id="claudeStopSequences" style="height:70px;" placeholder="例: ###\n</end>"></textarea>
+                          </div>
+                          <div class="form-group">
+                            <label for="claudeThinkingBudget">thinking budget_tokens（思考モード対応モデルのみ）</label>
+                            <input type="number" id="claudeThinkingBudget" step="1" min="1" placeholder="空欄で無効">
+                            <small style="color:#6c757d;">空欄の場合は送信しません</small>
+                          </div>
+                        </div>
                         <div class="form-group">
                           <label for="sessionTimeout">セッションタイムアウト (分)</label>
                           <input type="number" id="sessionTimeout" value="30" min="1">
@@ -889,6 +936,14 @@
                     <button id="saveConfigBtn" class="btn">設定を保存</button>
                 </div>
                 
+                <div class="admin-config">
+                    <h3>🗒️ モデルパラメータメモ</h3>
+                    <div class="form-group">
+                        <label for="modelNotes">モデルごとの対応パラメータの備忘録</label>
+                        <textarea id="modelNotes" style="height: 100px;" placeholder="例: gpt-5.1 は temperature 固定、Claude 4.5 は thinking budget 対応 など"></textarea>
+                    </div>
+                </div>
+
                 <div class="admin-config">
                     <h3>💬 システムプロンプト</h3>
                     <div class="form-group">
@@ -1392,11 +1447,31 @@ function sanitizeAIText(raw) {
         model: 'gpt-3.5-turbo',
         maxTokens: 1000,
         temperature: 0.7,
+        openaiParams: {
+          top_p: null,
+          presence_penalty: null,
+          frequency_penalty: null,
+          stop: [],
+        },
+        claudeParams: {
+          top_p: null,
+          top_k: null,
+          stop_sequences: [],
+          thinking_budget_tokens: null,
+        },
         sessionTimeout: 60,
         showSessionTimer: true,
         minimumSessionTime: 300, // 最低セッション時間（秒）- デフォルト5分
-        systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。'
+        systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。',
+        modelNotes: '',
     };
+
+    function mergeAdminConfig(base, incoming = {}) {
+        const merged = { ...base, ...incoming };
+        merged.openaiParams = { ...(base.openaiParams || {}), ...(incoming.openaiParams || {}) };
+        merged.claudeParams = { ...(base.claudeParams || {}), ...(incoming.claudeParams || {}) };
+        return merged;
+    }
 
     function modelSupportsCustomTemperature(modelName) {
         if (!modelName) return true;
@@ -1597,7 +1672,7 @@ function sanitizeAIText(raw) {
             if (error && error.code !== 'PGRST116') throw error;
             
             if (data) {
-                adminConfig = { ...adminConfig, ...data.settings };
+                adminConfig = mergeAdminConfig(adminConfig, data.settings || {});
               } else {
                 console.log('admin_config 行が存在しないため、デフォルト設定を使用します');
             }
@@ -1906,7 +1981,7 @@ function sanitizeAIText(raw) {
         const savedConfig = localStorage.getItem('mentalizeAdminConfig');
         if (savedConfig) {
             try {
-                adminConfig = { ...adminConfig, ...JSON.parse(savedConfig) };
+                adminConfig = mergeAdminConfig(adminConfig, JSON.parse(savedConfig));
             } catch (error) {
                 console.warn('管理者設定読み込みエラー:', error);
             }
@@ -2018,6 +2093,24 @@ function sanitizeAIText(raw) {
         selectMode('none');
     }
 
+    function parseNullableNumberInput(elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return null;
+        const value = el.value;
+        if (value === '' || value == null) return null;
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+    }
+
+    function parseStopList(elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return [];
+        return el.value
+            .split(/\r?\n/)
+            .map(v => v.trim())
+            .filter(v => v.length > 0);
+    }
+
     // 管理者パスワード変更
     async function changeAdminPassword() {
         const newPassword = document.getElementById('newAdminPassword').value;
@@ -2067,8 +2160,21 @@ function sanitizeAIText(raw) {
         
         adminConfig.maxTokens = Number(document.getElementById('maxTokens').value);
         adminConfig.temperature = Number(document.getElementById('temperature').value);
+        adminConfig.openaiParams = {
+          top_p: parseNullableNumberInput('openaiTopP'),
+          presence_penalty: parseNullableNumberInput('openaiPresencePenalty'),
+          frequency_penalty: parseNullableNumberInput('openaiFrequencyPenalty'),
+          stop: parseStopList('openaiStopSequences'),
+        };
+        adminConfig.claudeParams = {
+          top_p: parseNullableNumberInput('claudeTopP'),
+          top_k: parseNullableNumberInput('claudeTopK'),
+          stop_sequences: parseStopList('claudeStopSequences'),
+          thinking_budget_tokens: parseNullableNumberInput('claudeThinkingBudget'),
+        };
         adminConfig.sessionTimeout = Number(document.getElementById('sessionTimeout').value);
         adminConfig.showSessionTimer = document.getElementById('showTimer').checked;
+        adminConfig.modelNotes = document.getElementById('modelNotes')?.value || '';
         await saveAdminSettings();
         
         document.getElementById('configStatus').innerHTML = '<div class="status success">設定が保存されました！</div>';
@@ -2298,14 +2404,35 @@ function sanitizeAIText(raw) {
         const tempInput = document.getElementById('temperature');
         if (tempInput) tempInput.value = adminConfig.temperature ?? 0.7;
 
+        const openaiTopPInput = document.getElementById('openaiTopP');
+        if (openaiTopPInput) openaiTopPInput.value = adminConfig?.openaiParams?.top_p ?? '';
+        const openaiPresencePenaltyInput = document.getElementById('openaiPresencePenalty');
+        if (openaiPresencePenaltyInput) openaiPresencePenaltyInput.value = adminConfig?.openaiParams?.presence_penalty ?? '';
+        const openaiFrequencyPenaltyInput = document.getElementById('openaiFrequencyPenalty');
+        if (openaiFrequencyPenaltyInput) openaiFrequencyPenaltyInput.value = adminConfig?.openaiParams?.frequency_penalty ?? '';
+        const openaiStopInput = document.getElementById('openaiStopSequences');
+        if (openaiStopInput) openaiStopInput.value = (adminConfig?.openaiParams?.stop || []).join('\n');
+
+        const claudeTopPInput = document.getElementById('claudeTopP');
+        if (claudeTopPInput) claudeTopPInput.value = adminConfig?.claudeParams?.top_p ?? '';
+        const claudeTopKInput = document.getElementById('claudeTopK');
+        if (claudeTopKInput) claudeTopKInput.value = adminConfig?.claudeParams?.top_k ?? '';
+        const claudeStopInput = document.getElementById('claudeStopSequences');
+        if (claudeStopInput) claudeStopInput.value = (adminConfig?.claudeParams?.stop_sequences || []).join('\n');
+        const claudeThinkingInput = document.getElementById('claudeThinkingBudget');
+        if (claudeThinkingInput) claudeThinkingInput.value = adminConfig?.claudeParams?.thinking_budget_tokens ?? '';
+
         const timeoutInput = document.getElementById('sessionTimeout');
         if (timeoutInput) timeoutInput.value = adminConfig.sessionTimeout ?? 30;
 
         const showTimerCheckbox = document.getElementById('showTimer');
         if (showTimerCheckbox) showTimerCheckbox.checked = adminConfig.showSessionTimer ?? true;
-        
+
         const systemPromptInput = document.getElementById('systemPrompt');
         if (systemPromptInput) systemPromptInput.value = adminConfig.systemPrompt || '';
+
+        const modelNotesInput = document.getElementById('modelNotes');
+        if (modelNotesInput) modelNotesInput.value = adminConfig.modelNotes || '';
 
         const minimumSessionTimeInput = document.getElementById('minimumSessionTime');
         if (minimumSessionTimeInput) minimumSessionTimeInput.value = Math.floor((adminConfig.minimumSessionTime || 300) / 60); // 秒を分に変換
@@ -2315,16 +2442,26 @@ function sanitizeAIText(raw) {
     }
     
     // APIプロバイダーUIの更新
-    function updateApiProviderUI() {
-        const provider = document.getElementById('apiProvider')?.value;
-        const customUrlGroup = document.getElementById('customUrlGroup');
-        
-        if (customUrlGroup) {
-            customUrlGroup.style.display = provider === 'custom' ? 'block' : 'none';
-        }
-        
-        updateModelOptions();
-    }
+      function updateApiProviderUI() {
+          const provider = document.getElementById('apiProvider')?.value;
+          const customUrlGroup = document.getElementById('customUrlGroup');
+
+          if (customUrlGroup) {
+              customUrlGroup.style.display = provider === 'custom' ? 'block' : 'none';
+          }
+
+          const openaiAdv = document.getElementById('openaiAdvancedSettings');
+          if (openaiAdv) {
+              openaiAdv.style.display = provider === 'openai' ? 'block' : 'none';
+          }
+
+          const claudeAdv = document.getElementById('claudeAdvancedSettings');
+          if (claudeAdv) {
+              claudeAdv.style.display = provider === 'claude' ? 'block' : 'none';
+          }
+
+          updateModelOptions();
+      }
     
     // モデル選択肢の更新
     function updateModelOptions() {
@@ -3403,6 +3540,20 @@ function sanitizeAIText(raw) {
                         }
                     }
 
+                    const openaiParams = adminConfig?.openaiParams || {};
+                    if (openaiParams.top_p != null) {
+                        requestBody.top_p = openaiParams.top_p;
+                    }
+                    if (openaiParams.presence_penalty != null) {
+                        requestBody.presence_penalty = openaiParams.presence_penalty;
+                    }
+                    if (openaiParams.frequency_penalty != null) {
+                        requestBody.frequency_penalty = openaiParams.frequency_penalty;
+                    }
+                    if (Array.isArray(openaiParams.stop) && openaiParams.stop.length) {
+                        requestBody.stop = openaiParams.stop;
+                    }
+
                     parseResponse = data => {
                         if (data && Object.prototype.hasOwnProperty.call(data, 'state')) {
                             currentStructuredState = data.state;
@@ -3442,6 +3593,20 @@ function sanitizeAIText(raw) {
                         expectStructuredResponse: true,
                         state: currentStructuredState ?? null,
                     };
+
+                    const claudeParams = adminConfig?.claudeParams || {};
+                    if (claudeParams.top_p != null) {
+                        requestBody.top_p = claudeParams.top_p;
+                    }
+                    if (claudeParams.top_k != null) {
+                        requestBody.top_k = claudeParams.top_k;
+                    }
+                    if (Array.isArray(claudeParams.stop_sequences) && claudeParams.stop_sequences.length) {
+                        requestBody.stop_sequences = claudeParams.stop_sequences;
+                    }
+                    if (claudeParams.thinking_budget_tokens != null) {
+                        requestBody.thinking = { type: 'enabled', budget_tokens: claudeParams.thinking_budget_tokens };
+                    }
 
                     parseResponse = data => {
                         if (data && Object.prototype.hasOwnProperty.call(data, 'state')) {
