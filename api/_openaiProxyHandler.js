@@ -215,8 +215,20 @@ async function forwardToOpenAI(apiKey, payload) {
     body: JSON.stringify(payload),
   });
 
-  const data = await response.json();
-  return { response, data };
+  // API 側の一時的なエラーページなどで HTML が返る場合に備え、まずテキストで取得してから
+  // JSON パースを試みる。失敗した場合はテキストをそのままエラーとして扱う。
+  const rawText = await response.text();
+  let data = null;
+
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch (error) {
+      data = { error: { message: rawText } };
+    }
+  }
+
+  return { response, data: data ?? {}, rawText };
 }
 
 function normalizeOpenAIResponse(data, requestPayload) {
