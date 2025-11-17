@@ -1383,7 +1383,7 @@ function sanitizeAIText(raw) {
     }
 
     let currentStructuredState = createInitialStructuredState();
-    
+
     let adminConfig = {
         adminPassword: 'MentalizeAdmin2024!',
         apiProvider: 'openai',
@@ -1397,6 +1397,15 @@ function sanitizeAIText(raw) {
         minimumSessionTime: 300, // 最低セッション時間（秒）- デフォルト5分
         systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。'
     };
+
+    function modelSupportsCustomTemperature(modelName) {
+        if (!modelName) return true;
+        const normalized = modelName.toLowerCase();
+        return !(
+            normalized.startsWith('gpt-5') ||
+            normalized.startsWith('o1')
+        );
+    }
     
     let currentScenarioIndex = 0;
     let currentDay = 1;
@@ -3375,6 +3384,7 @@ function sanitizeAIText(raw) {
                     };
 
                     const isGpt5 = typeof adminConfig.model === 'string' && adminConfig.model.startsWith('gpt-5');
+                    const supportsCustomTemp = modelSupportsCustomTemperature(adminConfig.model);
                     requestBody = {
                         model: adminConfig.model,
                         systemPrompt,
@@ -3388,7 +3398,9 @@ function sanitizeAIText(raw) {
                         requestBody.max_completion_tokens = adminConfig.maxTokens || 1024;
                     } else {
                         requestBody.max_tokens = adminConfig.maxTokens || 300;
-                        requestBody.temperature = adminConfig.temperature ?? 0.7;
+                        if (supportsCustomTemp) {
+                            requestBody.temperature = adminConfig.temperature ?? 0.7;
+                        }
                     }
 
                     parseResponse = data => {

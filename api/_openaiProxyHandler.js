@@ -67,13 +67,21 @@ function buildRequestPayload(body, normalized, options) {
   } = options;
 
   const model = extractModelName(body, defaultModel);
-  const temperature = toNumber(body.temperature, defaultTemperature);
+  const temperature =
+    modelSupportsCustomTemperature(model) && body.temperature !== undefined
+      ? toNumber(body.temperature, defaultTemperature)
+      : modelSupportsCustomTemperature(model)
+        ? toNumber(defaultTemperature, null)
+        : null;
 
   const payload = {
     model,
     messages: normalizedMessages,
-    temperature,
   };
+
+  if (temperature != null) {
+    payload.temperature = temperature;
+  }
 
   const explicitResponseFormat = body.response_format ?? body.responseFormat;
   if (explicitResponseFormat) {
@@ -127,6 +135,15 @@ function buildRequestPayload(body, normalized, options) {
   }
 
   return payload;
+}
+
+function modelSupportsCustomTemperature(model) {
+  if (!model || typeof model !== 'string') return true;
+  const normalized = model.toLowerCase();
+  return !(
+    normalized.startsWith('gpt-5') ||
+    normalized.startsWith('o1')
+  );
 }
 
 function buildErrorResponse(options, error) {
