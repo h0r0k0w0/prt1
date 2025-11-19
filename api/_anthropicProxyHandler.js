@@ -512,6 +512,7 @@ export function createAnthropicProxyHandler(options = {}) {
 
     try {
       console.log('Making request to Anthropic with model:', requestPayload.model);
+      const requestStart = Date.now();
 
       const { response, data } = await forwardToAnthropic(
         apiKey,
@@ -519,7 +520,8 @@ export function createAnthropicProxyHandler(options = {}) {
         handlerOptions,
       );
 
-      console.log('Anthropic response status:', response.status);
+      const elapsedMs = Date.now() - requestStart;
+      console.log('Anthropic response status:', response.status, 'elapsedMs:', elapsedMs);
 
       if (!response.ok) {
         return handleAnthropicError(res, response.status, data, handlerOptions);

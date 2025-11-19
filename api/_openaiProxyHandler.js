@@ -105,16 +105,28 @@ function buildRequestPayload(body, normalized, options) {
     payload.parallel_tool_calls = parallelToolCalls;
   }
 
+  let legacyMaxTokens = body.maxTokens ?? body.max_tokens ?? defaultMaxTokens;
+  let parsedLegacyMax =
+    legacyMaxTokens != null ? toNumber(legacyMaxTokens, defaultMaxTokens) : null;
+  let maxOutputTokens = toNumber(body.max_output_tokens, null);
+
+  if (
+    modelPrefersMaxOutputTokens(model) &&
+    maxOutputTokens == null &&
+    parsedLegacyMax != null
+  ) {
+    maxOutputTokens = parsedLegacyMax;
+    parsedLegacyMax = null;
+  }
+
   if (body.max_completion_tokens != null) {
     payload.max_completion_tokens = toNumber(
       body.max_completion_tokens,
       defaultMaxCompletionTokens,
     );
-  } else {
-    const providedMax = body.maxTokens ?? body.max_tokens ?? defaultMaxTokens;
-    if (providedMax != null) {
-      payload.max_tokens = toNumber(providedMax, defaultMaxTokens);
-    }
+    parsedLegacyMax = null;
+  } else if (parsedLegacyMax != null) {
+    payload.max_tokens = parsedLegacyMax;
   }
 
   const presencePenalty =
@@ -167,7 +179,6 @@ function buildRequestPayload(body, normalized, options) {
     payload.text = { verbosity: textVerbosity.trim() };
   }
 
-  const maxOutputTokens = toNumber(body.max_output_tokens, null);
   if (maxOutputTokens != null) {
     payload.max_output_tokens = maxOutputTokens;
   }
@@ -186,6 +197,12 @@ function modelSupportsCustomTemperature(model) {
     normalized.startsWith('gpt-5') ||
     normalized.startsWith('o1')
   );
+}
+
+function modelPrefersMaxOutputTokens(model) {
+  if (!model || typeof model !== 'string') return false;
+  const normalized = model.toLowerCase();
+  return normalized.startsWith('gpt-5');
 }
 
 function modelSupportsReasoning(model) {
@@ -420,10 +437,12 @@ export function createOpenAIProxyHandler(options = {}) {
 
     try {
       console.log('Making request to OpenAI with model:', requestPayload.model);
+      const requestStart = Date.now();
 
       const { response, data } = await forwardToOpenAI(apiKey, requestPayload);
 
-      console.log('OpenAI response status:', response.status);
+      const elapsedMs = Date.now() - requestStart;
+      console.log('OpenAI response status:', response.status, 'elapsedMs:', elapsedMs);
 
       if (!response.ok) {
         return handleOpenAiError(res, data, requestPayload);
