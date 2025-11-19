@@ -1488,6 +1488,8 @@ function sanitizeAIText(raw) {
     }
 
     let currentStructuredState = createInitialStructuredState();
+    const MAX_CHAT_HISTORY_ROUNDS_FOR_API = 10;
+    const MAX_CHAT_HISTORY_MESSAGES_FOR_API = MAX_CHAT_HISTORY_ROUNDS_FOR_API * 2;
 
     let adminConfig = {
         adminPassword: 'MentalizeAdmin2024!',
@@ -3491,6 +3493,17 @@ function sanitizeAIText(raw) {
         }
     }
 
+    function limitMessagesForApi(messages) {
+        if (!Array.isArray(messages)) return [];
+        if (!Number.isFinite(MAX_CHAT_HISTORY_MESSAGES_FOR_API) || MAX_CHAT_HISTORY_MESSAGES_FOR_API <= 0) {
+            return [...messages];
+        }
+        if (messages.length <= MAX_CHAT_HISTORY_MESSAGES_FOR_API) {
+            return [...messages];
+        }
+        return messages.slice(-MAX_CHAT_HISTORY_MESSAGES_FOR_API);
+    }
+
     function getChatHistory() {
         const messages = document.querySelectorAll('#chatMessages .message');
         return Array.from(messages)
@@ -3571,10 +3584,12 @@ function sanitizeAIText(raw) {
         // 履歴とユーザー発話
         const chatHistory = (typeof getChatHistory === 'function') ? getChatHistory() : [];
 
-        const historyForApi = chatHistory.map(msg => ({
+        let historyForApi = chatHistory.map(msg => ({
           role: msg.role || (msg.sender === 'user' ? 'user' : 'assistant'),
           content: msg.content
         }));
+
+        historyForApi = limitMessagesForApi(historyForApi);
 
         const scenarioPreface = `シナリオ: ${a.snapshot_content}\n\nユーザーの発言: `;
         const lastHistoryEntry = historyForApi[historyForApi.length - 1];
