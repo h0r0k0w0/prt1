@@ -332,15 +332,20 @@ function normalizeAnthropicResponse(data, requestPayload) {
     return null;
   }
 
-  return {
+  const normalized = {
     response: reply ?? '',
     reply: reply ?? '',
-    state: structuredState,
     rawResponse: textResponse,
     model: data.model ?? requestPayload.model,
     usage: data.usage,
     timestamp: new Date().toISOString(),
   };
+
+  if (structuredState !== undefined) {
+    normalized.state = structuredState;
+  }
+
+  return normalized;
 }
 
 function normalizeState(stateValue) {

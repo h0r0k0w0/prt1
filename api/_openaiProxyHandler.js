@@ -259,15 +259,20 @@ function normalizeOpenAIResponse(data, requestPayload) {
   const rawText = extractMessageText(message);
   const structured = parseStructuredContent(rawText);
 
-  return {
+  const normalized = {
     response: structured.reply ?? rawText ?? '',
     reply: structured.reply ?? rawText ?? '',
-    state: structured.state,
     rawResponse: rawText ?? '',
     model: requestPayload.model,
     usage: data.usage,
     timestamp: new Date().toISOString(),
   };
+
+  if (structured.state !== undefined) {
+    normalized.state = structured.state;
+  }
+
+  return normalized;
 }
 
 function extractMessageText(message) {
