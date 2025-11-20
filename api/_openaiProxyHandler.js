@@ -173,10 +173,6 @@ function buildRequestPayload(body, normalized, options) {
     payload.verbosity = textVerbosity.trim();
   }
 
-  if (maxOutputTokens != null) {
-    payload.max_output_tokens = maxOutputTokens;
-  }
-
   if (typeof body.prompt_cache_retention === 'string' && body.prompt_cache_retention.trim()) {
     payload.prompt_cache_retention = body.prompt_cache_retention.trim();
   }
@@ -202,31 +198,24 @@ function modelSupportsReasoning(model) {
 function modelSupportsMaxOutputTokens(model) {
   if (!model || typeof model !== 'string') return false;
   const normalized = model.toLowerCase();
-  // OpenAI currently accepts max_output_tokens only on GPT-5.1 class models.
-  return (
-    normalized.startsWith('gpt-5.1') ||
-    normalized.startsWith('gpt-5.1-mini') ||
-    normalized.startsWith('gpt-5.1-small') ||
-    normalized.startsWith('gpt-5.1-large')
-  );
+  return normalized.startsWith('gpt-5');
 }
 
 function normalizeMaxTokenPreferences(body, model, defaults) {
   const { defaultMaxTokens, defaultMaxCompletionTokens } = defaults;
 
-  let legacyMaxTokens = body.maxTokens ?? body.max_tokens ?? defaultMaxTokens;
-  let parsedLegacyMax =
-    legacyMaxTokens != null ? toNumber(legacyMaxTokens, defaultMaxTokens) : null;
-  let maxOutputTokens = toNumber(body.max_output_tokens, null);
-
-  if (
-    modelSupportsMaxOutputTokens(model) &&
-    maxOutputTokens == null &&
-    parsedLegacyMax != null
-  ) {
-    maxOutputTokens = parsedLegacyMax;
-    parsedLegacyMax = null;
-  }
+  const isGpt5Family = modelSupportsMaxOutputTokens(model);
+  const legacyMax = body.maxTokens ?? body.max_tokens;
+  const parsedLegacyMax =
+    legacyMax != null ? toNumber(legacyMax, defaultMaxTokens) : null;
+  const parsedCompletionMax =
+    body.max_completion_tokens != null
+      ? toNumber(body.max_completion_tokens, defaultMaxCompletionTokens)
+      : null;
+  const parsedOutputMax =
+    body.max_output_tokens != null
+      ? toNumber(body.max_output_tokens, null)
+      : null;
 
   const result = {
     max_completion_tokens: null,
@@ -234,28 +223,28 @@ function normalizeMaxTokenPreferences(body, model, defaults) {
     max_tokens: null,
   };
 
-  if (body.max_completion_tokens != null) {
-    result.max_completion_tokens = toNumber(
-      body.max_completion_tokens,
-      defaultMaxCompletionTokens,
-    );
-    parsedLegacyMax = null;
+  if (isGpt5Family) {
+    // Chat Completions API expects max_completion_tokens for GPT-5 class models.
+    result.max_completion_tokens =
+      parsedCompletionMax ??
+      parsedOutputMax ??
+      parsedLegacyMax ??
+      (defaultMaxCompletionTokens != null
+        ? toNumber(defaultMaxCompletionTokens, null)
+        : null);
+    return result;
   }
 
-  if (modelSupportsMaxOutputTokens(model)) {
-    if (maxOutputTokens != null) {
-      result.max_output_tokens = maxOutputTokens;
-    }
-    if (parsedLegacyMax != null) {
-      result.max_tokens = parsedLegacyMax;
-    }
-  } else {
-    // Model rejects max_output_tokens: fall back to max_tokens only.
-    if (maxOutputTokens != null) {
-      result.max_tokens = maxOutputTokens;
-    } else if (parsedLegacyMax != null) {
-      result.max_tokens = parsedLegacyMax;
-    }
+  if (parsedCompletionMax != null) {
+    result.max_completion_tokens = parsedCompletionMax;
+  }
+
+  if (parsedOutputMax != null) {
+    result.max_tokens = parsedOutputMax;
+  } else if (parsedLegacyMax != null) {
+    result.max_tokens = parsedLegacyMax;
+  } else if (defaultMaxTokens != null) {
+    result.max_tokens = toNumber(defaultMaxTokens, null);
   }
 
   return result;
