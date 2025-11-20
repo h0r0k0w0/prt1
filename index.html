@@ -3656,10 +3656,10 @@ function sanitizeAIText(raw) {
                         requestBody.stop = openaiParams.stop;
                     }
                     if (supportsReasoning && openaiParams.reasoning_effort) {
-                        requestBody.reasoning = { effort: openaiParams.reasoning_effort };
+                        requestBody.reasoning_effort = openaiParams.reasoning_effort;
                     }
                     if (openaiParams.text_verbosity) {
-                        requestBody.text = { verbosity: openaiParams.text_verbosity };
+                        requestBody.verbosity = openaiParams.text_verbosity;
                     }
                     if (openaiParams.max_output_tokens != null) {
                         requestBody.max_output_tokens = openaiParams.max_output_tokens;

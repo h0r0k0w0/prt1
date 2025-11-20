@@ -168,15 +168,16 @@ function buildRequestPayload(body, normalized, options) {
     reasoningEffort.trim() &&
     modelSupportsReasoning(payload.model)
   ) {
-    payload.reasoning = { effort: reasoningEffort.trim() };
+    payload.reasoning_effort = reasoningEffort.trim();
   }
 
   const textVerbosity =
+    body.verbosity ??
     body.text_verbosity ??
     body.textVerbosity ??
     (typeof body.text === 'object' ? body.text.verbosity : null);
   if (typeof textVerbosity === 'string' && textVerbosity.trim()) {
-    payload.text = { verbosity: textVerbosity.trim() };
+    payload.verbosity = textVerbosity.trim();
   }
 
   if (maxOutputTokens != null) {

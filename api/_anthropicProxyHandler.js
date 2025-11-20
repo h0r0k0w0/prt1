@@ -291,14 +291,20 @@ function normalizeAnthropicResponse(data, requestPayload) {
   for (const part of content) {
     if (!part) continue;
 
-    if (part.type === 'tool_use' && part.input && structuredReply == null) {
+    if (part.type === 'tool_use' && part.input) {
       const input = part.input;
-      if (typeof input.reply === 'string') {
+
+      if (typeof input.reply === 'string' && input.reply.trim()) {
         structuredReply = input.reply;
       }
+
       if (Object.prototype.hasOwnProperty.call(input, 'state')) {
-        structuredState = normalizeState(input.state);
+        const candidateState = normalizeState(input.state);
+        if (candidateState !== undefined) {
+          structuredState = candidateState;
+        }
       }
+
       continue;
     }
 
