@@ -4,24 +4,49 @@ import {
   toNumber,
 } from './_messageUtils.js';
 
+const DEFAULT_STATE_TOOL = {
+  name: 'state_update',
+  description:
+    'ユーザーへの返信文(reply)と更新後のstate(JSON)を含む構造化出力を返すためのツールです。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      reply: {
+        type: 'string',
+        description: 'ユーザーに送る受容文と質問文を統合したメッセージ。',
+      },
+      state: {
+        description: '更新後のState全体。',
+        oneOf: [
+          { type: 'object', additionalProperties: true },
+          { type: 'null' },
+        ],
+      },
+    },
+    required: ['reply', 'state'],
+    additionalProperties: false,
+  },
+};
+
+function createDefaultStateTool() {
+  return JSON.parse(JSON.stringify(DEFAULT_STATE_TOOL));
+}
+
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-function mergeSystemPrompts(systemMessages) {
-  return systemMessages
-    .map(message => message.content?.trim())
-    .filter(Boolean)
-    .join('\n\n');
-}
-
 function toAnthropicContentBlock(text) {
   return [{ type: 'text', text }];
 }
 
-function normalizeConversation(messages) {
+// Systemメッセージ群とユーザー/assistantターンを分離し、stateを含むsystemメッセージにフラグを付与する。
+// stateMessageContent は prepareConversationPayload が生成する「Stateを埋め込んだsystemテキスト」そのもの。
+// 3パート構成（ベースのsystemプロンプト + 構造化出力指示 + stateメッセージ）が分かっているので、
+// 連続する静的systemメッセージは一塊にまとめ、state付きのsystemメッセージは単独ブロックとして保持する。
+function normalizeConversation(messages, stateMessageContent) {
   const systemMessages = [];
   const conversation = [];
 
@@ -32,7 +57,11 @@ function normalizeConversation(messages) {
     if (!trimmed) continue;
 
     if (message.role === 'system') {
-      systemMessages.push({ ...message, content: trimmed });
+      systemMessages.push({
+        text: trimmed,
+        // stateを埋め込んだsystemメッセージと完全一致する場合だけ動的ブロックとしてマークする。
+        isState: !!stateMessageContent && trimmed === stateMessageContent,
+      });
       continue;
     }
 
@@ -58,21 +87,78 @@ function normalizeConversation(messages) {
     throw new Error('Anthropic に渡す会話履歴にユーザーの発話が含まれていません');
   }
 
+  const groupedSystemBlocks = [];
+  for (const block of systemMessages) {
+    const last = groupedSystemBlocks[groupedSystemBlocks.length - 1];
+    if (last && !last.isState && !block.isState) {
+      last.text = [last.text, block.text].filter(Boolean).join('\n\n');
+      continue;
+    }
+
+    groupedSystemBlocks.push({ ...block });
+  }
+
   return {
-    systemPrompt: mergeSystemPrompts(systemMessages),
+    systemBlocks: groupedSystemBlocks,
     conversation,
   };
 }
 
-function buildRequestPayload(body, normalizedMessages, options) {
+// Claudeは "system" メッセージに対してのみ cache_control を最大4ブロックまで付けられるため、
+// それ以外（user/assistant）のターンはここでは扱わない。超過分は後ろ側をマージする。
+// isStateフラグはマージ後のブロックにもORで引き継ぎ、"この塊は動的stateを含む"という判定を維持する。
+function limitCacheBreakpoints(blocks, maxBreakpoints = 4) {
+  const limited = blocks.map(block => ({ ...block }));
+
+  while (limited.length > maxBreakpoints) {
+    const overflow = limited.splice(maxBreakpoints - 1);
+    const mergedText = overflow.map(part => part.text).filter(Boolean).join('\n\n');
+    limited[maxBreakpoints - 1].text = [
+      limited[maxBreakpoints - 1].text,
+      mergedText,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    limited[maxBreakpoints - 1].isState =
+      limited[maxBreakpoints - 1].isState || overflow.some(part => part.isState);
+  }
+
+  return limited;
+}
+
+function buildSystemField(systemBlocks, cacheType) {
+  if (!systemBlocks.length) return null;
+
+  if (cacheType) {
+    const limitedBlocks = limitCacheBreakpoints(systemBlocks);
+    // cache_control は system ブロックにのみ付与される。ここで静的ブロックと
+    // state を含む動的ブロックの両方へ同一設定を付けることで、静的部のみ一致
+    // している場合でもキャッシュが再利用される（state 部分が変わればその
+    // ブロックだけが無効化される）。
+    return limitedBlocks.map(block => ({
+      type: 'text',
+      text: block.text,
+      cache_control: { type: cacheType },
+    }));
+  }
+
+  return systemBlocks.map(block => block.text).filter(Boolean).join('\n\n');
+}
+
+function buildRequestPayload(body, normalized, options) {
+  const normalizedMessages = normalized.messages;
   const {
     defaultModel,
     defaultTemperature,
     defaultMaxTokens,
     defaultTopP,
+    defaultTopK,
   } = options;
 
-  const { systemPrompt, conversation } = normalizeConversation(normalizedMessages);
+  const { systemBlocks, conversation } = normalizeConversation(
+    normalizedMessages,
+    normalized.stateMessageContent,
+  );
 
   const model = typeof body.model === 'string' && body.model.trim()
     ? body.model.trim()
@@ -101,6 +187,11 @@ function buildRequestPayload(body, normalizedMessages, options) {
     payload.top_p = topP;
   }
 
+  const topK = toNumber(body.top_k ?? body.topK, defaultTopK);
+  if (topK != null) {
+    payload.top_k = topK;
+  }
+
   const stopSequences = body.stop_sequences ?? body.stopSequences;
   if (Array.isArray(stopSequences) && stopSequences.length) {
     payload.stop_sequences = stopSequences
@@ -108,8 +199,49 @@ function buildRequestPayload(body, normalizedMessages, options) {
       .filter(Boolean);
   }
 
-  if (systemPrompt) {
-    payload.system = systemPrompt;
+  const thinkingModeRaw = body.thinking_mode ?? body.thinkingMode;
+  const thinkingMode = typeof thinkingModeRaw === 'string'
+    ? thinkingModeRaw.trim()
+    : null;
+  const thinkingBudget = toNumber(
+    body.thinking_budget_tokens ?? body.thinkingBudgetTokens,
+    null,
+  );
+  if (thinkingMode === 'enabled') {
+    payload.thinking = { type: 'enabled' };
+    if (thinkingBudget != null) {
+      payload.thinking.budget_tokens = thinkingBudget;
+    }
+  } else if (thinkingMode === 'disabled') {
+    payload.thinking = { type: 'disabled' };
+  } else if (thinkingBudget != null) {
+    payload.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
+  }
+
+  const cacheControl = body.system_cache_control ?? body.systemCacheControl;
+  const cacheType = typeof cacheControl?.type === 'string'
+    ? cacheControl.type.trim()
+    : null;
+
+  if (systemBlocks.length) {
+    const systemField = buildSystemField(systemBlocks, cacheType);
+    if (systemField) {
+      payload.system = systemField;
+    }
+  }
+
+  const explicitTools = Array.isArray(body.tools) ? body.tools : null;
+  if (explicitTools && explicitTools.length) {
+    payload.tools = explicitTools;
+  } else if (normalized.expectsStructuredResponse) {
+    payload.tools = [createDefaultStateTool()];
+  }
+
+  const toolChoice = body.tool_choice ?? body.toolChoice;
+  if (toolChoice != null) {
+    payload.tool_choice = toolChoice;
+  } else if (payload.tools && payload.tools.length === 1 && normalized.expectsStructuredResponse) {
+    payload.tool_choice = { type: 'tool', name: payload.tools[0].name };
   }
 
   return payload;
@@ -151,32 +283,142 @@ function normalizeAnthropicResponse(data, requestPayload) {
   if (!data) return null;
 
   const content = Array.isArray(data.content) ? data.content : [];
-  const text = content
-    .map(part => {
-      if (!part) return '';
-      if (typeof part.text === 'string') return part.text;
-      if (Array.isArray(part.content)) {
-        return part.content
-          .map(inner => (typeof inner?.text === 'string' ? inner.text : ''))
-          .filter(Boolean)
-          .join('\n');
-      }
-      return '';
-    })
-    .filter(Boolean)
-    .join('\n')
-    .trim();
 
-  if (!text) {
+  let textResponse = '';
+  let structuredReply = null;
+  let structuredState = undefined;
+
+  for (const part of content) {
+    if (!part) continue;
+
+    if (part.type === 'tool_use' && part.input) {
+      const input = part.input;
+
+      if (typeof input.reply === 'string' && input.reply.trim()) {
+        structuredReply = input.reply;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(input, 'state')) {
+        const candidateState = normalizeState(input.state);
+        if (candidateState !== undefined) {
+          structuredState = candidateState;
+        }
+      }
+
+      continue;
+    }
+
+    if (typeof part.text === 'string' && part.text.trim()) {
+      textResponse += (textResponse ? '\n' : '') + part.text.trim();
+    } else if (Array.isArray(part.content)) {
+      const nestedText = part.content
+        .map(inner => (typeof inner?.text === 'string' ? inner.text : ''))
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+      if (nestedText) {
+        textResponse += (textResponse ? '\n' : '') + nestedText;
+      }
+    }
+  }
+
+  if (structuredReply == null && textResponse) {
+    const parsed = parseStructuredText(textResponse);
+    if (parsed) {
+      structuredReply = parsed.reply ?? structuredReply;
+      if (structuredState === undefined) {
+        structuredState = parsed.state;
+      }
+    }
+  }
+
+  const reply = structuredReply ?? (textResponse || null);
+
+  if (reply == null && structuredState == null) {
     return null;
   }
 
-  return {
-    response: text,
+  const normalized = {
+    response: reply ?? '',
+    reply: reply ?? '',
+    rawResponse: textResponse,
     model: data.model ?? requestPayload.model,
     usage: data.usage,
     timestamp: new Date().toISOString(),
   };
+
+  if (structuredState !== undefined) {
+    normalized.state = structuredState;
+  }
+
+  return normalized;
+}
+
+function normalizeState(stateValue) {
+  if (stateValue == null) {
+    return null;
+  }
+
+  if (typeof stateValue === 'object') {
+    return stateValue;
+  }
+
+  if (typeof stateValue === 'string' && stateValue.trim()) {
+    try {
+      return JSON.parse(stateValue);
+    } catch (error) {
+      return stateValue;
+    }
+  }
+
+  return stateValue;
+}
+
+function parseStructuredText(text) {
+  if (typeof text !== 'string' || !text.trim()) {
+    return null;
+  }
+
+  const cleaned = stripCodeFences(text.trim());
+  const parsed = tryParseJson(cleaned) ?? tryParseEmbeddedJson(cleaned);
+
+  if (!parsed || typeof parsed !== 'object') {
+    return null;
+  }
+
+  const reply = typeof parsed.reply === 'string' ? parsed.reply : null;
+  const state = Object.prototype.hasOwnProperty.call(parsed, 'state')
+    ? normalizeState(parsed.state)
+    : undefined;
+
+  return { reply, state };
+}
+
+function stripCodeFences(text) {
+  const fenceMatch = text.match(/^```[a-zA-Z0-9_-]*\n([\s\S]*?)```$/);
+  if (fenceMatch) {
+    return fenceMatch[1].trim();
+  }
+  return text;
+}
+
+function tryParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return null;
+  }
+}
+
+function tryParseEmbeddedJson(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    return null;
+  }
+
+  const snippet = text.slice(start, end + 1);
+  return tryParseJson(snippet);
 }
 
 function handleAnthropicError(res, status, data, options) {
@@ -230,6 +472,7 @@ export function createAnthropicProxyHandler(options = {}) {
     defaultTemperature: 0.7,
     defaultMaxTokens: 1024,
     defaultTopP: undefined,
+    defaultTopK: undefined,
     internalErrorMessage: 'サーバー内部エラーが発生しました',
     exposeErrorDetails: false,
     ...options,
@@ -272,7 +515,7 @@ export function createAnthropicProxyHandler(options = {}) {
 
     let requestPayload;
     try {
-      requestPayload = buildRequestPayload(body, normalized.messages, handlerOptions);
+      requestPayload = buildRequestPayload(body, normalized, handlerOptions);
     } catch (error) {
       console.error('Failed to build Anthropic payload:', error);
       return res.status(400).json({
@@ -282,6 +525,7 @@ export function createAnthropicProxyHandler(options = {}) {
 
     try {
       console.log('Making request to Anthropic with model:', requestPayload.model);
+      const requestStart = Date.now();
 
       const { response, data } = await forwardToAnthropic(
         apiKey,
@@ -289,7 +533,8 @@ export function createAnthropicProxyHandler(options = {}) {
         handlerOptions,
       );
 
-      console.log('Anthropic response status:', response.status);
+      const elapsedMs = Date.now() - requestStart;
+      console.log('Anthropic response status:', response.status, 'elapsedMs:', elapsedMs);
 
       if (!response.ok) {
         return handleAnthropicError(res, response.status, data, handlerOptions);

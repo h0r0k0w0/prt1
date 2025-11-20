@@ -4,6 +4,33 @@ import {
   toNumber,
 } from './_messageUtils.js';
 
+const DEFAULT_RESPONSE_FORMAT = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'reply_and_state',
+    schema: {
+      type: 'object',
+      properties: {
+        reply: {
+          type: 'string',
+          description:
+            'ユーザーに表示する受容文と質問文を統合したメッセージを文字列で返してください。',
+        },
+        state: {
+          description:
+            '現在の分析結果を表すState全体をJSONオブジェクトで返してください。該当する情報がなければnullを返してください。',
+          oneOf: [
+            { type: 'object', additionalProperties: true },
+            { type: 'null' },
+          ],
+        },
+      },
+      required: ['reply', 'state'],
+      additionalProperties: false,
+    },
+  },
+};
+
 /**
  * OpenAI へのリクエスト送信処理を共通化したハンドラ。
  *
@@ -28,35 +55,71 @@ function extractModelName(body, fallbackModel) {
   return fallbackModel;
 }
 
-function buildRequestPayload(body, normalizedMessages, options) {
+function buildRequestPayload(body, normalized, options) {
+  const normalizedMessages = normalized.messages;
   const {
     defaultModel,
     defaultTemperature,
     defaultPresencePenalty,
     defaultFrequencyPenalty,
+    defaultTopP,
     defaultMaxTokens,
     defaultMaxCompletionTokens,
   } = options;
 
   const model = extractModelName(body, defaultModel);
-  const temperature = toNumber(body.temperature, defaultTemperature);
+  const temperature =
+    modelSupportsCustomTemperature(model) && body.temperature !== undefined
+      ? toNumber(body.temperature, defaultTemperature)
+      : modelSupportsCustomTemperature(model)
+        ? toNumber(defaultTemperature, null)
+        : null;
 
   const payload = {
     model,
     messages: normalizedMessages,
-    temperature,
   };
 
-  if (body.max_completion_tokens != null) {
-    payload.max_completion_tokens = toNumber(
-      body.max_completion_tokens,
-      defaultMaxCompletionTokens,
-    );
-  } else {
-    const providedMax = body.maxTokens ?? body.max_tokens ?? defaultMaxTokens;
-    if (providedMax != null) {
-      payload.max_tokens = toNumber(providedMax, defaultMaxTokens);
-    }
+  if (temperature != null) {
+    payload.temperature = temperature;
+  }
+
+  const explicitResponseFormat = body.response_format ?? body.responseFormat;
+  if (explicitResponseFormat) {
+    payload.response_format = explicitResponseFormat;
+  } else if (normalized.expectsStructuredResponse) {
+    payload.response_format = DEFAULT_RESPONSE_FORMAT;
+  }
+
+  if (Array.isArray(body.tools)) {
+    payload.tools = body.tools;
+  }
+
+  const toolChoice = body.tool_choice ?? body.toolChoice;
+  if (toolChoice != null) {
+    payload.tool_choice = toolChoice;
+  }
+
+  const parallelToolCalls = body.parallel_tool_calls ?? body.parallelToolCalls;
+  if (parallelToolCalls != null) {
+    payload.parallel_tool_calls = parallelToolCalls;
+  }
+
+  const maxTokenPrefs = normalizeMaxTokenPreferences(body, model, {
+    defaultMaxTokens,
+    defaultMaxCompletionTokens,
+  });
+
+  if (maxTokenPrefs.max_completion_tokens != null) {
+    payload.max_completion_tokens = maxTokenPrefs.max_completion_tokens;
+  }
+
+  if (maxTokenPrefs.max_output_tokens != null) {
+    payload.max_output_tokens = maxTokenPrefs.max_output_tokens;
+  }
+
+  if (maxTokenPrefs.max_tokens != null) {
+    payload.max_tokens = maxTokenPrefs.max_tokens;
   }
 
   const presencePenalty =
@@ -77,7 +140,114 @@ function buildRequestPayload(body, normalizedMessages, options) {
     );
   }
 
+  const topP = body.top_p ?? body.topP ?? defaultTopP ?? null;
+  if (topP != null) {
+    payload.top_p = toNumber(topP, defaultTopP ?? null);
+  }
+
+  const stop = body.stop ?? body.stop_sequences ?? body.stopSequences;
+  if (Array.isArray(stop) && stop.length) {
+    payload.stop = stop
+      .map(value => (typeof value === 'string' ? value : ''))
+      .filter(Boolean);
+  }
+
+  const reasoningEffort =
+    body.reasoning_effort ??
+    body.reasoningEffort ??
+    (typeof body.reasoning === 'object' ? body.reasoning.effort : null);
+  if (
+    typeof reasoningEffort === 'string' &&
+    reasoningEffort.trim() &&
+    modelSupportsReasoning(payload.model)
+  ) {
+    payload.reasoning_effort = reasoningEffort.trim();
+  }
+
+  const textVerbosity =
+    body.verbosity ??
+    body.text_verbosity ??
+    body.textVerbosity ??
+    (typeof body.text === 'object' ? body.text.verbosity : null);
+  if (typeof textVerbosity === 'string' && textVerbosity.trim()) {
+    payload.verbosity = textVerbosity.trim();
+  }
+
+  if (typeof body.prompt_cache_retention === 'string' && body.prompt_cache_retention.trim()) {
+    payload.prompt_cache_retention = body.prompt_cache_retention.trim();
+  }
+
   return payload;
+}
+
+function modelSupportsCustomTemperature(model) {
+  if (!model || typeof model !== 'string') return true;
+  const normalized = model.toLowerCase();
+  return !(
+    normalized.startsWith('gpt-5') ||
+    normalized.startsWith('o1')
+  );
+}
+
+function modelSupportsReasoning(model) {
+  if (!model || typeof model !== 'string') return false;
+  const normalized = model.toLowerCase();
+  return normalized.startsWith('gpt-5');
+}
+
+function modelSupportsMaxOutputTokens(model) {
+  if (!model || typeof model !== 'string') return false;
+  const normalized = model.toLowerCase();
+  return normalized.startsWith('gpt-5');
+}
+
+function normalizeMaxTokenPreferences(body, model, defaults) {
+  const { defaultMaxTokens, defaultMaxCompletionTokens } = defaults;
+
+  const isGpt5Family = modelSupportsMaxOutputTokens(model);
+  const legacyMax = body.maxTokens ?? body.max_tokens;
+  const parsedLegacyMax =
+    legacyMax != null ? toNumber(legacyMax, defaultMaxTokens) : null;
+  const parsedCompletionMax =
+    body.max_completion_tokens != null
+      ? toNumber(body.max_completion_tokens, defaultMaxCompletionTokens)
+      : null;
+  const parsedOutputMax =
+    body.max_output_tokens != null
+      ? toNumber(body.max_output_tokens, null)
+      : null;
+
+  const result = {
+    max_completion_tokens: null,
+    max_output_tokens: null,
+    max_tokens: null,
+  };
+
+  if (isGpt5Family) {
+    // Chat Completions API expects max_completion_tokens for GPT-5 class models.
+    result.max_completion_tokens =
+      parsedCompletionMax ??
+      parsedOutputMax ??
+      parsedLegacyMax ??
+      (defaultMaxCompletionTokens != null
+        ? toNumber(defaultMaxCompletionTokens, null)
+        : null);
+    return result;
+  }
+
+  if (parsedCompletionMax != null) {
+    result.max_completion_tokens = parsedCompletionMax;
+  }
+
+  if (parsedOutputMax != null) {
+    result.max_tokens = parsedOutputMax;
+  } else if (parsedLegacyMax != null) {
+    result.max_tokens = parsedLegacyMax;
+  } else if (defaultMaxTokens != null) {
+    result.max_tokens = toNumber(defaultMaxTokens, null);
+  }
+
+  return result;
 }
 
 function buildErrorResponse(options, error) {
@@ -101,40 +271,139 @@ async function forwardToOpenAI(apiKey, payload) {
     body: JSON.stringify(payload),
   });
 
-  const data = await response.json();
-  return { response, data };
+  // API 側の一時的なエラーページなどで HTML が返る場合に備え、まずテキストで取得してから
+  // JSON パースを試みる。失敗した場合はテキストをそのままエラーとして扱う。
+  const rawText = await response.text();
+  let data = null;
+
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch (error) {
+      data = { error: { message: rawText } };
+    }
+  }
+
+  return { response, data: data ?? {}, rawText };
 }
 
 function normalizeOpenAIResponse(data, requestPayload) {
   const choice = Array.isArray(data?.choices) ? data.choices[0] : null;
   const message = choice?.message;
 
-  if (message && typeof message.content === 'string') {
-    return {
-      response: message.content,
-      model: requestPayload.model,
-      usage: data.usage,
-      timestamp: new Date().toISOString(),
-    };
+  if (!message) {
+    return null;
   }
 
-  if (message && Array.isArray(message.content)) {
-    const combined = message.content
-      .map(part => (typeof part?.text === 'string' ? part.text : ''))
+  const rawText = extractMessageText(message);
+  const structured = parseStructuredContent(rawText);
+
+  const normalized = {
+    response: structured.reply ?? rawText ?? '',
+    reply: structured.reply ?? rawText ?? '',
+    rawResponse: rawText ?? '',
+    model: requestPayload.model,
+    usage: data.usage,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (structured.state !== undefined) {
+    normalized.state = structured.state;
+  }
+
+  return normalized;
+}
+
+function extractMessageText(message) {
+  if (typeof message?.content === 'string') {
+    return message.content;
+  }
+
+  if (Array.isArray(message?.content)) {
+    return message.content
+      .map(part => {
+        if (typeof part?.text === 'string') return part.text;
+        if (Array.isArray(part?.content)) {
+          return part.content
+            .map(inner => (typeof inner?.text === 'string' ? inner.text : ''))
+            .filter(Boolean)
+            .join('\n');
+        }
+        return '';
+      })
       .filter(Boolean)
       .join('\n');
+  }
 
-    if (combined) {
-      return {
-        response: combined,
-        model: requestPayload.model,
-        usage: data.usage,
-        timestamp: new Date().toISOString(),
-      };
+  return '';
+}
+
+function parseStructuredContent(rawText) {
+  if (typeof rawText !== 'string' || !rawText.trim()) {
+    return { reply: null, state: undefined };
+  }
+
+  const cleaned = stripCodeFences(rawText.trim());
+
+  const parsed = tryParseJson(cleaned) ?? tryParseEmbeddedJson(cleaned);
+
+  if (!parsed || typeof parsed !== 'object') {
+    return { reply: null, state: undefined };
+  }
+
+  const reply = typeof parsed.reply === 'string' ? parsed.reply : null;
+  const state = Object.prototype.hasOwnProperty.call(parsed, 'state')
+    ? normalizeState(parsed.state)
+    : undefined;
+
+  return { reply, state };
+}
+
+function stripCodeFences(text) {
+  const fenceMatch = text.match(/^```[a-zA-Z0-9_-]*\n([\s\S]*?)```$/);
+  if (fenceMatch) {
+    return fenceMatch[1].trim();
+  }
+  return text;
+}
+
+function tryParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return null;
+  }
+}
+
+function tryParseEmbeddedJson(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    return null;
+  }
+
+  const snippet = text.slice(start, end + 1);
+  return tryParseJson(snippet);
+}
+
+function normalizeState(stateValue) {
+  if (stateValue == null) {
+    return null;
+  }
+
+  if (typeof stateValue === 'object') {
+    return stateValue;
+  }
+
+  if (typeof stateValue === 'string' && stateValue.trim()) {
+    try {
+      return JSON.parse(stateValue);
+    } catch (error) {
+      return stateValue;
     }
   }
 
-  return null;
+  return stateValue;
 }
 
 function handleOpenAiError(res, data, requestPayload) {
@@ -174,6 +443,7 @@ export function createOpenAIProxyHandler(options = {}) {
     defaultTemperature: 0.7,
     defaultPresencePenalty: undefined,
     defaultFrequencyPenalty: undefined,
+    defaultTopP: undefined,
     defaultMaxTokens: 300,
     defaultMaxCompletionTokens: 300,
     internalErrorMessage: 'サーバー内部エラーが発生しました',
@@ -209,18 +479,16 @@ export function createOpenAIProxyHandler(options = {}) {
       return res.status(400).json({ error: 'OpenAI APIキーが指定されていません' });
     }
 
-    const requestPayload = buildRequestPayload(
-      body,
-      normalized.messages,
-      handlerOptions,
-    );
+    const requestPayload = buildRequestPayload(body, normalized, handlerOptions);
 
     try {
       console.log('Making request to OpenAI with model:', requestPayload.model);
+      const requestStart = Date.now();
 
       const { response, data } = await forwardToOpenAI(apiKey, requestPayload);
 
-      console.log('OpenAI response status:', response.status);
+      const elapsedMs = Date.now() - requestStart;
+      console.log('OpenAI response status:', response.status, 'elapsedMs:', elapsedMs);
 
       if (!response.ok) {
         return handleOpenAiError(res, data, requestPayload);
