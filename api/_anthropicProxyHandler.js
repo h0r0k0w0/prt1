@@ -286,7 +286,7 @@ function normalizeAnthropicResponse(data, requestPayload) {
 
   let textResponse = '';
   let structuredReply = null;
-  let structuredState = null;
+  let structuredState = undefined;
 
   for (const part of content) {
     if (!part) continue;
@@ -296,7 +296,7 @@ function normalizeAnthropicResponse(data, requestPayload) {
       if (typeof input.reply === 'string') {
         structuredReply = input.reply;
       }
-      if (input.state !== undefined) {
+      if (Object.prototype.hasOwnProperty.call(input, 'state')) {
         structuredState = normalizeState(input.state);
       }
       continue;
@@ -320,7 +320,7 @@ function normalizeAnthropicResponse(data, requestPayload) {
     const parsed = parseStructuredText(textResponse);
     if (parsed) {
       structuredReply = parsed.reply ?? structuredReply;
-      if (structuredState == null) {
+      if (structuredState === undefined) {
         structuredState = parsed.state;
       }
     }
@@ -381,7 +381,9 @@ function parseStructuredText(text) {
   }
 
   const reply = typeof parsed.reply === 'string' ? parsed.reply : null;
-  const state = normalizeState(parsed.state);
+  const state = Object.prototype.hasOwnProperty.call(parsed, 'state')
+    ? normalizeState(parsed.state)
+    : undefined;
 
   return { reply, state };
 }

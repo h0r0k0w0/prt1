@@ -301,7 +301,7 @@ function extractMessageText(message) {
 
 function parseStructuredContent(rawText) {
   if (typeof rawText !== 'string' || !rawText.trim()) {
-    return { reply: null, state: null };
+    return { reply: null, state: undefined };
   }
 
   const cleaned = stripCodeFences(rawText.trim());
@@ -309,11 +309,13 @@ function parseStructuredContent(rawText) {
   const parsed = tryParseJson(cleaned) ?? tryParseEmbeddedJson(cleaned);
 
   if (!parsed || typeof parsed !== 'object') {
-    return { reply: null, state: null };
+    return { reply: null, state: undefined };
   }
 
   const reply = typeof parsed.reply === 'string' ? parsed.reply : null;
-  const state = normalizeState(parsed.state);
+  const state = Object.prototype.hasOwnProperty.call(parsed, 'state')
+    ? normalizeState(parsed.state)
+    : undefined;
 
   return { reply, state };
 }
