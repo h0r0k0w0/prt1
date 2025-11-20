@@ -105,28 +105,21 @@ function buildRequestPayload(body, normalized, options) {
     payload.parallel_tool_calls = parallelToolCalls;
   }
 
-  let legacyMaxTokens = body.maxTokens ?? body.max_tokens ?? defaultMaxTokens;
-  let parsedLegacyMax =
-    legacyMaxTokens != null ? toNumber(legacyMaxTokens, defaultMaxTokens) : null;
-  let maxOutputTokens = toNumber(body.max_output_tokens, null);
+  const maxTokenPrefs = normalizeMaxTokenPreferences(body, model, {
+    defaultMaxTokens,
+    defaultMaxCompletionTokens,
+  });
 
-  if (
-    modelPrefersMaxOutputTokens(model) &&
-    maxOutputTokens == null &&
-    parsedLegacyMax != null
-  ) {
-    maxOutputTokens = parsedLegacyMax;
-    parsedLegacyMax = null;
+  if (maxTokenPrefs.max_completion_tokens != null) {
+    payload.max_completion_tokens = maxTokenPrefs.max_completion_tokens;
   }
 
-  if (body.max_completion_tokens != null) {
-    payload.max_completion_tokens = toNumber(
-      body.max_completion_tokens,
-      defaultMaxCompletionTokens,
-    );
-    parsedLegacyMax = null;
-  } else if (parsedLegacyMax != null) {
-    payload.max_tokens = parsedLegacyMax;
+  if (maxTokenPrefs.max_output_tokens != null) {
+    payload.max_output_tokens = maxTokenPrefs.max_output_tokens;
+  }
+
+  if (maxTokenPrefs.max_tokens != null) {
+    payload.max_tokens = maxTokenPrefs.max_tokens;
   }
 
   const presencePenalty =
@@ -200,16 +193,72 @@ function modelSupportsCustomTemperature(model) {
   );
 }
 
-function modelPrefersMaxOutputTokens(model) {
+function modelSupportsReasoning(model) {
   if (!model || typeof model !== 'string') return false;
   const normalized = model.toLowerCase();
   return normalized.startsWith('gpt-5');
 }
 
-function modelSupportsReasoning(model) {
+function modelSupportsMaxOutputTokens(model) {
   if (!model || typeof model !== 'string') return false;
   const normalized = model.toLowerCase();
-  return normalized.startsWith('gpt-5');
+  // OpenAI currently accepts max_output_tokens only on GPT-5.1 class models.
+  return (
+    normalized.startsWith('gpt-5.1') ||
+    normalized.startsWith('gpt-5.1-mini') ||
+    normalized.startsWith('gpt-5.1-small') ||
+    normalized.startsWith('gpt-5.1-large')
+  );
+}
+
+function normalizeMaxTokenPreferences(body, model, defaults) {
+  const { defaultMaxTokens, defaultMaxCompletionTokens } = defaults;
+
+  let legacyMaxTokens = body.maxTokens ?? body.max_tokens ?? defaultMaxTokens;
+  let parsedLegacyMax =
+    legacyMaxTokens != null ? toNumber(legacyMaxTokens, defaultMaxTokens) : null;
+  let maxOutputTokens = toNumber(body.max_output_tokens, null);
+
+  if (
+    modelSupportsMaxOutputTokens(model) &&
+    maxOutputTokens == null &&
+    parsedLegacyMax != null
+  ) {
+    maxOutputTokens = parsedLegacyMax;
+    parsedLegacyMax = null;
+  }
+
+  const result = {
+    max_completion_tokens: null,
+    max_output_tokens: null,
+    max_tokens: null,
+  };
+
+  if (body.max_completion_tokens != null) {
+    result.max_completion_tokens = toNumber(
+      body.max_completion_tokens,
+      defaultMaxCompletionTokens,
+    );
+    parsedLegacyMax = null;
+  }
+
+  if (modelSupportsMaxOutputTokens(model)) {
+    if (maxOutputTokens != null) {
+      result.max_output_tokens = maxOutputTokens;
+    }
+    if (parsedLegacyMax != null) {
+      result.max_tokens = parsedLegacyMax;
+    }
+  } else {
+    // Model rejects max_output_tokens: fall back to max_tokens only.
+    if (maxOutputTokens != null) {
+      result.max_tokens = maxOutputTokens;
+    } else if (parsedLegacyMax != null) {
+      result.max_tokens = parsedLegacyMax;
+    }
+  }
+
+  return result;
 }
 
 function buildErrorResponse(options, error) {
