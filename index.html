@@ -1426,10 +1426,11 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="consentUserIdInput">ユーザーID（再入力）</label>
-                            <input type="text" id="consentUserIdInput" placeholder="先ほど入力したIDをもう一度入力してください">
-                        </div>
+                          <div class="form-group">
+                              <label for="consentUserIdInput">日付選択画面で設定したユーザーID</label>
+                              <input type="text" id="consentUserIdInput" placeholder="日付選択画面で設定したIDが自動で表示されます" readonly>
+                              <small style="color:#6b7280;">表示されたIDをコピーして同意書テキストに貼り付けてください。</small>
+                          </div>
 
                         <div class="form-group">
                             <label for="consentEditableText">同意書テキスト</label>
@@ -2265,7 +2266,7 @@ function sanitizeAIText(raw) {
         const textarea = document.getElementById('consentEditableText');
         const userIdInput = document.getElementById('consentUserIdInput');
         if (textarea) textarea.value = consentConfig.consentText || '';
-        if (userIdInput) userIdInput.value = '';
+        if (userIdInput) userIdInput.value = participantId || '';
         renderConsentPdf();
     }
 
@@ -2373,7 +2374,13 @@ function sanitizeAIText(raw) {
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
         });
-        document.getElementById(screenId).classList.add('active');
+
+        const target = document.getElementById(screenId);
+        if (!target) {
+            console.warn(`Admin screen not found: ${screenId}`);
+            return;
+        }
+        target.classList.add('active');
     }
 
     function showParticipantScreen(screenId) {
@@ -3647,16 +3654,12 @@ function sanitizeAIText(raw) {
     }
 
     async function submitConsentForm() {
-        const typedId = document.getElementById('consentUserIdInput').value.trim();
         const text = document.getElementById('consentEditableText').value.trim();
+        const idForConsent = (participantId || '').trim() || document.getElementById('consentUserIdInput').value.trim();
 
-        if (!typedId) {
-            alert('ユーザーIDを入力してください。');
-            return;
-        }
-
-        if (typedId !== participantId) {
-            alert('日付選択画面で入力したIDと同じものを入力してください。');
+        if (!idForConsent) {
+            alert('日付選択画面で参加者IDを入力してください。');
+            showParticipantScreen('participantStart');
             return;
         }
 
@@ -3665,18 +3668,18 @@ function sanitizeAIText(raw) {
             return;
         }
 
-        if (!text.includes(typedId)) {
+        if (!text.includes(idForConsent)) {
             const proceed = confirm('同意書テキスト内にユーザーIDの記載が見当たりません。このまま提出しますか？');
             if (!proceed) return;
         }
 
         try {
-            await saveConsentSubmission({ userId: typedId, submittedText: text });
+            await saveConsentSubmission({ userId: idForConsent, submittedText: text });
             showConsentModal({
                 title: '同意していただきありがとうございます',
                 message: '同一のIDで、1日目から7日間連続で実験にご参加ください。',
                 onClose: () => {
-                    document.getElementById('participantId').value = typedId;
+                    document.getElementById('participantId').value = idForConsent;
                     showParticipantScreen('participantStart');
                 },
             });
