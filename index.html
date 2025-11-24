@@ -1559,8 +1559,10 @@ function sanitizeAIText(raw) {
     const MAX_CHAT_HISTORY_ROUNDS_FOR_API = 10;
     const MAX_CHAT_HISTORY_MESSAGES_FOR_API = MAX_CHAT_HISTORY_ROUNDS_FOR_API * 2;
 
+    const DEFAULT_ADMIN_PASSWORD = 'MentalizeAdmin2024!';
+
     let adminConfig = {
-        adminPassword: 'MentalizeAdmin2024!',
+        adminPassword: DEFAULT_ADMIN_PASSWORD,
         apiProvider: 'openai',
         apiKey: '',
         customApiUrl: '',
@@ -1607,6 +1609,9 @@ function sanitizeAIText(raw) {
         const merged = { ...base, ...incoming };
         merged.openaiParams = { ...(base.openaiParams || {}), ...(incoming.openaiParams || {}) };
         merged.claudeParams = { ...(base.claudeParams || {}), ...(incoming.claudeParams || {}) };
+        if (!merged.adminPassword) {
+            merged.adminPassword = DEFAULT_ADMIN_PASSWORD;
+        }
         return merged;
     }
 
@@ -4947,7 +4952,7 @@ function sanitizeAIText(raw) {
               },
               (payload) => {
                 if (payload.new) {
-                  adminConfig = payload.new.settings;
+                  adminConfig = mergeAdminConfig(adminConfig, payload.new.settings);
                   loadAdminConfigUI(); // UIを即時更新
                 }
                }
