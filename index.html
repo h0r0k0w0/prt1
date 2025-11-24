@@ -787,6 +787,7 @@
             <div class="nav-buttons">
                 <button id="adminConfigNav" class="nav-btn active">🔧 システム設定</button>
                 <button id="adminScenariosNav" class="nav-btn">📝 シナリオ管理</button>
+                <button id="adminConsentNav" class="nav-btn">📄 同意書管理</button>
                 <button id="adminAssignmentsNav" class="nav-btn">📊 割り当て状況</button>
                 <button id="adminLogsNav" class="nav-btn">📋 データ閲覧</button>
                 <button id="adminSurveysNav" class="nav-btn">アンケート</button>
@@ -1080,6 +1081,40 @@
                 </div>
             </div>
 
+            <div id="adminConsent" class="screen">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button id="adminLogoutBtnConsent" class="back-btn">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
+                <h2>📄 同意書管理</h2>
+
+                <div class="admin-config">
+                    <h3>📑 同意書表示の設定</h3>
+                    <div class="config-grid">
+                        <div class="form-group">
+                            <label for="consentPdfUrl">表示するPDFのURL</label>
+                            <input type="text" id="consentPdfUrl" placeholder="https://example.com/consent.pdf">
+                            <small style="color:#6c757d;">ここで指定したURLのPDFが同意書画面に埋め込み表示されます。</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="consentTextTemplate">同意書テキスト（参加者が編集する下地）</label>
+                            <textarea id="consentTextTemplate" style="height: 200px;" placeholder="同意書本文を入力してください"></textarea>
+                            <small style="color:#6c757d;">「ユーザーID：」のような記入欄を含めてください。ページを開くたびにこのテキストが初期表示されます。</small>
+                        </div>
+                    </div>
+                    <button id="saveConsentSettingsBtn" class="btn">💾 同意書設定を保存</button>
+                </div>
+
+                <div class="admin-config">
+                    <h3>📅 提出履歴</h3>
+                    <div id="consentHistoryList">
+                        <div style="text-align: center; padding: 12px; color: #6c757d;">読み込み中...</div>
+                    </div>
+                </div>
+            </div>
+
             <div id="adminAssignments" class="screen">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <button id="adminLogoutBtn3" class="back-btn">← ログアウト</button>
@@ -1312,11 +1347,12 @@
                                     <option value="7">7日目（自力メンタライズ）</option>
                                 </select>
                             </div>
-                            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                                <button id="backToModeSelectBtn" class="back-btn" style="background: #6c757d; border-color: #6c757d;">← 前の画面に戻る</button>
-                                <button id="startExperimentBtn" class="btn" title="実験を開始します。一時中断後はここから再開できます。">実験開始</button>
-                            </div>
-                        </div>
+                              <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+                                  <button id="backToModeSelectBtn" class="back-btn" style="background: #6c757d; border-color: #6c757d;">← 前の画面に戻る</button>
+                                  <button id="startExperimentBtn" class="btn" title="実験を開始します。一時中断後はここから再開できます。">実験開始</button>
+                                  <button id="openConsentBtn" class="btn" style="background:#0ea5e9;" title="実験開始前に同意書を提出します">同意書記入</button>
+                              </div>
+                          </div>
 
                         <!-- 実験実行中の画面 -->
                         <div id="experimentContent" style="display: none;">
@@ -1371,6 +1407,40 @@
                                 <p>本日の実験が完了しました。ご参加いただき、ありがとうございました。</p>
                                 <button id="completeExperimentBtn" class="btn" style="margin-top: 20px; background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer;">実験を完了してメニューに戻る</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="participantConsent" class="screen">
+                <div class="participant-interface">
+                    <div class="participant-header" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
+                        <h2>📄 同意書記入</h2>
+                        <p>PDFを確認し、テキスト欄に同意の上でユーザーIDを記入してください</p>
+                    </div>
+                    <div class="experiment-card">
+                        <div class="form-group">
+                            <label>同意書PDF</label>
+                            <div id="consentPdfContainer" style="border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; min-height: 300px; background: #f8fafc;">
+                                <div style="padding: 12px; color: #6b7280; text-align: center;" id="consentPdfFallback">PDFのURLが設定されていません。管理者に問い合わせてください。</div>
+                            </div>
+                        </div>
+
+                          <div class="form-group">
+                              <label for="consentUserIdInput">日付選択画面で設定したユーザーID</label>
+                              <input type="text" id="consentUserIdInput" placeholder="日付選択画面で設定したIDが自動で表示されます" readonly>
+                              <small style="color:#6b7280;">表示されたIDをコピーして同意書テキストに貼り付けてください。</small>
+                          </div>
+
+                        <div class="form-group">
+                            <label for="consentEditableText">同意書テキスト</label>
+                            <textarea id="consentEditableText" style="height: 220px;"></textarea>
+                            <small style="color:#6b7280;">ページを開くたびに管理画面で指定したテンプレートで初期化されます。他者の編集は表示されません。</small>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px;">
+                            <button id="submitConsentBtn" class="btn" style="background:#0ea5e9;">同意書を提出</button>
+                            <button id="cancelConsentBtn" class="back-btn">✖ 日付選択に戻る</button>
                         </div>
                     </div>
                 </div>
@@ -1489,8 +1559,10 @@ function sanitizeAIText(raw) {
     const MAX_CHAT_HISTORY_ROUNDS_FOR_API = 10;
     const MAX_CHAT_HISTORY_MESSAGES_FOR_API = MAX_CHAT_HISTORY_ROUNDS_FOR_API * 2;
 
+    const DEFAULT_ADMIN_PASSWORD = 'MentalizeAdmin2024!';
+
     let adminConfig = {
-        adminPassword: 'MentalizeAdmin2024!',
+        adminPassword: DEFAULT_ADMIN_PASSWORD,
         apiProvider: 'openai',
         apiKey: '',
         customApiUrl: '',
@@ -1522,10 +1594,24 @@ function sanitizeAIText(raw) {
         modelNotes: '',
     };
 
+    // 同意書設定（管理画面から編集可能）
+    let consentConfig = {
+        pdfUrl: '',
+        consentText: '以下の同意書をお読みいただき、内容に同意される場合は「ユーザーID」欄にご自身のIDを記入してください。\n\n【同意書】\n・本研究の目的、方法、想定されるリスクと利益を理解しました。\n・参加は自由意志であり、いつでも中止できることを理解しました。\n・取得したデータは匿名化され、研究目的のみに利用されることに同意します。\n\nユーザーID：',
+    };
+
+    // 同意書提出履歴（Supabase未接続時はローカル保存）
+    let consentSubmissions = [];
+    const LOCAL_CONSENT_KNOWN_IDS_KEY = 'consentKnownIds';
+    let knownLocalConsentIds = new Set(JSON.parse(localStorage.getItem(LOCAL_CONSENT_KNOWN_IDS_KEY) || '[]'));
+
     function mergeAdminConfig(base, incoming = {}) {
         const merged = { ...base, ...incoming };
         merged.openaiParams = { ...(base.openaiParams || {}), ...(incoming.openaiParams || {}) };
         merged.claudeParams = { ...(base.claudeParams || {}), ...(incoming.claudeParams || {}) };
+        if (!merged.adminPassword) {
+            merged.adminPassword = DEFAULT_ADMIN_PASSWORD;
+        }
         return merged;
     }
 
@@ -1597,11 +1683,14 @@ function sanitizeAIText(raw) {
         try {
             await loadAdminSettings();
             await loadScenarios();
+            await loadConsentSettings();
             await loadExperimentLogs();
-            
+            await loadConsentSubmissions();
+
             loadAdminConfigUI();
             updateScenarioList();
             updateLogsList();
+            updateConsentAdminUI();
             
             console.log('✅ Supabaseからデータ読み込み完了');
         } catch (error) {
@@ -1614,33 +1703,59 @@ function sanitizeAIText(raw) {
         supabase = globalThis.__supabase;
         return loadDataFromSupabase();
       }
-    
+
       try {
         const mod = await import('@supabase/supabase-js');
-    
+
         const createClient =
               mod.createClient
            ?? mod.default?.createClient
            ?? mod.default;
-    
+
         if (typeof createClient !== 'function') {
           throw new Error('createClient not found in module');
         }
-    
+
         const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // anon key を使用
-    
-        supabase = createClient(supabaseUrl, supabaseAnonKey);
-        globalThis.__supabase = supabase;
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // anon keyを使用
+
+        const client = createClient(supabaseUrl, supabaseAnonKey);
+
+        // まずHTTP経由で到達性を確認し、接続できない場合はローカル保存にフォールバック
+        const { error: healthError } = await client
+          .from('admin_settings')
+          .select('id')
+          .limit(1);
+
+        if (healthError) {
+          throw healthError;
+        }
+
+        supabase = client;
+        globalThis.__supabase = client;
         isSupabaseAvailable = true;
-    
+
         console.log('✅ Supabase 初期化成功');
-    
-        // 🎯 3種類の設定を購読
-        const settingsToWatch = ['admin_config', 'scenarios', 'surveys'];
-    
-        settingsToWatch.forEach((settingId) => {
-          supabase
+
+        setupRealtimeSubscriptions();
+
+        await loadDataFromSupabase(); // 初期読み込み
+      } catch (err) {
+        console.error('❌ Supabase 初期化エラー:', err);
+        supabase = null;
+        isSupabaseAvailable = false;
+        loadFromLocalStorage();
+      }
+    }
+
+    function setupRealtimeSubscriptions() {
+      if (!supabase || typeof supabase.channel !== 'function') return;
+
+      const settingsToWatch = ['admin_config', 'scenarios', 'surveys', 'consent'];
+
+      settingsToWatch.forEach((settingId) => {
+        try {
+          const channel = supabase
             .channel(`watch-${settingId}`)
             .on(
               'postgres_changes',
@@ -1650,22 +1765,22 @@ function sanitizeAIText(raw) {
                 table: 'admin_settings',
                 filter: `id=eq.${settingId}`
               },
-              async (payload) => {
+              async () => {
                 console.log(`🔄 ${settingId} が更新されました`);
                 await loadDataFromSupabase(); // 最新状態を再読み込み
               }
-            )
-            .subscribe();
-        });
-    
-        await loadDataFromSupabase(); // 初期読み込み
-      } catch (err) {
-        console.error('❌ Supabase 初期化エラー:', err);
-        loadFromLocalStorage();
-      }
+            );
+
+          channel.subscribe().catch((subError) => {
+            console.warn(`リアルタイム購読に失敗しました (${settingId}):`, subError);
+          });
+        } catch (subscriptionError) {
+          console.warn(`リアルタイム購読設定エラー (${settingId}):`, subscriptionError);
+        }
+      });
     }
 
-      //ユーザーセッションの読み込み
+//ユーザーセッションの読み込み
     async function loadUserSessionsUI() {
       if (!supabase) {
         console.log('⚠️ Supabase未接続のため、ユーザーセッション一覧をスキップします');
@@ -1739,6 +1854,53 @@ function sanitizeAIText(raw) {
             }
         } catch (error) {
             console.error('管理者設定読み込みエラー:', error);
+        }
+    }
+
+    // Supabaseから同意書設定を読み込み
+    async function loadConsentSettings() {
+        if (!supabase) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('admin_settings')
+                .select('*')
+                .eq('id', 'consent')
+                .maybeSingle();
+
+            if (error && error.code !== 'PGRST116') throw error;
+
+            if (data && data.settings) {
+                consentConfig = {
+                    pdfUrl: data.settings.pdfUrl || '',
+                    consentText: data.settings.consentText || consentConfig.consentText,
+                };
+            }
+        } catch (error) {
+            console.error('同意書設定読み込みエラー:', error);
+        }
+    }
+
+    // Supabaseに同意書設定を保存
+    async function saveConsentSettings() {
+        if (!supabase) {
+            localStorage.setItem('consentConfig', JSON.stringify(consentConfig));
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('admin_settings')
+                .upsert({
+                    id: 'consent',
+                    settings: consentConfig,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('同意書設定保存エラー:', error);
+            localStorage.setItem('consentConfig', JSON.stringify(consentConfig));
         }
     }
 
@@ -1830,6 +1992,27 @@ function sanitizeAIText(raw) {
             experimentLogs = data || [];
         } catch (error) {
             console.error('実験ログ読み込みエラー:', error);
+        }
+    }
+
+    // 同意書提出履歴を読み込み
+    async function loadConsentSubmissions() {
+        if (!supabase) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('consent_submissions')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            consentSubmissions = data || [];
+            const fetchedIds = new Set(consentSubmissions.map((row) => row.user_id));
+            knownLocalConsentIds = new Set([...knownLocalConsentIds, ...fetchedIds]);
+            localStorage.setItem(LOCAL_CONSENT_KNOWN_IDS_KEY, JSON.stringify(Array.from(knownLocalConsentIds)));
+            renderConsentHistory();
+        } catch (error) {
+            console.error('同意書履歴読み込みエラー:', error);
         }
     }
     
@@ -2059,7 +2242,17 @@ function sanitizeAIText(raw) {
         } else {
             scenarios = [...defaultScenarios];
         }
-        
+
+        // 同意書設定
+        const savedConsentConfig = localStorage.getItem('consentConfig');
+        if (savedConsentConfig) {
+            try {
+                consentConfig = JSON.parse(savedConsentConfig);
+            } catch (error) {
+                console.warn('同意書設定読み込みエラー:', error);
+            }
+        }
+
         // 実験ログ
         const savedLogs = localStorage.getItem('mentalizeExperimentLogs');
         if (savedLogs) {
@@ -2069,11 +2262,111 @@ function sanitizeAIText(raw) {
                 experimentLogs = [];
             }
         }
-        
+
+        // 同意書提出履歴（ローカル）
+        const savedConsentHistory = localStorage.getItem('consentSubmissions');
+        if (savedConsentHistory) {
+            try {
+                consentSubmissions = JSON.parse(savedConsentHistory);
+            } catch (error) {
+                consentSubmissions = [];
+            }
+        }
+
         // UIを更新
         loadAdminConfigUI();
         updateScenarioList();
         updateLogsList();
+        updateConsentAdminUI();
+    }
+
+    function renderConsentPdf() {
+        const container = document.getElementById('consentPdfContainer');
+        if (!container) return;
+
+        if (consentConfig.pdfUrl) {
+            container.innerHTML = `
+                <iframe src="${consentConfig.pdfUrl}" style="width: 100%; height: 420px; border: none;" title="同意書PDF"></iframe>
+                <div style="padding: 8px; text-align: right; background:#f8fafc; border-top:1px solid #e5e7eb;">
+                    <a href="${consentConfig.pdfUrl}" target="_blank" rel="noopener" style="color:#2563eb;">PDFを別タブで開く</a>
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div style="padding: 12px; color: #6b7280; text-align: center;">PDFのURLが設定されていません。管理者にお問い合わせください。</div>';
+        }
+    }
+
+    function resetConsentForm() {
+        const textarea = document.getElementById('consentEditableText');
+        const userIdInput = document.getElementById('consentUserIdInput');
+        if (textarea) textarea.value = consentConfig.consentText || '';
+        if (userIdInput) userIdInput.value = participantId || '';
+        renderConsentPdf();
+    }
+
+    function saveKnownConsentId(id) {
+        knownLocalConsentIds.add(id);
+        localStorage.setItem(LOCAL_CONSENT_KNOWN_IDS_KEY, JSON.stringify(Array.from(knownLocalConsentIds)));
+    }
+
+    async function isUserIdAvailableForConsent(userId) {
+        if (knownLocalConsentIds.has(userId)) return false;
+
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('consent_submissions')
+                .select('id')
+                .eq('user_id', userId)
+                .limit(1);
+
+            if (error && error.code !== 'PGRST116') {
+                console.error('同意書IDチェックエラー:', error);
+                return true; // APIエラー時はブロックしない
+            }
+
+            return !data || data.length === 0;
+        }
+
+        return !consentSubmissions.some((row) => row.user_id === userId);
+    }
+
+    function showConsentModal({ title, message, onClose }) {
+        const existing = document.getElementById('consentModal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'consentModal';
+        modal.style.position = 'fixed';
+        modal.style.inset = '0';
+        modal.style.background = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '9999';
+
+        modal.innerHTML = `
+            <div style="background:white; padding:24px; border-radius:12px; max-width:480px; width:90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                <div style="display:flex; justify-content: space-between; align-items:center; gap: 12px;">
+                    <h3 style="margin:0; font-size:18px; color:#111827;">${title}</h3>
+                    <button id="closeConsentModalBtn" style="background:none; border:none; font-size:20px; cursor:pointer; color:#6b7280;">✖</button>
+                </div>
+                <p style="margin-top:12px; color:#374151; white-space: pre-wrap; line-height:1.6;">${message}</p>
+            </div>
+        `;
+
+        modal.querySelector('#closeConsentModalBtn').addEventListener('click', () => {
+            modal.remove();
+            onClose?.();
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                onClose?.();
+            }
+        });
+
+        document.body.appendChild(modal);
     }
 
     // モード選択
@@ -2109,13 +2402,34 @@ function sanitizeAIText(raw) {
 
     // 画面切り替え
     function showAdminScreen(screenId) {
+        const navMap = {
+            adminConfig: 'adminConfigNav',
+            adminScenarios: 'adminScenariosNav',
+            adminConsent: 'adminConsentNav',
+            adminAssignments: 'adminAssignmentsNav',
+            adminLogs: 'adminLogsNav',
+            adminSurveys: 'adminSurveysNav',
+        };
+
         document.querySelectorAll('#adminNav .nav-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
         });
-        document.getElementById(screenId).classList.add('active');
+
+        const target = document.getElementById(screenId);
+        if (!target) {
+            console.warn(`Admin screen not found: ${screenId}`);
+            return;
+        }
+        target.classList.add('active');
+
+        const navId = navMap[screenId];
+        if (navId) {
+            const navBtn = document.getElementById(navId);
+            if (navBtn) navBtn.classList.add('active');
+        }
     }
 
     function showParticipantScreen(screenId) {
@@ -2260,6 +2574,38 @@ function sanitizeAIText(raw) {
         adminConfig.modelNotes = document.getElementById('modelNotes')?.value || '';
         await saveAdminSettings();
         alert('モデルパラメータメモを保存しました！');
+    }
+
+    function updateConsentAdminUI() {
+        const pdfInput = document.getElementById('consentPdfUrl');
+        const textInput = document.getElementById('consentTextTemplate');
+
+        if (pdfInput) pdfInput.value = consentConfig.pdfUrl || '';
+        if (textInput) textInput.value = consentConfig.consentText || '';
+
+        renderConsentHistory();
+    }
+
+    function renderConsentHistory() {
+        const container = document.getElementById('consentHistoryList');
+        if (!container) return;
+
+        if (!consentSubmissions || consentSubmissions.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 12px; color:#6c757d;">まだ提出履歴がありません</div>';
+            return;
+        }
+
+        let html = '<div style="overflow-x:auto;">';
+        html += '<table style="width:100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background:#f8f9fa;"><th style="padding:8px; border:1px solid #dee2e6;">提出日時</th><th style="padding:8px; border:1px solid #dee2e6;">ユーザーID</th><th style="padding:8px; border:1px solid #dee2e6;">PDF URL</th></tr></thead>';
+        html += '<tbody>';
+        consentSubmissions.forEach((row) => {
+            const created = row.created_at ? new Date(row.created_at).toLocaleString() : '不明';
+            html += `<tr><td style="padding:8px; border:1px solid #dee2e6;">${created}</td><td style="padding:8px; border:1px solid #dee2e6;">${row.user_id || ''}</td><td style="padding:8px; border:1px solid #dee2e6; word-break:break-all;">${row.pdf_url || ''}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+
+        container.innerHTML = html;
     }
     
     // カスタムモデル入力フィールドの表示/非表示
@@ -3306,6 +3652,95 @@ function sanitizeAIText(raw) {
     }
 }
     
+
+    async function openConsentPage() {
+        const idFromInput = document.getElementById('participantId').value.trim();
+        if (!idFromInput) {
+            alert('日付選択画面で参加者IDを入力してください。');
+            return;
+        }
+
+        participantId = idFromInput;
+        const available = await isUserIdAvailableForConsent(participantId);
+        if (!available) {
+            showConsentModal({
+                title: 'ユーザーIDが既に利用されています',
+                message: 'あなたが本画面でユーザーIDを入力したことがない場合、このユーザーIDは既に他のユーザーが使用しています。申し訳ありませんが、別のユーザーIDを設定してください。',
+                onClose: () => {
+                    document.getElementById('participantId').focus();
+                    showParticipantScreen('participantStart');
+                },
+            });
+            return;
+        }
+
+        resetConsentForm();
+        showParticipantScreen('participantConsent');
+    }
+
+    async function saveConsentSubmission({ userId, submittedText }) {
+        const payload = {
+            user_id: userId,
+            submitted_text: submittedText,
+            pdf_url: consentConfig.pdfUrl || '',
+            template_text: consentConfig.consentText || '',
+            created_at: new Date().toISOString(),
+        };
+
+        if (!supabase) {
+            consentSubmissions = [payload, ...consentSubmissions];
+            localStorage.setItem('consentSubmissions', JSON.stringify(consentSubmissions));
+            renderConsentHistory();
+            saveKnownConsentId(userId);
+            return;
+        }
+
+        const { error } = await supabase.from('consent_submissions').insert(payload);
+        if (error) throw error;
+
+        saveKnownConsentId(userId);
+        await loadConsentSubmissions();
+    }
+
+    async function submitConsentForm() {
+        const text = document.getElementById('consentEditableText').value.trim();
+        const idForConsent = (participantId || '').trim() || document.getElementById('consentUserIdInput').value.trim();
+
+        if (!idForConsent) {
+            alert('日付選択画面で参加者IDを入力してください。');
+            showParticipantScreen('participantStart');
+            return;
+        }
+
+        if (!text) {
+            alert('同意書テキストを確認し、ユーザーIDを含めて入力してください。');
+            return;
+        }
+
+        if (!text.includes(idForConsent)) {
+            const proceed = confirm('同意書テキスト内にユーザーIDの記載が見当たりません。このまま提出しますか？');
+            if (!proceed) return;
+        }
+
+        try {
+            await saveConsentSubmission({ userId: idForConsent, submittedText: text });
+            showConsentModal({
+                title: '同意していただきありがとうございます',
+                message: '同一のIDで、1日目から7日間連続で実験にご参加ください。',
+                onClose: () => {
+                    document.getElementById('participantId').value = idForConsent;
+                    showParticipantScreen('participantStart');
+                },
+            });
+        } catch (error) {
+            console.error('同意書保存エラー:', error);
+            alert('同意書の保存に失敗しました。再度お試しください。');
+        }
+    }
+
+    function cancelConsentFlow() {
+        showParticipantScreen('participantStart');
+    }
 
     // 実験機能
     window.startExperiment = async function startExperiment() {
@@ -4537,16 +4972,19 @@ function sanitizeAIText(raw) {
         loadAdminConfigUI();          // UIへの反映
         if (supabase) await loadUserSessionsUI();
         // アンケート系は参加者モード時に処理するように変更
-        await loadSurveys(); // アンケートデータを読み込み
-        console.log('📋 アンケート機能が初期化されました');
-        
-        // アンケート結果の読み込みを強制実行
-        await loadSurveyResultsForDisplay();
-        console.log('📊 アンケート結果の読み込みが完了しました');
-    
-        
-        // ✅ 管理設定のリアルタイム監視を開始（Supabase初期化成功時のみ）
-        if (supabase) {
+          await loadSurveys(); // アンケートデータを読み込み
+          console.log('📋 アンケート機能が初期化されました');
+
+          // アンケート結果の読み込みを強制実行
+          await loadSurveyResultsForDisplay();
+          console.log('📊 アンケート結果の読み込みが完了しました');
+
+          resetConsentForm();
+          renderConsentPdf();
+
+
+          // ✅ 管理設定のリアルタイム監視を開始（Supabase初期化成功時のみ）
+          if (supabase) {
           supabase.channel('admin-config-watch')
             .on(
               'postgres_changes',
@@ -4558,7 +4996,7 @@ function sanitizeAIText(raw) {
               },
               (payload) => {
                 if (payload.new) {
-                  adminConfig = payload.new.settings;
+                  adminConfig = mergeAdminConfig(adminConfig, payload.new.settings);
                   loadAdminConfigUI(); // UIを即時更新
                 }
                }
@@ -4631,30 +5069,28 @@ function sanitizeAIText(raw) {
         document.getElementById('adminLogoutBtn').addEventListener('click', adminLogout);
         document.getElementById('adminLogoutBtn2').addEventListener('click', adminLogout);
         document.getElementById('adminLogoutBtn3').addEventListener('click', adminLogout);
+        document.getElementById('adminLogoutBtnConsent').addEventListener('click', adminLogout);
         
         document.getElementById('adminConfigNav').addEventListener('click', () => {
             showAdminScreen('adminConfig');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminConfigNav').classList.add('active');
         });
-        
+
         document.getElementById('adminScenariosNav').addEventListener('click', () => {
             showAdminScreen('adminScenarios');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminScenariosNav').classList.add('active');
         });
-        
+
+        document.getElementById('adminConsentNav').addEventListener('click', () => {
+            showAdminScreen('adminConsent');
+            updateConsentAdminUI();
+        });
+
         document.getElementById('adminAssignmentsNav').addEventListener('click', () => {
             showAdminScreen('adminAssignments');
             updateAssignmentsList();
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminAssignmentsNav').classList.add('active');
         });
-        
+
         document.getElementById('adminLogsNav').addEventListener('click', () => {
             showAdminScreen('adminLogs');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminLogsNav').classList.add('active');
         });
         
         // 設定保存
@@ -4664,6 +5100,13 @@ function sanitizeAIText(raw) {
         document.getElementById('saveSessionConfigBtn').addEventListener('click', saveSessionConfig);
         document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
         document.getElementById('saveModelNotesBtn').addEventListener('click', saveModelNotes);
+        document.getElementById('saveConsentSettingsBtn').addEventListener('click', async () => {
+            consentConfig.pdfUrl = document.getElementById('consentPdfUrl').value.trim();
+            consentConfig.consentText = document.getElementById('consentTextTemplate').value;
+            await saveConsentSettings();
+            resetConsentForm();
+            alert('同意書設定を保存しました');
+        });
         
         // モデル関連イベント
         document.getElementById('modelSelect').addEventListener('change', updateCustomModelVisibility);
@@ -4693,6 +5136,9 @@ function sanitizeAIText(raw) {
         
         // 実験イベント
         document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
+        document.getElementById('openConsentBtn').addEventListener('click', openConsentPage);
+        document.getElementById('submitConsentBtn').addEventListener('click', submitConsentForm);
+        document.getElementById('cancelConsentBtn').addEventListener('click', cancelConsentFlow);
         document.getElementById('backToModeSelectBtn').addEventListener('click', () => {
             selectMode('none');
         });
