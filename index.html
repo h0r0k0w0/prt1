@@ -1703,33 +1703,59 @@ function sanitizeAIText(raw) {
         supabase = globalThis.__supabase;
         return loadDataFromSupabase();
       }
-    
+
       try {
         const mod = await import('@supabase/supabase-js');
-    
+
         const createClient =
               mod.createClient
            ?? mod.default?.createClient
            ?? mod.default;
-    
+
         if (typeof createClient !== 'function') {
           throw new Error('createClient not found in module');
         }
-    
+
         const supabaseUrl = 'https://ivlmmqsdnmvzermlrger.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // anon key を使用
-    
-        supabase = createClient(supabaseUrl, supabaseAnonKey);
-        globalThis.__supabase = supabase;
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2bG1tcXNkbm12emVybWxyZ2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxNTg3MjMsImV4cCI6MjA2ODczNDcyM30.vAxSpIuxd2qQKGDM358Qlun1q0Tbh3919DLrawCB1M8'; // anon keyを使用
+
+        const client = createClient(supabaseUrl, supabaseAnonKey);
+
+        // まずHTTP経由で到達性を確認し、接続できない場合はローカル保存にフォールバック
+        const { error: healthError } = await client
+          .from('admin_settings')
+          .select('id')
+          .limit(1);
+
+        if (healthError) {
+          throw healthError;
+        }
+
+        supabase = client;
+        globalThis.__supabase = client;
         isSupabaseAvailable = true;
-    
+
         console.log('✅ Supabase 初期化成功');
-    
-        // 🎯 3種類の設定を購読
-        const settingsToWatch = ['admin_config', 'scenarios', 'surveys', 'consent'];
-    
-        settingsToWatch.forEach((settingId) => {
-          supabase
+
+        setupRealtimeSubscriptions();
+
+        await loadDataFromSupabase(); // 初期読み込み
+      } catch (err) {
+        console.error('❌ Supabase 初期化エラー:', err);
+        supabase = null;
+        isSupabaseAvailable = false;
+        loadFromLocalStorage();
+      }
+    }
+
+    function setupRealtimeSubscriptions() {
+      if (!supabase || typeof supabase.channel !== 'function') return;
+
+      const settingsToWatch = ['admin_config', 'scenarios', 'surveys', 'consent'];
+
+      settingsToWatch.forEach((settingId) => {
+        try {
+          const channel = supabase
             .channel(`watch-${settingId}`)
             .on(
               'postgres_changes',
@@ -1739,22 +1765,22 @@ function sanitizeAIText(raw) {
                 table: 'admin_settings',
                 filter: `id=eq.${settingId}`
               },
-              async (payload) => {
+              async () => {
                 console.log(`🔄 ${settingId} が更新されました`);
                 await loadDataFromSupabase(); // 最新状態を再読み込み
               }
-            )
-            .subscribe();
-        });
-    
-        await loadDataFromSupabase(); // 初期読み込み
-      } catch (err) {
-        console.error('❌ Supabase 初期化エラー:', err);
-        loadFromLocalStorage();
-      }
+            );
+
+          channel.subscribe().catch((subError) => {
+            console.warn(`リアルタイム購読に失敗しました (${settingId}):`, subError);
+          });
+        } catch (subscriptionError) {
+          console.warn(`リアルタイム購読設定エラー (${settingId}):`, subscriptionError);
+        }
+      });
     }
 
-      //ユーザーセッションの読み込み
+//ユーザーセッションの読み込み
     async function loadUserSessionsUI() {
       if (!supabase) {
         console.log('⚠️ Supabase未接続のため、ユーザーセッション一覧をスキップします');
@@ -2373,6 +2399,15 @@ function sanitizeAIText(raw) {
 
     // 画面切り替え
     function showAdminScreen(screenId) {
+        const navMap = {
+            adminConfig: 'adminConfigNav',
+            adminScenarios: 'adminScenariosNav',
+            adminConsent: 'adminConsentNav',
+            adminAssignments: 'adminAssignmentsNav',
+            adminLogs: 'adminLogsNav',
+            adminSurveys: 'adminSurveysNav',
+        };
+
         document.querySelectorAll('#adminNav .nav-btn').forEach(btn => {
             btn.classList.remove('active');
         });
@@ -2386,6 +2421,12 @@ function sanitizeAIText(raw) {
             return;
         }
         target.classList.add('active');
+
+        const navId = navMap[screenId];
+        if (navId) {
+            const navBtn = document.getElementById(navId);
+            if (navBtn) navBtn.classList.add('active');
+        }
     }
 
     function showParticipantScreen(screenId) {
@@ -5029,34 +5070,24 @@ function sanitizeAIText(raw) {
         
         document.getElementById('adminConfigNav').addEventListener('click', () => {
             showAdminScreen('adminConfig');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminConfigNav').classList.add('active');
         });
-        
+
         document.getElementById('adminScenariosNav').addEventListener('click', () => {
             showAdminScreen('adminScenarios');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminScenariosNav').classList.add('active');
         });
 
         document.getElementById('adminConsentNav').addEventListener('click', () => {
             showAdminScreen('adminConsent');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminConsentNav').classList.add('active');
             updateConsentAdminUI();
         });
-        
+
         document.getElementById('adminAssignmentsNav').addEventListener('click', () => {
             showAdminScreen('adminAssignments');
             updateAssignmentsList();
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminAssignmentsNav').classList.add('active');
         });
-        
+
         document.getElementById('adminLogsNav').addEventListener('click', () => {
             showAdminScreen('adminLogs');
-            document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('adminLogsNav').classList.add('active');
         });
         
         // 設定保存
