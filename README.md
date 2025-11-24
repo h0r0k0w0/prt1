@@ -79,6 +79,42 @@ OpenAI API 呼び出し処理を分離することで、
 
 これらの変更は、チャットの応答品質を安定させ、エラーハンドリングを分かりやすくすることを目的としています。
 
+### Supabase Auth でサインインするには？
+
+フロントエンドでサインイン済みのトークンを持たせると、`support_messages` などの RLS が効いたテーブルも `authenticated` ロールで安全
+に操作できます。`anon` キーのクライアントとは別に、`service_role` を含まない **公開可能な API キー** を使って `createClient` を初期化
+し、以下のようにメール・パスワードでサインインします。
+
+```js
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient('https://xxxxx.supabase.co', 'public-anon-or-client-key');
+
+// メール & パスワードでサインイン（管理者 UI などで使用）
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: formEmail,
+  password: formPassword,
+});
+
+if (error) {
+  alert('サインインに失敗しました: ' + error.message);
+} else {
+  // data.session.access_token を Authorization: Bearer ... に乗せれば、PostgREST でも RLS 付きで書き込めます
+}
+
+// 既存セッションの確認
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+// ログアウト
+await supabase.auth.signOut();
+```
+
+上記のアクセストークンは `fetch` や `supabase.from(...).insert(...)` に自動付与されます。管理者画面の API 呼び出しで 401/RLS エラーが
+出る場合は、(1) サインイン済みセッションがあるか、(2) `supabaseKey` がサービスキーではなく公開キーになっているか、を確認してくださ
+い。Magic Link/OTP を使いたい場合は `signInWithOtp({ email })` でも同様にトークンを取得できます。
+
 ## Supabase の RLS 設定例
 
 フロントエンドは Supabase の `anon` キーで直接テーブルを操作するため、RLS を有効化するときは **`auth.role() = 'anon'` を許可するポリシー** がないと読み書きがすべて拒否されます。以下は、同意書管理を含む本 UI が利用するテーブル一式に対する最小限のポリシー例です。必要に応じて `service_role` など別ロールを追加してください。
