@@ -83,6 +83,28 @@ OpenAI API 呼び出し処理を分離することで、
 
 フロントエンドは Supabase の `anon` キーで直接テーブルを操作するため、RLS を有効化するときは **`auth.role() = 'anon'` を許可するポリシー** がないと読み書きがすべて拒否されます。以下は、同意書管理を含む本 UI が利用するテーブル一式に対する最小限のポリシー例です。必要に応じて `service_role` など別ロールを追加してください。
 
+### `to public using (true)` ではだめ？
+
+Supabase の「Target roles」を空欄（= public）にし、`using (true)` のような無条件許可にすると、**RLS を有効にした意味がほぼなくなり、誰でも書き込み・削除できる状態** になります。既に他のテーブルでこの設定にしている場合でも、以下の理由でおすすめしません。
+
+- public（= すべてのロール）向けのポリシーは、`service_role` や `authenticated` などより強い権限のクライアントにも同じ許可を与えてしまう
+- 後から別ロールのポリシーを追加したときに、どの権限が最終的に効くか把握しづらい
+- `anon` 以外の接続でも操作できてしまうため、意図しないバッチ処理やメンテナンスツールからデータが変更されるリスクがある
+
+本プロジェクトのフロントエンドは `anon` ロールで接続する前提なので、**Target roles を `anon` に限定し、`auth.role() = 'anon'` を明示する** 方が安全です。既存の public ポリシーを残したい場合でも、少なくとも `insert`/`delete` はロールを絞ることを推奨します。
+
+同意書提出テーブルだけ許可したいケースは、下記のように `consent_submissions` に限定した anon ロールのポリシーを作成すれば足ります。
+
+```sql
+alter table consent_submissions enable row level security;
+create policy "anon can read consent_submissions"
+  on consent_submissions for select using (auth.role() = 'anon');
+create policy "anon can insert consent_submissions"
+  on consent_submissions for insert with check (auth.role() = 'anon');
+```
+
+> それでも public ロールを使いたい場合は、対象ロールを `public` のままにしつつ `using (auth.role() = 'anon')` のように条件式で絞り込んでください。`using (true)` のような無条件許可は避けましょう。
+
 ```sql
 -- admin_settings: 設定の取得と upsert を許可
 alter table admin_settings enable row level security;
