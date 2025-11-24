@@ -79,6 +79,42 @@ OpenAI API 呼び出し処理を分離することで、
 
 これらの変更は、チャットの応答品質を安定させ、エラーハンドリングを分かりやすくすることを目的としています。
 
+### Supabase Auth でサインインするには？
+
+フロントエンドでサインイン済みのトークンを持たせると、`support_messages` などの RLS が効いたテーブルも `authenticated` ロールで安全
+に操作できます。`anon` キーのクライアントとは別に、`service_role` を含まない **公開可能な API キー** を使って `createClient` を初期化
+し、以下のようにメール・パスワードでサインインします。
+
+```js
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient('https://xxxxx.supabase.co', 'public-anon-or-client-key');
+
+// メール & パスワードでサインイン（管理者 UI などで使用）
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: formEmail,
+  password: formPassword,
+});
+
+if (error) {
+  alert('サインインに失敗しました: ' + error.message);
+} else {
+  // data.session.access_token を Authorization: Bearer ... に乗せれば、PostgREST でも RLS 付きで書き込めます
+}
+
+// 既存セッションの確認
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+// ログアウト
+await supabase.auth.signOut();
+```
+
+上記のアクセストークンは `fetch` や `supabase.from(...).insert(...)` に自動付与されます。管理者画面の API 呼び出しで 401/RLS エラーが
+出る場合は、(1) サインイン済みセッションがあるか、(2) `supabaseKey` がサービスキーではなく公開キーになっているか、を確認してくださ
+い。Magic Link/OTP を使いたい場合は `signInWithOtp({ email })` でも同様にトークンを取得できます。
+
 ## Supabase の RLS 設定例
 
 フロントエンドは Supabase の `anon` キーで直接テーブルを操作するため、RLS を有効化するときは **`auth.role() = 'anon'` を許可するポリシー** がないと読み書きがすべて拒否されます。以下は、同意書管理を含む本 UI が利用するテーブル一式に対する最小限のポリシー例です。必要に応じて `service_role` など別ロールを追加してください。
@@ -172,3 +208,65 @@ create policy "anon can insert consent_submissions"
 ```
 
 > 上記は「Anon ロールを信頼する」ことを前提にしています。Supabase Auth ユーザーごとにデータを分離したい場合は `auth.uid()` や `jwt()` のクレームを使った条件式に置き換えてください。その場合、フロントエンドの supabase クライアントを匿名キーではなく認証済みのセッションで初期化する必要があります。
+
+### サポートメッセージ用の RLS 例
+
+参加者の送信ボタンで `new row violates row-level security policy for table "support_messages"` が出る場合は、以下のように `anon` ロールを許可するポリシーを追加してください（管理者は `authenticated` または `service_role` 前提）。Supabase Auth のサインインを使わず匿名キーだけで接続する場合は `current_setting('request.jwt.claims.sub', true)` が `NULL` になるため、そのケースも許可しています。
+
+> ⚠️ 管理画面も `anon` キーでアクセスする場合は、下記の「Option B: 匿名キーのみで管理者送信を許可」を併用してください。そうしないと管理者送信が 401/RLS で拒否されます。安全のため本番では Option A を推奨します。
+
+```sql
+alter table support_messages enable row level security;
+
+-- 参加者が自分のスレッドを参照/投稿
+create policy "anon can read support_messages"
+  on support_messages
+  for select
+  using (
+    auth.role() = 'anon'
+    and (
+      current_setting('request.jwt.claims.sub', true) is null
+      or user_id = current_setting('request.jwt.claims.sub', true)
+    )
+  );
+
+create policy "anon can insert support_messages"
+  on support_messages
+  for insert
+  with check (
+    auth.role() = 'anon'
+    and sender_type = 'user'
+    and (
+      current_setting('request.jwt.claims.sub', true) is null
+      or user_id = current_setting('request.jwt.claims.sub', true)
+    )
+  );
+
+-- 管理者が全件参照・返信（dashboard / service_role 想定）
+create policy "admins manage support_messages"
+  on support_messages
+  for all
+  using (auth.role() in ('authenticated', 'service_role'))
+  with check (auth.role() in ('authenticated', 'service_role'));
+```
+
+> Supabase Auth で参加者ごとに JWT を発行している場合は `current_setting('request.jwt.claims.sub', true)` 部分を適切なクレーム名に合わせてください。逆に匿名キーだけで利用する場合は、上記のように `sub` が `NULL` でも通る条件を残しておかないと RLS で拒否されます。
+
+#### Option A: 管理者は service_role / authenticated で送信する（推奨）
+
+管理画面から送信する場合は、Supabase Auth でサインインしたトークンか service_role キーを用いてリクエストしてください。RLS 上は上記の `admins manage support_messages` ポリシーのみで通るため、匿名キーではなく管理者用のセッション/キーを使うのが安全です。
+
+#### Option B: 匿名キーしか使わない場合の一時的なポリシー例
+
+研究室内の限定利用などで「管理者 UI も anon キーのみ」で済ませたい場合は、管理者送信専用の anon ポリシーを追加します。参加者が `sender_type = 'admin'` で POST しても通ってしまうため、本番運用には向きません。
+
+```sql
+-- 匿名キーで sender_type = 'admin' を許可（限定利用向け）
+create policy "anon can insert admin support_messages"
+  on support_messages
+  for insert
+  with check (
+    auth.role() = 'anon'
+    and sender_type = 'admin'
+  );
+```
