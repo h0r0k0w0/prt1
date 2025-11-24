@@ -177,6 +177,8 @@ create policy "anon can insert consent_submissions"
 
 参加者の送信ボタンで `new row violates row-level security policy for table "support_messages"` が出る場合は、以下のように `anon` ロールを許可するポリシーを追加してください（管理者は `authenticated` または `service_role` 前提）。Supabase Auth のサインインを使わず匿名キーだけで接続する場合は `current_setting('request.jwt.claims.sub', true)` が `NULL` になるため、そのケースも許可しています。
 
+> ⚠️ 管理画面も `anon` キーでアクセスする場合は、下記の「Option B: 匿名キーのみで管理者送信を許可」を併用してください。そうしないと管理者送信が 401/RLS で拒否されます。安全のため本番では Option A を推奨します。
+
 ```sql
 alter table support_messages enable row level security;
 
@@ -213,3 +215,22 @@ create policy "admins manage support_messages"
 ```
 
 > Supabase Auth で参加者ごとに JWT を発行している場合は `current_setting('request.jwt.claims.sub', true)` 部分を適切なクレーム名に合わせてください。逆に匿名キーだけで利用する場合は、上記のように `sub` が `NULL` でも通る条件を残しておかないと RLS で拒否されます。
+
+#### Option A: 管理者は service_role / authenticated で送信する（推奨）
+
+管理画面から送信する場合は、Supabase Auth でサインインしたトークンか service_role キーを用いてリクエストしてください。RLS 上は上記の `admins manage support_messages` ポリシーのみで通るため、匿名キーではなく管理者用のセッション/キーを使うのが安全です。
+
+#### Option B: 匿名キーしか使わない場合の一時的なポリシー例
+
+研究室内の限定利用などで「管理者 UI も anon キーのみ」で済ませたい場合は、管理者送信専用の anon ポリシーを追加します。参加者が `sender_type = 'admin'` で POST しても通ってしまうため、本番運用には向きません。
+
+```sql
+-- 匿名キーで sender_type = 'admin' を許可（限定利用向け）
+create policy "anon can insert admin support_messages"
+  on support_messages
+  for insert
+  with check (
+    auth.role() = 'anon'
+    and sender_type = 'admin'
+  );
+```
