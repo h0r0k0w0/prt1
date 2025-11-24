@@ -2007,6 +2007,9 @@ function sanitizeAIText(raw) {
 
             if (error) throw error;
             consentSubmissions = data || [];
+            const fetchedIds = new Set(consentSubmissions.map((row) => row.user_id));
+            knownLocalConsentIds = new Set([...knownLocalConsentIds, ...fetchedIds]);
+            localStorage.setItem(LOCAL_CONSENT_KNOWN_IDS_KEY, JSON.stringify(Array.from(knownLocalConsentIds)));
             renderConsentHistory();
         } catch (error) {
             console.error('同意書履歴読み込みエラー:', error);
@@ -2307,7 +2310,7 @@ function sanitizeAIText(raw) {
     }
 
     async function isUserIdAvailableForConsent(userId) {
-        if (knownLocalConsentIds.has(userId)) return true;
+        if (knownLocalConsentIds.has(userId)) return false;
 
         if (supabase) {
             const { data, error } = await supabase
