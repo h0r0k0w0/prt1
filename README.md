@@ -78,3 +78,75 @@ OpenAI API 呼び出し処理を分離することで、
 - OpenAI からのエラーを種類ごとに日本語で返しつつ、必要に応じて内部情報を隠蔽できるようになりました。
 
 これらの変更は、チャットの応答品質を安定させ、エラーハンドリングを分かりやすくすることを目的としています。
+
+## Supabase の RLS 設定例
+
+フロントエンドは Supabase の `anon` キーで直接テーブルを操作するため、RLS を有効化するときは **`auth.role() = 'anon'` を許可するポリシー** がないと読み書きがすべて拒否されます。以下は、同意書管理を含む本 UI が利用するテーブル一式に対する最小限のポリシー例です。必要に応じて `service_role` など別ロールを追加してください。
+
+```sql
+-- admin_settings: 設定の取得と upsert を許可
+alter table admin_settings enable row level security;
+create policy "anon can read admin_settings"
+  on admin_settings for select using (auth.role() = 'anon');
+create policy "anon can upsert admin_settings"
+  on admin_settings for insert with check (auth.role() = 'anon');
+create policy "anon can update admin_settings"
+  on admin_settings for update using (auth.role() = 'anon')
+  with check (auth.role() = 'anon');
+
+-- participants: 参加者の最終アクセス更新や削除に利用
+alter table participants enable row level security;
+create policy "anon can read participants"
+  on participants for select using (auth.role() = 'anon');
+create policy "anon can upsert participants"
+  on participants for insert with check (auth.role() = 'anon');
+create policy "anon can update participants"
+  on participants for update using (auth.role() = 'anon') with check (auth.role() = 'anon');
+create policy "anon can delete participants"
+  on participants for delete using (auth.role() = 'anon');
+
+-- participant_assignments: 7日分の割り当てを作成・参照
+alter table participant_assignments enable row level security;
+create policy "anon can read participant_assignments"
+  on participant_assignments for select using (auth.role() = 'anon');
+create policy "anon can insert participant_assignments"
+  on participant_assignments for insert with check (auth.role() = 'anon');
+
+-- experiment_logs: 実験記録の保存・閲覧・削除
+alter table experiment_logs enable row level security;
+create policy "anon can read experiment_logs"
+  on experiment_logs for select using (auth.role() = 'anon');
+create policy "anon can insert experiment_logs"
+  on experiment_logs for insert with check (auth.role() = 'anon');
+create policy "anon can delete experiment_logs"
+  on experiment_logs for delete using (auth.role() = 'anon');
+
+-- survey_results: アンケート結果の保存・参照・削除
+alter table survey_results enable row level security;
+create policy "anon can read survey_results"
+  on survey_results for select using (auth.role() = 'anon');
+create policy "anon can insert survey_results"
+  on survey_results for insert with check (auth.role() = 'anon');
+create policy "anon can delete survey_results"
+  on survey_results for delete using (auth.role() = 'anon');
+
+-- user_sessions: セッション開始/更新/削除で利用
+alter table user_sessions enable row level security;
+create policy "anon can read user_sessions"
+  on user_sessions for select using (auth.role() = 'anon');
+create policy "anon can insert user_sessions"
+  on user_sessions for insert with check (auth.role() = 'anon');
+create policy "anon can update user_sessions"
+  on user_sessions for update using (auth.role() = 'anon') with check (auth.role() = 'anon');
+create policy "anon can delete user_sessions"
+  on user_sessions for delete using (auth.role() = 'anon');
+
+-- consent_submissions: 同意書の提出記録を保存・表示
+alter table consent_submissions enable row level security;
+create policy "anon can read consent_submissions"
+  on consent_submissions for select using (auth.role() = 'anon');
+create policy "anon can insert consent_submissions"
+  on consent_submissions for insert with check (auth.role() = 'anon');
+```
+
+> 上記は「Anon ロールを信頼する」ことを前提にしています。Supabase Auth ユーザーごとにデータを分離したい場合は `auth.uid()` や `jwt()` のクレームを使った条件式に置き換えてください。その場合、フロントエンドの supabase クライアントを匿名キーではなく認証済みのセッションで初期化する必要があります。
