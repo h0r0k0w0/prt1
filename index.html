@@ -206,6 +206,17 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
+        .btn.primary-action {
+            font-size: 18px;
+            padding: 18px 36px;
+            min-width: 220px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .btn.subtle {
+            background: #0ea5e9;
+        }
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
@@ -217,6 +228,123 @@
             transform: none;
             box-shadow: none;
         }
+
+        .support-note {
+            color: #ef4444;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .support-chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .support-chat-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1200;
+        }
+
+        .support-chat-modal {
+            background: white;
+            border-radius: 14px;
+            padding: 18px;
+            width: min(700px, 95vw);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .support-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #f8fafc;
+        }
+
+        .support-chat-input {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .support-chat-input textarea {
+            flex: 1;
+            min-height: 70px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+        }
+
+        .support-message {
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            max-width: 80%;
+            position: relative;
+        }
+
+        .support-message.user { background: #e0f2fe; margin-left: auto; }
+        .support-message.admin { background: #ede9fe; margin-right: auto; }
+        .support-message.system { background: #f8fafc; margin: 0 auto; color: #6b7280; }
+
+        .support-message time {
+            display: block;
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .message-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 16px;
+        }
+
+        .thread-list {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #f8fafc;
+            max-height: 520px;
+            overflow-y: auto;
+        }
+
+        .thread-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .thread-item:hover { background: #e5e7eb; }
+        .thread-item.active { background: #dbeafe; border-left: 4px solid #2563eb; }
+        .thread-item .thread-id { font-weight: 700; color: #111827; }
+        .thread-item .thread-preview { color: #6b7280; font-size: 13px; margin-top: 4px; }
+        .thread-item .thread-time { color: #9ca3af; font-size: 12px; margin-top: 2px; }
+
+        .admin-chat-panel {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px;
+            background: white;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-chat-panel .support-chat-messages { background: #ffffff; }
 
         .admin-config {
             background: #fff3cd;
@@ -790,6 +918,7 @@
                 <button id="adminConsentNav" class="nav-btn">📄 同意書管理</button>
                 <button id="adminAssignmentsNav" class="nav-btn">📊 割り当て状況</button>
                 <button id="adminLogsNav" class="nav-btn">📋 データ閲覧</button>
+                <button id="adminMessagesNav" class="nav-btn">💬 メッセージ</button>
                 <button id="adminSurveysNav" class="nav-btn">アンケート</button>
 
             </div>
@@ -1308,6 +1437,37 @@
                 </div>
             </div>
 
+            <div id="adminMessages" class="screen">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button id="adminLogoutBtnMessages" class="back-btn">← ログアウト</button>
+                    <div style="background: #d4edda; color: #155724; padding: 8px 15px; border-radius: 20px; font-size: 14px;">
+                        🔐 管理者モード
+                    </div>
+                </div>
+                <h2>💬 メッセージ</h2>
+                <p style="color:#6b7280; margin-bottom: 12px;">参加者からの連絡を確認し、各ユーザーとのチャットで返信できます。</p>
+
+                <div class="admin-config">
+                    <h3>受信メッセージ一覧</h3>
+                    <div class="message-layout">
+                        <div class="thread-list" id="adminMessageThreads">
+                            <div style="padding:14px; color:#6b7280;">メッセージを読み込み中...</div>
+                        </div>
+                        <div class="admin-chat-panel" id="adminMessagePanel" style="display: none;">
+                            <div class="support-chat-header">
+                                <div style="font-weight:700; color:#111827;">📨 <span id="adminMessageUserId">ユーザー未選択</span></div>
+                                <button id="closeAdminChatBtn" class="back-btn">✖ 閉じる</button>
+                            </div>
+                            <div class="support-chat-messages" id="adminChatMessages"></div>
+                            <div class="support-chat-input" style="margin-top:10px;">
+                                <textarea id="adminChatInput" placeholder="返信内容を入力..." rows="3"></textarea>
+                                <button id="adminSendMessageBtn" class="btn" style="min-width:120px;">送信</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 被験者画面 -->
             <div id="participantStart" class="screen">
                 <!-- 実験制御ボタン（実験実行中のみ表示） -->
@@ -1349,9 +1509,11 @@
                             </div>
                               <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
                                   <button id="backToModeSelectBtn" class="back-btn" style="background: #6c757d; border-color: #6c757d;">← 前の画面に戻る</button>
-                                  <button id="startExperimentBtn" class="btn" title="実験を開始します。一時中断後はここから再開できます。">実験開始</button>
+                                  <button id="startExperimentBtn" class="btn primary-action" title="実験を開始します。一時中断後はここから再開できます。">実験開始</button>
+                                  <button id="openSupportChatBtn" class="btn subtle" style="min-width:180px;" title="管理者に連絡できます">メッセージ</button>
                                   <button id="openConsentBtn" class="btn" style="background:#0ea5e9;" title="実験開始前に同意書を提出します">同意書記入</button>
                               </div>
+                              <p class="support-note">⚠️ エラーや実験の進行に問題が起きた場合は、メッセージからすぐに連絡してください。</p>
                           </div>
 
                         <!-- 実験実行中の画面 -->
@@ -1605,6 +1767,12 @@ function sanitizeAIText(raw) {
     const LOCAL_CONSENT_KNOWN_IDS_KEY = 'consentKnownIds';
     let knownLocalConsentIds = new Set(JSON.parse(localStorage.getItem(LOCAL_CONSENT_KNOWN_IDS_KEY) || '[]'));
 
+    // 参加者・管理者間メッセージ
+    let supportMessages = [];
+    const LOCAL_SUPPORT_MESSAGES_KEY = 'supportMessages';
+    let activeSupportUserId = '';
+    let currentAdminChatUserId = '';
+
     function mergeAdminConfig(base, incoming = {}) {
         const merged = { ...base, ...incoming };
         merged.openaiParams = { ...(base.openaiParams || {}), ...(incoming.openaiParams || {}) };
@@ -1686,6 +1854,7 @@ function sanitizeAIText(raw) {
             await loadConsentSettings();
             await loadExperimentLogs();
             await loadConsentSubmissions();
+            await loadSupportMessages();
 
             loadAdminConfigUI();
             updateScenarioList();
@@ -2015,6 +2184,266 @@ function sanitizeAIText(raw) {
             console.error('同意書履歴読み込みエラー:', error);
         }
     }
+
+    function normalizeSupportMessage(row) {
+        return {
+            id: row.id || `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            user_id: row.user_id,
+            sender_type: row.sender_type || row.sender || 'user',
+            content: row.content,
+            created_at: row.created_at || new Date().toISOString()
+        };
+    }
+
+    function saveSupportMessagesToLocal() {
+        localStorage.setItem(LOCAL_SUPPORT_MESSAGES_KEY, JSON.stringify(supportMessages));
+    }
+
+    async function loadSupportMessages() {
+        if (!supabase) {
+            renderSupportUI();
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('support_messages')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            supportMessages = (data || []).map(normalizeSupportMessage);
+            saveSupportMessagesToLocal();
+            renderSupportUI();
+        } catch (error) {
+            console.warn('メッセージ読み込みエラー:', error);
+            try {
+                const cached = localStorage.getItem(LOCAL_SUPPORT_MESSAGES_KEY);
+                supportMessages = cached ? JSON.parse(cached) : [];
+            } catch (e) {
+                supportMessages = [];
+            }
+            renderSupportUI();
+        }
+    }
+
+    function getSupportMessagesForUser(userId) {
+        return (supportMessages || [])
+            .filter(msg => msg.user_id === userId)
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+
+    function renderSupportUI() {
+        if (activeSupportUserId) {
+            renderParticipantSupportMessages(activeSupportUserId);
+        }
+        renderAdminThreads();
+        if (currentAdminChatUserId) {
+            renderAdminChatMessages(currentAdminChatUserId);
+        }
+    }
+
+    async function saveSupportMessage({ userId, sender, content }) {
+        const trimmed = (content || '').trim();
+        if (!trimmed) return;
+
+        const payload = {
+            user_id: userId,
+            sender_type: sender,
+            content: trimmed,
+            created_at: new Date().toISOString(),
+        };
+
+        if (!supabase) {
+            supportMessages.push({ ...payload, id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}` });
+            supportMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            saveSupportMessagesToLocal();
+            renderSupportUI();
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('support_messages')
+            .insert(payload)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('メッセージ保存エラー:', error);
+            alert('メッセージの送信に失敗しました。ネットワーク設定をご確認ください。');
+            return;
+        }
+
+        supportMessages.push(normalizeSupportMessage(data));
+        supportMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        saveSupportMessagesToLocal();
+        renderSupportUI();
+    }
+
+    function renderSupportMessages(container, messages) {
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!messages.length) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'text-align:center; color:#6b7280; padding:12px;';
+            empty.textContent = 'まだメッセージはありません。';
+            container.appendChild(empty);
+            return;
+        }
+
+        messages.forEach(msg => {
+            const item = document.createElement('div');
+            item.className = `support-message ${msg.sender_type === 'admin' ? 'admin' : 'user'}`;
+            item.innerHTML = `
+                <div>${msg.content.replace(/</g, '&lt;')}</div>
+                <time>${new Date(msg.created_at).toLocaleString()}</time>
+            `;
+            container.appendChild(item);
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function renderParticipantSupportMessages(userId) {
+        const messages = getSupportMessagesForUser(userId);
+        const container = document.getElementById('supportChatMessages');
+        renderSupportMessages(container, messages);
+    }
+
+    function renderAdminThreads() {
+        const list = document.getElementById('adminMessageThreads');
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        if (!supportMessages.length) {
+            list.innerHTML = '<div style="padding:14px; color:#6b7280;">受信したメッセージはまだありません。</div>';
+            const panel = document.getElementById('adminMessagePanel');
+            if (panel) panel.style.display = 'none';
+            currentAdminChatUserId = '';
+            return;
+        }
+
+        const grouped = new Map();
+        supportMessages.forEach(msg => {
+            const listForUser = grouped.get(msg.user_id) || [];
+            listForUser.push(msg);
+            grouped.set(msg.user_id, listForUser);
+        });
+
+        const sortedEntries = Array.from(grouped.entries()).sort((a, b) => {
+            const lastA = a[1][a[1].length - 1];
+            const lastB = b[1][b[1].length - 1];
+            return new Date(lastB.created_at) - new Date(lastA.created_at);
+        });
+
+        sortedEntries.forEach(([userId, msgs]) => {
+            const last = msgs[msgs.length - 1];
+            const item = document.createElement('div');
+            item.className = `thread-item ${currentAdminChatUserId === userId ? 'active' : ''}`;
+            item.innerHTML = `
+                <div class="thread-id">🆔 ${userId}</div>
+                <div class="thread-preview">${(last.content || '').slice(0, 60)}</div>
+                <div class="thread-time">${new Date(last.created_at).toLocaleString()}</div>
+            `;
+            item.addEventListener('click', () => {
+                openAdminChat(userId);
+            });
+            list.appendChild(item);
+        });
+    }
+
+    function renderAdminChatMessages(userId) {
+        const panel = document.getElementById('adminMessagePanel');
+        const userLabel = document.getElementById('adminMessageUserId');
+        const container = document.getElementById('adminChatMessages');
+        if (!panel || !userLabel) return;
+
+        panel.style.display = 'flex';
+        userLabel.textContent = userId;
+        const messages = getSupportMessagesForUser(userId);
+        renderSupportMessages(container, messages);
+    }
+
+    function openSupportChatModal() {
+        const userId = (participantId || document.getElementById('participantId').value || '').trim();
+        if (!userId) {
+            alert('日付選択画面で参加者IDを入力してください。');
+            return;
+        }
+
+        activeSupportUserId = userId;
+
+        const existing = document.getElementById('supportChatOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'supportChatOverlay';
+        overlay.className = 'support-chat-overlay';
+        overlay.innerHTML = `
+            <div class="support-chat-modal">
+                <div class="support-chat-header">
+                    <div style="font-weight:700;">💬 管理者へのメッセージ</div>
+                    <button id="closeSupportChatBtn" class="back-btn">✖ 閉じる</button>
+                </div>
+                <div class="support-chat-messages" id="supportChatMessages"></div>
+                <div class="support-chat-input">
+                    <textarea id="supportChatInput" placeholder="困っていることやエラー内容を入力してください"></textarea>
+                    <button id="sendSupportMessageBtn" class="btn" style="min-width:120px;">送信</button>
+                </div>
+            </div>
+        `;
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                activeSupportUserId = '';
+                overlay.remove();
+            }
+        });
+
+        document.body.appendChild(overlay);
+        document.getElementById('closeSupportChatBtn').addEventListener('click', () => {
+            activeSupportUserId = '';
+            overlay.remove();
+        });
+        document.getElementById('sendSupportMessageBtn').addEventListener('click', sendParticipantSupportMessage);
+        renderParticipantSupportMessages(userId);
+    }
+
+    async function sendParticipantSupportMessage() {
+        const input = document.getElementById('supportChatInput');
+        if (!input) return;
+        const text = input.value;
+        if (!text.trim()) return;
+        await saveSupportMessage({ userId: activeSupportUserId, sender: 'user', content: text });
+        input.value = '';
+    }
+
+    function openAdminChat(userId) {
+        currentAdminChatUserId = userId;
+        renderAdminThreads();
+        renderAdminChatMessages(userId);
+    }
+
+    function closeAdminChat() {
+        currentAdminChatUserId = '';
+        const panel = document.getElementById('adminMessagePanel');
+        if (panel) panel.style.display = 'none';
+    }
+
+    async function sendAdminSupportMessage() {
+        if (!currentAdminChatUserId) {
+            alert('返信するユーザーを選択してください');
+            return;
+        }
+        const input = document.getElementById('adminChatInput');
+        if (!input) return;
+        const text = input.value;
+        if (!text.trim()) return;
+
+        await saveSupportMessage({ userId: currentAdminChatUserId, sender: 'admin', content: text });
+        input.value = '';
+    }
     
     // ---- 追加：固定ID用の軽量ハッシュ & 決定的シャッフル ----
     function hashStringToId(s) {
@@ -2273,11 +2702,21 @@ function sanitizeAIText(raw) {
             }
         }
 
+        const savedSupportMessages = localStorage.getItem(LOCAL_SUPPORT_MESSAGES_KEY);
+        if (savedSupportMessages) {
+            try {
+                supportMessages = JSON.parse(savedSupportMessages);
+            } catch (error) {
+                supportMessages = [];
+            }
+        }
+
         // UIを更新
         loadAdminConfigUI();
         updateScenarioList();
         updateLogsList();
         updateConsentAdminUI();
+        renderSupportUI();
     }
 
     function renderConsentPdf() {
@@ -2408,6 +2847,7 @@ function sanitizeAIText(raw) {
             adminConsent: 'adminConsentNav',
             adminAssignments: 'adminAssignmentsNav',
             adminLogs: 'adminLogsNav',
+            adminMessages: 'adminMessagesNav',
             adminSurveys: 'adminSurveysNav',
         };
 
@@ -5070,6 +5510,7 @@ function sanitizeAIText(raw) {
         document.getElementById('adminLogoutBtn2').addEventListener('click', adminLogout);
         document.getElementById('adminLogoutBtn3').addEventListener('click', adminLogout);
         document.getElementById('adminLogoutBtnConsent').addEventListener('click', adminLogout);
+        document.getElementById('adminLogoutBtnMessages').addEventListener('click', adminLogout);
         
         document.getElementById('adminConfigNav').addEventListener('click', () => {
             showAdminScreen('adminConfig');
@@ -5091,6 +5532,11 @@ function sanitizeAIText(raw) {
 
         document.getElementById('adminLogsNav').addEventListener('click', () => {
             showAdminScreen('adminLogs');
+        });
+
+        document.getElementById('adminMessagesNav').addEventListener('click', () => {
+            showAdminScreen('adminMessages');
+            renderAdminThreads();
         });
         
         // 設定保存
@@ -5137,6 +5583,7 @@ function sanitizeAIText(raw) {
         // 実験イベント
         document.getElementById('startExperimentBtn').addEventListener('click', startExperiment);
         document.getElementById('openConsentBtn').addEventListener('click', openConsentPage);
+        document.getElementById('openSupportChatBtn').addEventListener('click', openSupportChatModal);
         document.getElementById('submitConsentBtn').addEventListener('click', submitConsentForm);
         document.getElementById('cancelConsentBtn').addEventListener('click', cancelConsentFlow);
         document.getElementById('backToModeSelectBtn').addEventListener('click', () => {
@@ -5145,6 +5592,8 @@ function sanitizeAIText(raw) {
         document.getElementById('submitAnalysisBtn').addEventListener('click', submitAnalysis);
         document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
         document.getElementById('finishChatBtn').addEventListener('click', finishChat);
+        document.getElementById('adminSendMessageBtn').addEventListener('click', sendAdminSupportMessage);
+        document.getElementById('closeAdminChatBtn').addEventListener('click', closeAdminChat);
         document.getElementById('completeExperimentBtn').addEventListener('click', function() {
             selectMode('none');
         });
