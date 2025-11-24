@@ -1940,8 +1940,10 @@ function sanitizeAIText(raw) {
               }
             );
 
-          channel.subscribe().catch((subError) => {
-            console.warn(`リアルタイム購読に失敗しました (${settingId}):`, subError);
+          channel.subscribe((status) => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn(`リアルタイム購読に失敗しました (${settingId}):`, status);
+            }
           });
         } catch (subscriptionError) {
           console.warn(`リアルタイム購読設定エラー (${settingId}):`, subscriptionError);

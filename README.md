@@ -172,3 +172,44 @@ create policy "anon can insert consent_submissions"
 ```
 
 > 上記は「Anon ロールを信頼する」ことを前提にしています。Supabase Auth ユーザーごとにデータを分離したい場合は `auth.uid()` や `jwt()` のクレームを使った条件式に置き換えてください。その場合、フロントエンドの supabase クライアントを匿名キーではなく認証済みのセッションで初期化する必要があります。
+
+### サポートメッセージ用の RLS 例
+
+参加者の送信ボタンで `new row violates row-level security policy for table "support_messages"` が出る場合は、以下のように `anon` ロールを許可するポリシーを追加してください（管理者は `authenticated` または `service_role` 前提）。Supabase Auth のサインインを使わず匿名キーだけで接続する場合は `current_setting('request.jwt.claims.sub', true)` が `NULL` になるため、そのケースも許可しています。
+
+```sql
+alter table support_messages enable row level security;
+
+-- 参加者が自分のスレッドを参照/投稿
+create policy "anon can read support_messages"
+  on support_messages
+  for select
+  using (
+    auth.role() = 'anon'
+    and (
+      current_setting('request.jwt.claims.sub', true) is null
+      or user_id = current_setting('request.jwt.claims.sub', true)
+    )
+  );
+
+create policy "anon can insert support_messages"
+  on support_messages
+  for insert
+  with check (
+    auth.role() = 'anon'
+    and sender_type = 'user'
+    and (
+      current_setting('request.jwt.claims.sub', true) is null
+      or user_id = current_setting('request.jwt.claims.sub', true)
+    )
+  );
+
+-- 管理者が全件参照・返信（dashboard / service_role 想定）
+create policy "admins manage support_messages"
+  on support_messages
+  for all
+  using (auth.role() in ('authenticated', 'service_role'))
+  with check (auth.role() in ('authenticated', 'service_role'));
+```
+
+> Supabase Auth で参加者ごとに JWT を発行している場合は `current_setting('request.jwt.claims.sub', true)` 部分を適切なクレーム名に合わせてください。逆に匿名キーだけで利用する場合は、上記のように `sub` が `NULL` でも通る条件を残しておかないと RLS で拒否されます。
