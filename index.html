@@ -1852,16 +1852,12 @@ function sanitizeAIText(raw) {
             await loadAdminSettings();
             await loadScenarios();
             await loadConsentSettings();
-            await loadExperimentLogs();
-            await loadConsentSubmissions();
-            await loadSupportMessages();
 
             loadAdminConfigUI();
             updateScenarioList();
-            updateLogsList();
             updateConsentAdminUI();
-            
-            console.log('✅ Supabaseからデータ読み込み完了');
+
+            console.log('✅ Supabaseから主要設定を読み込み完了');
         } catch (error) {
             console.error('❌ Supabaseデータ読み込みエラー:', error);
             loadFromLocalStorage();
@@ -2150,17 +2146,30 @@ function sanitizeAIText(raw) {
     }
 
     // Supabaseから実験ログを読み込み
-    async function loadExperimentLogs() {
+    async function loadExperimentLogs({ participantId } = {}) {
         if (!supabase) return;
-        
+
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('experiment_logs')
                 .select('*')
                 .order('created_at', { ascending: false });
-            
+
+            if (participantId) {
+                query = query.eq('participant_id', participantId);
+            }
+
+            const { data, error } = await query;
+
             if (error) throw error;
-            experimentLogs = data || [];
+
+            if (participantId) {
+                const others = experimentLogs.filter(log => log.participant_id !== participantId);
+                experimentLogs = [...others, ...(data || [])];
+                experimentLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } else {
+                experimentLogs = data || [];
+            }
         } catch (error) {
             console.error('実験ログ読み込みエラー:', error);
         }
@@ -2201,20 +2210,34 @@ function sanitizeAIText(raw) {
         localStorage.setItem(LOCAL_SUPPORT_MESSAGES_KEY, JSON.stringify(supportMessages));
     }
 
-    async function loadSupportMessages() {
+    async function loadSupportMessages({ participantId } = {}) {
         if (!supabase) {
             renderSupportUI();
             return;
         }
 
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('support_messages')
                 .select('*')
                 .order('created_at', { ascending: true });
 
+            if (participantId) {
+                query = query.eq('user_id', participantId);
+            }
+
+            const { data, error } = await query;
+
             if (error) throw error;
-            supportMessages = (data || []).map(normalizeSupportMessage);
+
+            const normalized = (data || []).map(normalizeSupportMessage);
+            if (participantId) {
+                const others = supportMessages.filter(msg => msg.user_id !== participantId);
+                supportMessages = [...others, ...normalized];
+            } else {
+                supportMessages = normalized;
+            }
+
             saveSupportMessagesToLocal();
             renderSupportUI();
         } catch (error) {
@@ -2367,7 +2390,7 @@ function sanitizeAIText(raw) {
         renderSupportMessages(container, messages);
     }
 
-    function openSupportChatModal() {
+    async function openSupportChatModal() {
         const userId = (participantId || document.getElementById('participantId').value || '').trim();
         if (!userId) {
             alert('日付選択画面で参加者IDを入力してください。');
@@ -2375,6 +2398,10 @@ function sanitizeAIText(raw) {
         }
 
         activeSupportUserId = userId;
+
+        if (supabase) {
+            await loadSupportMessages({ participantId: userId });
+        }
 
         const existing = document.getElementById('supportChatOverlay');
         if (existing) existing.remove();
@@ -2636,13 +2663,17 @@ function sanitizeAIText(raw) {
               };
 
 
-          
+
             const { error } = await supabase
                 .from('experiment_logs')
                 .insert(payload);
-            
+
             if (error) throw error;
-            await loadExperimentLogs();
+            if (isAdminAuthenticated) {
+                await loadExperimentLogs();
+            } else {
+                await loadExperimentLogs({ participantId: logData.participantId });
+            }
             updateLogsList?.();
         } catch (error) {
             console.error('実験ログ保存エラー:', error);
@@ -2884,20 +2915,39 @@ function sanitizeAIText(raw) {
         document.getElementById(screenId).classList.add('active');
     }
 
+    async function loadAdminDataOnAccess() {
+        if (!supabase) return;
+
+        try {
+            await Promise.all([
+                loadExperimentLogs(),
+                loadConsentSubmissions(),
+                loadSupportMessages(),
+            ]);
+
+            updateLogsList();
+            updateConsentAdminUI();
+            renderSupportUI();
+        } catch (error) {
+            console.error('❌ 管理者データ読み込みエラー:', error);
+        }
+    }
+
     // 管理者認証
-    function attemptAdminAccess() {
+    async function attemptAdminAccess() {
         const inputPassword = document.getElementById('adminPassword').value;
         const errorDiv = document.getElementById('adminAccessError');
-        
+
         if (!inputPassword) {
             errorDiv.innerHTML = '<div class="status error">パスワードを入力してください</div>';
             return;
         }
-        
+
         if (inputPassword === adminConfig.adminPassword) {
             isAdminAuthenticated = true;
             errorDiv.innerHTML = '<div class="status success">認証成功！</div>';
             document.getElementById('adminPassword').value = '';
+            loadAdminDataOnAccess();
             setTimeout(() => selectMode('admin'), 1000);
         } else {
             errorDiv.innerHTML = '<div class="status error">パスワードが間違っています</div>';
@@ -4207,7 +4257,11 @@ function sanitizeAIText(raw) {
                 alert('シナリオが設定されていません');
                 return;
             }
-            
+
+            if (supabase) {
+                await loadExperimentLogs({ participantId });
+            }
+
             // 過去のログをチェック
             const shouldContinue = await checkPreviousLogs(participantId, currentDay);
             if (!shouldContinue) {
@@ -5408,21 +5462,15 @@ function sanitizeAIText(raw) {
       try {
         await initializeSupabase();  // Supabaseの初期化
         console.log('✅ Supabase 同期完了');
-        
+
 
         await fetchAdminConfig();     // 管理設定の取得（adminConfig に読み込み）
         loadAdminConfigUI();          // UIへの反映
-        if (supabase) await loadUserSessionsUI();
-        // アンケート系は参加者モード時に処理するように変更
-          await loadSurveys(); // アンケートデータを読み込み
-          console.log('📋 アンケート機能が初期化されました');
+        await loadSurveys(); // アンケート定義のみを読み込み（結果の全件取得は遅延）
+        console.log('📋 アンケート機能が初期化されました');
 
-          // アンケート結果の読み込みを強制実行
-          await loadSurveyResultsForDisplay();
-          console.log('📊 アンケート結果の読み込みが完了しました');
-
-          resetConsentForm();
-          renderConsentPdf();
+        resetConsentForm();
+        renderConsentPdf();
 
 
           // ✅ 管理設定のリアルタイム監視を開始（Supabase初期化成功時のみ）
@@ -5465,11 +5513,11 @@ function sanitizeAIText(raw) {
         document.getElementById('resultDay').addEventListener('change', displaySurveyResults);
         
         // 管理者ナビゲーションイベント
-        document.getElementById('adminSurveysNav').addEventListener('click', () => {
+        document.getElementById('adminSurveysNav').addEventListener('click', async () => {
             showAdminScreen('adminSurveys');
             document.querySelectorAll('#adminNav .nav-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('adminSurveysNav').classList.add('active');
-            loadSurveys();
+            await loadSurveys({ includeResults: true });
         });
         document.getElementById('showUserSessionsBtn').addEventListener('click', function() {
             const section = document.getElementById('userSessionsSection');
@@ -5522,8 +5570,9 @@ function sanitizeAIText(raw) {
             showAdminScreen('adminScenarios');
         });
 
-        document.getElementById('adminConsentNav').addEventListener('click', () => {
+        document.getElementById('adminConsentNav').addEventListener('click', async () => {
             showAdminScreen('adminConsent');
+            await loadConsentSubmissions();
             updateConsentAdminUI();
         });
 
@@ -5532,12 +5581,15 @@ function sanitizeAIText(raw) {
             updateAssignmentsList();
         });
 
-        document.getElementById('adminLogsNav').addEventListener('click', () => {
+        document.getElementById('adminLogsNav').addEventListener('click', async () => {
             showAdminScreen('adminLogs');
+            await loadExperimentLogs();
+            updateLogsList();
         });
 
-        document.getElementById('adminMessagesNav').addEventListener('click', () => {
+        document.getElementById('adminMessagesNav').addEventListener('click', async () => {
             showAdminScreen('adminMessages');
+            await loadSupportMessages();
             renderAdminThreads();
         });
         
@@ -5741,7 +5793,7 @@ function sanitizeAIText(raw) {
     }
     
     // アンケートデータの読み込み
-    async function loadSurveys() {
+    async function loadSurveys({ includeResults = false } = {}) {
         if (!supabase) {
             // ローカルストレージから読み込み
             const savedSurveys = localStorage.getItem('mentalizeSurveys');
@@ -5753,7 +5805,9 @@ function sanitizeAIText(raw) {
                 }
             }
             updateSurveyList();
-            loadSurveyResultsForDisplay();
+            if (includeResults) {
+                await loadSurveyResultsForDisplay();
+            }
             return;
         }
         
@@ -5772,9 +5826,11 @@ function sanitizeAIText(raw) {
                 surveys = [];
                 await saveSurveys(); // 空の配列で初期化
             }
-            
+
             updateSurveyList();
-            loadSurveyResultsForDisplay();
+            if (includeResults) {
+                await loadSurveyResultsForDisplay();
+            }
             console.log('✅ アンケートデータ読み込み完了');
         } catch (error) {
             console.error('❌ アンケートデータ読み込みエラー:', error);
