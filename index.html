@@ -1953,6 +1953,11 @@ function sanitizeAIText(raw) {
         console.log('⚠️ Supabase未接続のため、ユーザーセッション一覧をスキップします');
         return;
       }
+
+      if (!isAdminAuthenticated) {
+        console.log('⚠️ 管理者以外のユーザーセッション全件表示をスキップします');
+        return;
+      }
       
       try {
         const { data, error } = await supabase
@@ -2149,6 +2154,12 @@ function sanitizeAIText(raw) {
     async function loadExperimentLogs({ participantId } = {}) {
         if (!supabase) return;
 
+        // 参加者ID指定なしでの全件読み込みは管理者のみ許可
+        if (!participantId && !isAdminAuthenticated) {
+            console.warn('⚠️ 管理者以外の全件ログ読み込みをブロックしました');
+            return;
+        }
+
         try {
             let query = supabase
                 .from('experiment_logs')
@@ -2178,6 +2189,12 @@ function sanitizeAIText(raw) {
     // 同意書提出履歴を読み込み
     async function loadConsentSubmissions({ participantId } = {}) {
         if (!supabase) return;
+
+        // 参加者ID指定なしでの全件読み込みは管理者のみ許可
+        if (!participantId && !isAdminAuthenticated) {
+            console.warn('⚠️ 管理者以外の全件同意履歴読み込みをブロックしました');
+            return;
+        }
 
         try {
             let query = supabase
@@ -2227,6 +2244,12 @@ function sanitizeAIText(raw) {
     async function loadSupportMessages({ participantId } = {}) {
         if (!supabase) {
             renderSupportUI();
+            return;
+        }
+
+        // 参加者ID指定なしでの全件読み込みは管理者のみ許可
+        if (!participantId && !isAdminAuthenticated) {
+            console.warn('⚠️ 管理者以外の全件メッセージ読み込みをブロックしました');
             return;
         }
 
@@ -4238,10 +4261,11 @@ function sanitizeAIText(raw) {
         }
         startBtn.disabled = true;
         startBtn.textContent = '処理中...';
-        
+
         try {
             participantId = document.getElementById('participantId').value;
             currentDay = parseInt(document.getElementById('experimentDay').value);
+            sessionFinalized = false;
             
             if (!participantId) {
                 alert('参加者IDを入力してください');
@@ -4354,6 +4378,12 @@ function sanitizeAIText(raw) {
             return;
         }
 
+        // 重複保存防止
+        if (sessionFinalized) {
+            console.warn('⚠️ 既にセッションが完了しています。重複保存をスキップしました');
+            return;
+        }
+
        const experimentType =
          (currentDay === 1 || currentDay === 7) ? 'self_analysis' : 'agent_assisted';
 
@@ -4388,6 +4418,8 @@ function sanitizeAIText(raw) {
         // 実験終了後は制御ボタンを隠す
         document.getElementById('pauseExperimentBtn').style.display = 'none';
         document.getElementById('quitExperimentBtn').style.display = 'none';
+
+        sessionFinalized = true;
     }
 
     function initializeChat() {
@@ -5016,6 +5048,12 @@ function sanitizeAIText(raw) {
             return;
         }
 
+        // 重複保存防止
+        if (sessionFinalized) {
+            console.warn('⚠️ 既にセッションが完了しています。重複保存をスキップしました');
+            return;
+        }
+
         const sessionDuration = getSessionElapsedInfo();
         // セッションタイマーを対話終了時点で停止（アンケート回答時間を含めない）
         stopSessionTimer();
@@ -5045,10 +5083,12 @@ function sanitizeAIText(raw) {
         document.getElementById('progressFill').style.width = '100%';
         document.getElementById('agentChat').style.display = 'none';
         document.getElementById('experimentComplete').style.display = 'block';
-        
+
         // 対話終了後は一時中断・やめるボタンを非表示
         document.getElementById('pauseExperimentBtn').style.display = 'none';
         document.getElementById('quitExperimentBtn').style.display = 'none';
+
+        sessionFinalized = true;
     }
 
     // セッションタイマー関連の変数
@@ -5056,6 +5096,7 @@ function sanitizeAIText(raw) {
     let timerInterval = null;
     let accumulatedTime = 0; // 蓄積された経過時間（ミリ秒）
     let isPaused = false;
+    let sessionFinalized = false;
 
     function formatDuration(milliseconds) {
         const safeMs = Number.isFinite(milliseconds) && milliseconds > 0 ? milliseconds : 0;
@@ -5232,6 +5273,7 @@ function sanitizeAIText(raw) {
         stopSessionTimer();
         isPaused = false;
         accumulatedTime = 0;
+        sessionFinalized = false;
         
         // 実験データを完全にクリア
         document.getElementById('experimentContent').style.display = 'none';
