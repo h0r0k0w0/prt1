@@ -2929,24 +2929,6 @@ function sanitizeAIText(raw) {
         document.getElementById(screenId).classList.add('active');
     }
 
-    async function loadAdminDataOnAccess() {
-        if (!supabase) return;
-
-        try {
-            await Promise.all([
-                loadExperimentLogs(),
-                loadConsentSubmissions(),
-                loadSupportMessages(),
-            ]);
-
-            updateLogsList();
-            updateConsentAdminUI();
-            renderSupportUI();
-        } catch (error) {
-            console.error('❌ 管理者データ読み込みエラー:', error);
-        }
-    }
-
     // 管理者認証
     async function attemptAdminAccess() {
         const inputPassword = document.getElementById('adminPassword').value;
@@ -2961,7 +2943,6 @@ function sanitizeAIText(raw) {
             isAdminAuthenticated = true;
             errorDiv.innerHTML = '<div class="status success">認証成功！</div>';
             document.getElementById('adminPassword').value = '';
-            loadAdminDataOnAccess();
             setTimeout(() => selectMode('admin'), 1000);
         } else {
             errorDiv.innerHTML = '<div class="status error">パスワードが間違っています</div>';
@@ -4375,8 +4356,10 @@ function sanitizeAIText(raw) {
 
        const experimentType =
          (currentDay === 1 || currentDay === 7) ? 'self_analysis' : 'agent_assisted';
-        
+
        const sessionDuration = getSessionElapsedInfo();
+       // セッションタイマーを分析提出時点で停止（アンケート回答時間を除外）
+       stopSessionTimer();
 
        await saveExperimentLog({
          participantId,
@@ -4401,6 +4384,10 @@ function sanitizeAIText(raw) {
         document.getElementById('progressFill').style.width = '100%';
         document.getElementById('selfMentalize').style.display = 'none';
         document.getElementById('experimentComplete').style.display = 'block';
+
+        // 実験終了後は制御ボタンを隠す
+        document.getElementById('pauseExperimentBtn').style.display = 'none';
+        document.getElementById('quitExperimentBtn').style.display = 'none';
     }
 
     function initializeChat() {
@@ -5030,6 +5017,8 @@ function sanitizeAIText(raw) {
         }
 
         const sessionDuration = getSessionElapsedInfo();
+        // セッションタイマーを対話終了時点で停止（アンケート回答時間を含めない）
+        stopSessionTimer();
 
         await saveExperimentLog({
           participantId,
@@ -5056,9 +5045,6 @@ function sanitizeAIText(raw) {
         document.getElementById('progressFill').style.width = '100%';
         document.getElementById('agentChat').style.display = 'none';
         document.getElementById('experimentComplete').style.display = 'block';
-        
-        // セッションタイマーを停止
-        stopSessionTimer();
         
         // 対話終了後は一時中断・やめるボタンを非表示
         document.getElementById('pauseExperimentBtn').style.display = 'none';
