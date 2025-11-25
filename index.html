@@ -2176,17 +2176,31 @@ function sanitizeAIText(raw) {
     }
 
     // 同意書提出履歴を読み込み
-    async function loadConsentSubmissions() {
+    async function loadConsentSubmissions({ participantId } = {}) {
         if (!supabase) return;
 
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('consent_submissions')
                 .select('*')
                 .order('created_at', { ascending: false });
 
+            if (participantId) {
+                query = query.eq('user_id', participantId);
+            }
+
+            const { data, error } = await query;
+
             if (error) throw error;
-            consentSubmissions = data || [];
+
+            const fetched = data || [];
+            if (participantId) {
+                const others = consentSubmissions.filter((row) => row.user_id !== participantId);
+                consentSubmissions = [...fetched, ...others].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } else {
+                consentSubmissions = fetched;
+            }
+
             const fetchedIds = new Set(consentSubmissions.map((row) => row.user_id));
             knownLocalConsentIds = new Set([...knownLocalConsentIds, ...fetchedIds]);
             localStorage.setItem(LOCAL_CONSENT_KNOWN_IDS_KEY, JSON.stringify(Array.from(knownLocalConsentIds)));
@@ -4191,7 +4205,7 @@ function sanitizeAIText(raw) {
         if (error) throw error;
 
         saveKnownConsentId(userId);
-        await loadConsentSubmissions();
+        await loadConsentSubmissions({ participantId: userId });
     }
 
     async function submitConsentForm() {
