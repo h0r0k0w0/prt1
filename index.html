@@ -4889,7 +4889,7 @@ function sanitizeAIText(raw) {
                 return parsed;
             } catch (error) {
                 console.error('AI API エラー:', error);
-                const fallbackMessage = '申し訳ございません、AIサービスに接続できませんでした。デモモードで続行します。';
+                const fallbackMessage = '申し訳ございません、AIサービスに接続できませんでした。再送してください。デモモードが稼働中です。';
                 return {
                     reply: fallbackMessage,
                     state: currentStructuredState,
