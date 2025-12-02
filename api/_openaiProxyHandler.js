@@ -261,6 +261,26 @@ function buildErrorResponse(options, error) {
   return response;
 }
 
+function logUsageToConsole(usage, model) {
+  if (!usage || typeof usage !== 'object') return;
+
+  const summary = {
+    model,
+    inputTokens: usage.input_tokens ?? usage.prompt_tokens ?? null,
+    outputTokens: usage.output_tokens ?? usage.completion_tokens ?? null,
+    reasoningTokens: usage.reasoning_tokens ?? null,
+    totalTokens: usage.total_tokens ?? null,
+  };
+
+  const filtered = Object.fromEntries(
+    Object.entries(summary).filter(([, value]) => value != null),
+  );
+
+  if (Object.keys(filtered).length > 1) {
+    console.log('OpenAI token usage:', filtered);
+  }
+}
+
 async function forwardToOpenAI(apiKey, payload) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -493,6 +513,8 @@ export function createOpenAIProxyHandler(options = {}) {
       if (!response.ok) {
         return handleOpenAiError(res, data, requestPayload);
       }
+
+      logUsageToConsole(data?.usage, requestPayload.model);
 
       const normalizedResponse = normalizeOpenAIResponse(data, requestPayload);
       if (normalizedResponse) {
