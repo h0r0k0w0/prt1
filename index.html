@@ -1796,6 +1796,27 @@ function sanitizeAIText(raw) {
         if (!modelName) return false;
         return modelName.toLowerCase().startsWith('gpt-5');
     }
+
+    function logOpenAiUsage(data) {
+        const usage = data?.usage;
+        if (!usage || typeof usage !== 'object') return;
+
+        const summary = {
+            inputTokens: usage.input_tokens ?? usage.prompt_tokens ?? null,
+            outputTokens: usage.output_tokens ?? usage.completion_tokens ?? null,
+            reasoningTokens: usage.reasoning_tokens ?? null,
+            totalTokens: usage.total_tokens ?? null,
+        };
+
+        const filtered = Object.fromEntries(
+            Object.entries(summary).filter(([, value]) => value != null)
+        );
+
+        if (!Object.keys(filtered).length) return;
+
+        const model = typeof data?.model === 'string' ? data.model : undefined;
+        console.log('🧮 OpenAI token usage:', model ? { model, ...filtered } : filtered);
+    }
     
     let currentScenarioIndex = 0;
     let currentDay = 1;
@@ -4875,6 +4896,10 @@ function sanitizeAIText(raw) {
                 const requestEndTime = performance.now();
                 const responseTime = Math.round(requestEndTime - requestStartTime);
                 console.log(`⚡ AI Response - Time: ${responseTime}ms, Model: ${adminConfig.model}`);
+
+                if (adminConfig.apiProvider === 'openai') {
+                    logOpenAiUsage(data);
+                }
 
                 const parsed = parseResponse(data);
                 if (!parsed || typeof parsed.reply !== 'string') {
