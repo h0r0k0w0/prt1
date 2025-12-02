@@ -1804,7 +1804,11 @@ function sanitizeAIText(raw) {
         const summary = {
             inputTokens: usage.input_tokens ?? usage.prompt_tokens ?? null,
             outputTokens: usage.output_tokens ?? usage.completion_tokens ?? null,
-            reasoningTokens: usage.reasoning_tokens ?? null,
+            reasoningTokens:
+                usage.reasoning_tokens ??
+                usage.output_tokens_details?.reasoning_tokens ??
+                usage.completion_tokens_details?.reasoning_tokens ??
+                null,
             totalTokens: usage.total_tokens ?? null,
         };
 
