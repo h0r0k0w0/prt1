@@ -1143,8 +1143,12 @@
                 <div class="admin-config">
                     <h3>👥 セッション管理</h3>
                     <div class="form-group">
-                        <label for="minimumSessionTime">最低セッション時間（分）</label>
-                        <input type="number" id="minimumSessionTime" min="1" max="60" value="5" placeholder="最低実験時間を分で入力">
+                        <label for="minimumSessionTimeDay1And7">最低セッション時間（分） - 1日目・7日目</label>
+                        <input type="number" id="minimumSessionTimeDay1And7" min="1" max="60" value="5" placeholder="1日目・7日目の最低実験時間を分で入力">
+                    </div>
+                    <div class="form-group">
+                        <label for="minimumSessionTimeDay2To6">最低セッション時間（分） - 2日目〜6日目</label>
+                        <input type="number" id="minimumSessionTimeDay2To6" min="1" max="60" value="5" placeholder="2日目〜6日目の最低実験時間を分で入力">
                         <small style="color: #6c757d;">この時間に達するまで分析提出・対話終了が無効になります</small>
                     </div>
                     <button id="saveSessionConfigBtn" class="btn" style="margin-bottom: 20px;">セッション設定を保存</button>
@@ -1751,7 +1755,9 @@ function sanitizeAIText(raw) {
         },
         sessionTimeout: 60,
         showSessionTimer: true,
-        minimumSessionTime: 300, // 最低セッション時間（秒）- デフォルト5分
+        minimumSessionTimeDay1And7: 300, // 1日目・7日目の最低セッション時間（秒）
+        minimumSessionTimeDay2To6: 300,  // 2日目〜6日目の最低セッション時間（秒）
+        minimumSessionTime: 300, // 互換性保持用（旧設定）
         systemPrompt: 'あなたは心理学の専門家として、メンタライズ（他者の心の理解）を教えるエージェントです。学生の考えを肯定的に受け止め、より深い分析を促す質問をしてください。温かく支援的な口調で話してください。',
         modelNotes: '',
     };
@@ -1777,6 +1783,19 @@ function sanitizeAIText(raw) {
         const merged = { ...base, ...incoming };
         merged.openaiParams = { ...(base.openaiParams || {}), ...(incoming.openaiParams || {}) };
         merged.claudeParams = { ...(base.claudeParams || {}), ...(incoming.claudeParams || {}) };
+
+        const legacyMinimum = incoming.minimumSessionTime;
+        merged.minimumSessionTimeDay1And7 =
+          incoming.minimumSessionTimeDay1And7 ??
+          base.minimumSessionTimeDay1And7 ??
+          legacyMinimum ??
+          base.minimumSessionTime;
+        merged.minimumSessionTimeDay2To6 =
+          incoming.minimumSessionTimeDay2To6 ??
+          base.minimumSessionTimeDay2To6 ??
+          legacyMinimum ??
+          base.minimumSessionTime;
+
         if (!merged.adminPassword) {
             merged.adminPassword = DEFAULT_ADMIN_PASSWORD;
         }
@@ -3284,40 +3303,65 @@ function sanitizeAIText(raw) {
     }
 
     async function saveSessionConfig() {
-        const minimumTimeMinutes = parseInt(document.getElementById('minimumSessionTime').value);
-        adminConfig.minimumSessionTime = minimumTimeMinutes * 60; // 分を秒に変換
+        const day1And7Minutes = parseInt(document.getElementById('minimumSessionTimeDay1And7').value);
+        const day2To6Minutes = parseInt(document.getElementById('minimumSessionTimeDay2To6').value);
+
+        adminConfig.minimumSessionTimeDay1And7 = Number.isFinite(day1And7Minutes) ? day1And7Minutes * 60 : 0; // 分を秒に変換
+        adminConfig.minimumSessionTimeDay2To6 = Number.isFinite(day2To6Minutes) ? day2To6Minutes * 60 : 0;   // 分を秒に変換
+        adminConfig.minimumSessionTime = adminConfig.minimumSessionTimeDay1And7; // 互換性維持用
         await saveAdminSettings();
         alert('セッション設定が保存されました！');
     }
 
+    function getMinimumSessionTimeForDay(day = currentDay) {
+        const targetDay = Number.isFinite(day) ? day : currentDay;
+        const isSelfMentalizeDay = targetDay === 1 || targetDay === 7;
+
+        const minimumSeconds = isSelfMentalizeDay
+            ? adminConfig.minimumSessionTimeDay1And7
+            : adminConfig.minimumSessionTimeDay2To6;
+
+        if (Number.isFinite(minimumSeconds) && minimumSeconds > 0) {
+            return minimumSeconds;
+        }
+
+        if (Number.isFinite(adminConfig.minimumSessionTime) && adminConfig.minimumSessionTime > 0) {
+            return adminConfig.minimumSessionTime;
+        }
+
+        return 0;
+    }
+
     // 最低セッション時間が経過したかチェック
     function hasMinimumTimeElapsed() {
-        if (!adminConfig.minimumSessionTime) {
+        const minimumRequiredSeconds = getMinimumSessionTimeForDay();
+        if (!minimumRequiredSeconds) {
             return true; // 最低時間が設定されていない場合は許可
         }
-        
+
         let totalElapsed = accumulatedTime; // 蓄積された時間
         if (sessionStartTime && !isPaused) {
             totalElapsed += new Date() - sessionStartTime; // 現在セッションの時間
         }
-        
+
         const elapsedSeconds = totalElapsed / 1000; // 経過時間を秒で計算
-        return elapsedSeconds >= adminConfig.minimumSessionTime;
+        return elapsedSeconds >= minimumRequiredSeconds;
     }
 
     // 残り時間を取得（秒）
     function getRemainingTime() {
-        if (!adminConfig.minimumSessionTime) {
+        const minimumRequiredSeconds = getMinimumSessionTimeForDay();
+        if (!minimumRequiredSeconds) {
             return 0;
         }
-        
+
         let totalElapsed = accumulatedTime; // 蓄積された時間
         if (sessionStartTime && !isPaused) {
             totalElapsed += new Date() - sessionStartTime; // 現在セッションの時間
         }
-        
+
         const elapsedSeconds = totalElapsed / 1000;
-        const remaining = adminConfig.minimumSessionTime - elapsedSeconds;
+        const remaining = minimumRequiredSeconds - elapsedSeconds;
         return Math.max(0, Math.ceil(remaining));
     }
 
@@ -3401,8 +3445,11 @@ function sanitizeAIText(raw) {
         const modelNotesInput = document.getElementById('modelNotes');
         if (modelNotesInput) modelNotesInput.value = adminConfig.modelNotes || '';
 
-        const minimumSessionTimeInput = document.getElementById('minimumSessionTime');
-        if (minimumSessionTimeInput) minimumSessionTimeInput.value = Math.floor((adminConfig.minimumSessionTime || 300) / 60); // 秒を分に変換
+        const minimumSessionTimeDay1And7Input = document.getElementById('minimumSessionTimeDay1And7');
+        if (minimumSessionTimeDay1And7Input) minimumSessionTimeDay1And7Input.value = Math.floor((adminConfig.minimumSessionTimeDay1And7 ?? adminConfig.minimumSessionTime ?? 300) / 60); // 秒を分に変換
+
+        const minimumSessionTimeDay2To6Input = document.getElementById('minimumSessionTimeDay2To6');
+        if (minimumSessionTimeDay2To6Input) minimumSessionTimeDay2To6Input.value = Math.floor((adminConfig.minimumSessionTimeDay2To6 ?? adminConfig.minimumSessionTime ?? 300) / 60); // 秒を分に変換
         
         const adminMemoInput = document.getElementById('adminMemo');
         if (adminMemoInput) adminMemoInput.value = adminConfig.adminMemo || '';
